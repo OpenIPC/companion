@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -326,6 +327,7 @@ public partial class PresetsTabViewModel : ViewModelBase
                 {
                     try
                     {
+                        Debug.WriteLine($"Loading remote preset from {presetPath}");
                         var preset = Preset.LoadFromFile(presetPath);
                         await _presetService.LoadPresetFilesAsync(preset);
 
