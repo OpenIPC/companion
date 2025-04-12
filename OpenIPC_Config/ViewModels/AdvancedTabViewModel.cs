@@ -48,6 +48,12 @@ public partial class AdvancedTabViewModel : ViewModelBase
 
     [ObservableProperty] private string _adaptiveLinkVersion = "Unknown";
 
+    [ObservableProperty]
+    private string _msposdMessageContent = "Custom Message... &L04 &F22 CPU:&C &B temp:&T\nLine 2 with more data";
+
+    [ObservableProperty]
+    private bool _isMsposdEnabledOnBoot;
+    
     #endregion
 
     #region Commands
@@ -59,6 +65,12 @@ public partial class AdvancedTabViewModel : ViewModelBase
 
     // Command property for toggling alink_drone
     public IAsyncRelayCommand ToggleAlinkDroneCommand { get; set; }
+    
+    public IAsyncRelayCommand PreviewMsposdMessageCommand { get; }
+    public IAsyncRelayCommand ApplyMsposdMessageCommand { get; }
+    public IAsyncRelayCommand SaveMsposdDefaultCommand { get; }
+    public IAsyncRelayCommand ResetMsposdMessageCommand { get; }
+
 
     #endregion
 
@@ -79,6 +91,11 @@ public partial class AdvancedTabViewModel : ViewModelBase
         ViewSystemLogsCommand = new AsyncRelayCommand(ViewSystemLogsAsync);
         NetworkDiagnosticsCommand = new AsyncRelayCommand(NetworkDiagnosticsAsync);
         ToggleAlinkDroneCommand = new AsyncRelayCommand(async () => await ToggleAlinkDroneAsync());
+        PreviewMsposdMessageCommand = new AsyncRelayCommand(PreviewMsposdMessageAsync);
+        ApplyMsposdMessageCommand = new AsyncRelayCommand(ApplyMsposdMessageAsync);
+        SaveMsposdDefaultCommand = new AsyncRelayCommand(SaveMsposdDefaultAsync);
+        ResetMsposdMessageCommand = new AsyncRelayCommand(ResetMsposdMessageAsync);
+
     }
 
     #region Adaptive Link Methods
@@ -99,7 +116,7 @@ public partial class AdvancedTabViewModel : ViewModelBase
             }
 
             // Toggle the value - this will be from the current to the new state
-            bool newValue = !IsAlinkDroneEnabled;
+            bool newValue = IsAlinkDroneEnabled;
 
             // Execute the appropriate command based on the NEW value
             string command = newValue
@@ -625,6 +642,8 @@ public partial class AdvancedTabViewModel : ViewModelBase
             {
                 try 
                 {
+                    Logger.Debug("CheckMsposdBootStatusAsync");
+                    await CheckMsposdBootStatusAsync();
                     Logger.Debug("Starting Adaptive Link status check");
                     await CheckAdaptiveLinkStatusAsync();
                     Logger.Debug("Starting Alink Drone status check");
@@ -640,4 +659,194 @@ public partial class AdvancedTabViewModel : ViewModelBase
     }
 
     #endregion
+    
+    #region MSPOSD Methods
+
+private async Task PreviewMsposdMessageAsync()
+{
+    try
+    {
+        if (!DeviceConfig.Instance.CanConnect)
+        {
+            UpdateUIMessage("Device not connected. Cannot preview MSPOSD message.");
+            return;
+        }
+
+        UpdateUIMessage("Previewing MSPOSD message...");
+
+        // Escape the message content for shell
+        string escapedMessage = MsposdMessageContent
+            .Replace("\"", "\\\"")
+            .Replace("$", "\\$")
+            .Replace("`", "\\`");
+
+        // Command to show the message temporarily
+        string command = $"echo \"{escapedMessage}\" > /tmp/MSPOSD.msg";
+        
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var result = await SshClientService.ExecuteCommandWithResponseAsync(
+            DeviceConfig.Instance, 
+            command, 
+            cts.Token);
+
+        
+    }
+    catch (Exception ex)
+    {
+        Logger.Error(ex, "Error previewing MSPOSD message");
+        UpdateUIMessage($"Error previewing MSPOSD message: {ex.Message}");
+    }
+}
+
+private async Task ApplyMsposdMessageAsync()
+{
+    try
+    {
+        if (!DeviceConfig.Instance.CanConnect)
+        {
+            UpdateUIMessage("Device not connected. Cannot apply MSPOSD message.");
+            return;
+        }
+
+        UpdateUIMessage("Applying MSPOSD message...");
+
+        // Escape the message content for shell
+        string escapedMessage = MsposdMessageContent
+            .Replace("\"", "\\\"")
+            .Replace("$", "\\$")
+            .Replace("`", "\\`");
+
+        // Command to show the message
+        string command = $"echo \"{escapedMessage}\" > /tmp/MSPOSD.msg";
+        
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var result = await SshClientService.ExecuteCommandWithResponseAsync(
+            DeviceConfig.Instance, 
+            command, 
+            cts.Token);
+
+        
+    }
+    catch (Exception ex)
+    {
+        Logger.Error(ex, "Error applying MSPOSD message");
+        UpdateUIMessage($"Error applying MSPOSD message: {ex.Message}");
+    }
+}
+
+private async Task SaveMsposdDefaultAsync()
+{
+    try
+    {
+        if (!DeviceConfig.Instance.CanConnect)
+        {
+            UpdateUIMessage("Device not connected. Cannot save MSPOSD defaults.");
+            return;
+        }
+
+        UpdateUIMessage("Saving MSPOSD defaults...");
+
+        // Escape the message content for shell
+        string escapedMessage = MsposdMessageContent
+            .Replace("\"", "\\\"")
+            .Replace("$", "\\$")
+            .Replace("`", "\\`");
+
+        // Create script to set MSPOSD message on boot
+        string createScriptCommand = 
+            "cat > /usr/bin/msposd_message.sh << 'EOL'\n" +
+            "#!/bin/sh\n" +
+            $"echo \"{escapedMessage}\" > /tmp/MSPOSD.msg\n" +
+            "EOL\n" +
+            "chmod +x /usr/bin/msposd_message.sh";
+        
+        // Command to update rc.local to run the script on boot if enabled
+        string updateRcLocalCommand = IsMsposdEnabledOnBoot 
+            ? "grep -q 'msposd_message.sh' /etc/rc.local || " +
+              "sed -i '/exit 0/i /usr/bin/msposd_message.sh' /etc/rc.local"
+            : "sed -i '/msposd_message.sh/d' /etc/rc.local";
+        
+        // Execute commands
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        
+        var scriptResult = await SshClientService.ExecuteCommandWithResponseAsync(
+            DeviceConfig.Instance, 
+            createScriptCommand, 
+            cts.Token);
+        
+        
+        var rcLocalResult = await SshClientService.ExecuteCommandWithResponseAsync(
+            DeviceConfig.Instance, 
+            updateRcLocalCommand, 
+            cts.Token);
+        
+        
+    }
+    catch (Exception ex)
+    {
+        Logger.Error(ex, "Error saving MSPOSD defaults");
+        UpdateUIMessage($"Error saving MSPOSD defaults: {ex.Message}");
+    }
+}
+
+private async Task ResetMsposdMessageAsync()
+{
+    try
+    {
+        if (!DeviceConfig.Instance.CanConnect)
+        {
+            UpdateUIMessage("Device not connected. Cannot reset MSPOSD message.");
+            return;
+        }
+
+        // Reset to default message
+        MsposdMessageContent = "Custom Message... &L04 &F22 CPU:&C &B temp:&T\nLine 2 with more data";
+        
+        // Clear the current message on device
+        string command = "rm -f /tmp/MSPOSD.msg";
+        
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var result = await SshClientService.ExecuteCommandWithResponseAsync(
+            DeviceConfig.Instance, 
+            command, 
+            cts.Token);
+
+        UpdateUIMessage("MSPOSD message reset to default.");
+    }
+    catch (Exception ex)
+    {
+        Logger.Error(ex, "Error resetting MSPOSD message");
+        UpdateUIMessage($"Error resetting MSPOSD message: {ex.Message}");
+    }
+}
+
+// Method to check if MSPOSD is enabled on boot
+private async Task CheckMsposdBootStatusAsync()
+{
+    if (!DeviceConfig.Instance.CanConnect)
+        return;
+
+    try
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var result = await SshClientService.ExecuteCommandWithResponseAsync(
+            DeviceConfig.Instance,
+            "grep -q 'msposd_message.sh' /etc/rc.local && echo 'true' || echo 'false'",
+            cts.Token);
+
+        bool isEnabled = result?.Result?.Trim().Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
+        
+        // Only update if status changed to avoid recursive property notifications
+        if (IsMsposdEnabledOnBoot != isEnabled)
+        {
+            IsMsposdEnabledOnBoot = isEnabled;
+        }
+    }
+    catch (Exception ex)
+    {
+        Logger.Error(ex, "Error checking MSPOSD boot status");
+    }
+}
+
+#endregion
 }

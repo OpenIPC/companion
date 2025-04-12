@@ -103,6 +103,7 @@
                                 <TextBlock VerticalAlignment="Center">Alink Drone on Boot:</TextBlock>
                                 <ToggleSwitch IsChecked="{Binding IsAlinkDroneEnabled}"
                                               IsEnabled="{Binding CanConnect}"
+                                              Command="{Binding ToggleAlinkDroneCommand}"
                                               OnContent="Enabled"
                                               OffContent="Disabled" />
                             </StackPanel>
@@ -128,7 +129,138 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Section 2: Debug Tools -->
+                    <!-- Section 2: Extra OSD -->
+                    <Border Background="#F0F0F0" CornerRadius="8" Padding="16" 
+                            IsEnabled="{Binding !IsAlinkDroneEnabled}"
+                            IsVisible="False">
+                        <StackPanel>
+                            <!-- Section Header -->
+                            <TextBlock Text="Extra OSD Settings"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,10" />
+
+                            <!-- Description -->
+                            <TextBlock Text="Configure custom messages and diagnostics displayed on screen."
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,16" />
+
+                            <!-- Custom Message Configuration -->
+                            <StackPanel Orientation="Vertical" Spacing="8">
+                                <TextBlock Text="Custom Message Configuration"
+                                           FontWeight="Medium"
+                                           Margin="0,0,0,5" />
+
+                                <TextBlock
+                                    Text="Create custom on-screen messages with optional diagnostics data. Changes will be applied immediately."
+                                    TextWrapping="Wrap"
+                                    Opacity="0.7"
+                                    Margin="0,0,0,10" />
+
+                                <!-- Message Editor -->
+                                <Border Background="#FFFFFF" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="4"
+                                        Padding="5">
+                                    <Grid RowDefinitions="Auto,*,Auto">
+                                        <TextBlock Grid.Row="0"
+                                                   Text="Message Content:"
+                                                   Margin="0,0,0,5" />
+
+                                        <TextBox Grid.Row="1"
+                                                 Text="{Binding MsposdMessageContent}"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="Wrap"
+                                                 Height="80"
+                                                 Watermark="Enter message content here... Use parameters like &amp;T for temperature, &amp;C for CPU usage" />
+
+                                        <StackPanel Grid.Row="2"
+                                                    Orientation="Horizontal"
+                                                    HorizontalAlignment="Right"
+                                                    Margin="0,8,0,0">
+                                            <Button Content="Preview"
+                                                    Command="{Binding PreviewMsposdMessageCommand}"
+                                                    IsEnabled="{Binding CanConnect}"
+                                                    Margin="0,0,8,0" />
+                                            <Button Content="Apply"
+                                                    Command="{Binding ApplyMsposdMessageCommand}"
+                                                    IsEnabled="{Binding CanConnect}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Parameter Reference -->
+                                <Expander Header="Parameter Reference" Margin="0,10,0,0">
+                                    <StackPanel Background="#F8F8F8" Spacing="5">
+                                        <TextBlock Text="Available Parameters:" FontWeight="Medium" />
+                                        <Grid ColumnDefinitions="Auto,*"
+                                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                                              Margin="5,5,0,0" 
+                                              ShowGridLines="True"
+                                              >
+                                            <!-- Parameters -->
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="&amp;T"
+                                                       FontFamily="Monospace" Margin="0,0,20,0" />
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Board temperature" Padding="5,0,0,0"/>
+
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="&amp;W"
+                                                       FontFamily="Monospace" Margin="0,0,20,0" />
+                                            <TextBlock Grid.Row="1" Grid.Column="1"
+                                                       Text="WiFi module temperature (8812xx chipsets)" Padding="5,0,0,0"/>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="&amp;B"
+                                                       FontFamily="Monospace" Margin="0,0,20,0" />
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="Video Bitrate and FPS" Padding="5,0,0,0"/>
+
+                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="&amp;C"
+                                                       FontFamily="Monospace" Margin="0,0,20,0" />
+                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="CPU Usage percent" Padding="5,0,0,0"/>
+
+                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="&amp;t"
+                                                       FontFamily="Monospace" Margin="0,0,20,0" />
+                                            <TextBlock Grid.Row="4" Grid.Column="1" Text="Time" Padding="5,0,0,0"/>
+
+                                            <TextBlock Grid.Row="5" Grid.Column="0" Text="&amp;Fxx"
+                                                       FontFamily="Monospace" Margin="0,0,20,0" />
+                                            <TextBlock Grid.Row="5" Grid.Column="1"
+                                                       Text="Set text font size (10 to 99)" Padding="5,0,0,0"/>
+
+                                            <TextBlock Grid.Row="6" Grid.Column="0" Text="&amp;Lxx"
+                                                       FontFamily="Monospace" Margin="0,0,20,0" />
+                                            <TextBlock Grid.Row="6" Grid.Column="1" TextWrapping="Wrap"
+                                                       Text="Set text colour (first digit: 0-white, 1-black, 2-blue, 3-green, 4-red, 5-yellow, 6-magenta, 7-cyan) and position (second digit: 0-TopLeft, 1-TopCenter, 2-TopRight, 3-TopMoving, 4-BottomLeft, 5-BottomCenter, 6-BottomRight, 7-BottomMoving)" Padding="5,0,0,0"/>
+
+                                            <TextBlock Grid.Row="7" Grid.Column="0" Text="&amp;Gx"
+                                                       FontFamily="Monospace" Margin="0,0,20,0" />
+                                            <TextBlock Grid.Row="7" Grid.Column="1" TextWrapping="Wrap"
+                                                       Text="Set text background color (0-white, 1-black, 2-blue, 3-green, 4-red, 5-yellow, 6-magenta, 7-cyan, 8-semi-transparent, 9-transparent)" Padding="5,0,0,0"/>
+
+                                            <TextBlock Grid.Row="8" Grid.Column="0" Text="&amp;p"
+                                                       FontFamily="Monospace" Margin="0,0,20,0" />
+                                            <TextBlock Grid.Row="8" Grid.Column="1"
+                                                       Text="Dropped packet injections by wfb-ng" Padding="5,0,0,0"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Expander>
+
+                                <!-- Additional Options -->
+                                <StackPanel Margin="0,15,0,0" Spacing="10">
+                                    <CheckBox Content="Enable MSPOSD on boot"
+                                              IsChecked="{Binding IsMsposdEnabledOnBoot}"
+                                              IsEnabled="{Binding CanConnect}" />
+
+                                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,5,0,0">
+                                        <Button Content="Save as Default"
+                                                Command="{Binding SaveMsposdDefaultCommand}"
+                                                IsEnabled="{Binding CanConnect}" />
+                                        <Button Content="Reset"
+                                                Command="{Binding ResetMsposdMessageCommand}"
+                                                IsEnabled="{Binding CanConnect}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Section 3: Debug Tools -->
                     <Border Background="#F0F0F0" CornerRadius="8" Padding="16">
                         <StackPanel>
                             <!-- Section Header -->

@@ -266,9 +266,10 @@ Adjust the transmission power for the 2.4GHz frequency. Lower power conserves en
 • Red : Ping result is not valid</value>
     </data>
     <data name="TelemetryRouterToolTip" xml:space="preserve">
-        <value>0) Mavfwd
-1) Mav-Router
-2) MSPOSD
+        <value>If you want MSPOSD rendered on Air unit, choose MSPOSD. For ground, choose Ground.
+* Mavfwd
+* MSPOSD
+* Ground
         </value>                
     </data>
     <data name="MSPOSDExtraCameraToolTip" xml:space="preserve">

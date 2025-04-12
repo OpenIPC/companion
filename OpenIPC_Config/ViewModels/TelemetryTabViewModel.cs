@@ -168,7 +168,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
         McsIndex = new ObservableCollection<string> { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
         Aggregate = new ObservableCollection<string> { "0", "1", "2", "4", "6", "8", "10", "12", "14", "15" };
         RC_Channel = new ObservableCollection<string> { "0", "1", "2", "3", "4", "5", "6", "7", "8" };
-        Router = new ObservableCollection<string> { "mavfwd", "mavlink-routed", "msposd" }; // 0,1,2 telemetry.conf
+        Router = new ObservableCollection<string> { "mavfwd", "mavlink-routed","msposd", "ground" }; // 0,1,2 telemetry.conf
         MSPFps = new ObservableCollection<string> { "20", "30","60", "90", "100", "120" }; 
     }
 
