@@ -1,0 +1,234 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Companion.ViewModels"
+             xmlns:assets="clr-namespace:Companion.Assets"
+             mc:Ignorable="d"
+             x:Class="Companion.Views.CameraSettingsTabView"
+             x:DataType="vm:CameraSettingsTabViewModel">
+
+
+    <Panel>
+
+        <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Label Grid.Row="0" Grid.Column="0" Content="Resolution"
+                           ToolTip.Tip="{DynamicResource SelectResolutionToolTip}" />
+
+
+                    <Label Grid.Row="1" Grid.Column="0" Content="FPS" ToolTip.Tip="Select FPS" />
+                    <Label Grid.Row="2" Grid.Column="0" Content="Codec" ToolTip.Tip="Select Codec" />
+                    <Label Grid.Row="3" Grid.Column="0" Content="Bitrate" ToolTip.Tip="Select Bitrate" />
+                    <Label Grid.Row="4" Grid.Column="0" Content="Exposure" ToolTip.Tip="Select Exposure" />
+                    <Label Grid.Row="5" Grid.Column="0" Content="Contrast" ToolTip.Tip="Select Contrast" />
+                    <Label Grid.Row="6" Grid.Column="0" Content="Hue" ToolTip.Tip="Select Hue" />
+                    <Label Grid.Row="7" Grid.Column="0" Content="Saturation" ToolTip.Tip="Select Saturation" />
+                    <Label Grid.Row="8" Grid.Column="0" Content="Luminance" ToolTip.Tip="Select Luminance" />
+                    <Label Grid.Row="9" Grid.Column="0" Content="Flip" ToolTip.Tip="Select Flip" />
+                    <Label Grid.Row="10" Grid.Column="0" Content="Mirror" ToolTip.Tip="Select Mirror" />
+                    <Label Grid.Row="9" Grid.Column="2" Content="Onboard Record" ToolTip.Tip="Onboard Record" />
+                    <Label Grid.Row="10" Grid.Column="2" Content="Record NoTime" ToolTip.Tip="{x:Static assets:Resources.RecordsNoTimeToolTip}" />
+                    <Label Grid.Row="11" Grid.Column="2" Content="Enable Audio" ToolTip.Tip="Enable Audio" />
+
+                    <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Resolution}"
+                              IsEnabled="{Binding CanConnect}"
+                              SelectedItem="{Binding SelectedResolution, Mode=TwoWay}" />
+
+                    <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Fps}"
+                              IsEnabled="{Binding CanConnect}"
+                              SelectedItem="{Binding SelectedFps, Mode=TwoWay}" />
+                    <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Codec}"
+                              IsEnabled="{Binding CanConnect}"
+                              SelectedItem="{Binding SelectedCodec, Mode=TwoWay}" />
+                    <ComboBox Grid.Row="3" Grid.Column="1" 
+                              IsEnabled="{Binding CanConnect}"
+                              ItemsSource="{Binding Bitrate}"
+                              SelectedItem="{Binding SelectedBitrate, Mode=TwoWay}" />
+                    <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding Exposure}"
+                              IsEnabled="{Binding CanConnect}"
+                              SelectedItem="{Binding SelectedExposure, Mode=TwoWay}" />
+                    <ComboBox Grid.Row="5" Grid.Column="1" ItemsSource="{Binding Contrast}"
+                              IsEnabled="{Binding CanConnect}"
+                              SelectedItem="{Binding SelectedContrast, Mode=TwoWay}" />
+                    <ComboBox Grid.Row="6" Grid.Column="1" ItemsSource="{Binding Hue}"
+                              IsEnabled="{Binding CanConnect}"
+                              SelectedItem="{Binding SelectedHue, Mode=TwoWay}" />
+                    <ComboBox Grid.Row="7" Grid.Column="1" ItemsSource="{Binding Saturation}"
+                              IsEnabled="{Binding CanConnect}"
+                              SelectedItem="{Binding SelectedSaturation, Mode=TwoWay}" />
+                    <ComboBox Grid.Row="8" Grid.Column="1" ItemsSource="{Binding Luminance}"
+                              IsEnabled="{Binding CanConnect}"
+                              SelectedItem="{Binding SelectedLuminance, Mode=TwoWay}" />
+                    
+                    <ToggleSwitch Grid.Row="9" Grid.Column="1" 
+                                  OnContent="ON" OffContent="OFF"
+                                  Padding="5,5,0,0"
+                                  Margin="5,0,0,0"
+                                  IsEnabled="{Binding CanConnect}"
+                                  IsChecked="{Binding SelectedFlip}"
+                                   />
+                    <ToggleSwitch Grid.Row="10" Grid.Column="1" 
+                                  OnContent="ON" OffContent="OFF"
+                                  Padding="5,5,0,0"
+                                  Margin="5,0,0,0"
+                                  IsEnabled="{Binding CanConnect}"
+                                  IsChecked="{Binding SelectedMirror}"
+                    />
+
+                    
+                    <!-- <ComboBox Grid.Row="9" Grid.Column="1" ItemsSource="{Binding Flip}" -->
+                    <!--           SelectedItem="{Binding SelectedFlip, Mode=TwoWay}" /> -->
+                    <!-- <ComboBox Grid.Row="10" Grid.Column="1" ItemsSource="{Binding Mirror}" -->
+                    <!--           SelectedItem="{Binding SelectedMirror, Mode=TwoWay}" /> -->
+
+                    <!-- Onboard REC Toggle with RadioButtons -->
+                    <ToggleSwitch Grid.Row="9" Grid.Column="3" 
+                                  OnContent="ON" OffContent="OFF"
+                                  Padding="0,5,0,0"
+                                  Margin="5,0,0,0"
+                                  IsEnabled="{Binding CanConnect}"
+                                  IsChecked="{Binding IsOnboardRecOn}"
+                                  ToolTip.Tip="{x:Static assets:Resources.RecOnToolTip}" />
+                    
+                    <ToggleSwitch Grid.Row="10" Grid.Column="3" 
+                                  OnContent="ON" OffContent="OFF"
+                                  Padding="0,5,0,0"
+                                  Margin="5,0,0,0"
+                                  IsEnabled="{Binding CanConnect}"
+                                  IsChecked="{Binding IsNoTimeEnabled}"
+                                  ToolTip.Tip="{x:Static assets:Resources.RecordsNoTimeToolTip}" />
+
+                    
+                    <ToggleSwitch Grid.Row="11" Grid.Column="3" 
+                                  OnContent="ON" OffContent="OFF"
+                                  Padding="0,5,0,0"
+                                  Margin="5,0,0,0"
+                                  IsEnabled="{Binding CanConnect}"
+                                  IsChecked="{Binding IsAudioEnabled}"
+                                  ToolTip.Tip="{x:Static assets:Resources.AudioEnabledToolTip}" />
+
+                    
+                    <Label Grid.Row="0" Grid.Column="2" Margin="5,0,0,0"
+                           VerticalContentAlignment="Center"
+                           Content="FPV Enabled"
+                           ToolTip.Tip="{x:Static assets:Resources.FpvEnabledToolTip}" />
+
+                    <Label Grid.Row="1" Grid.Column="2" Margin="5,0,0,0" 
+                           Content="FPV Noise Level"
+                           VerticalAlignment="Center"
+                           ToolTip.Tip="{x:Static assets:Resources.FpvNoiseLevelToolTip}" />
+
+                    <Label Grid.Row="2" Grid.Column="2" Margin="5,0,0,0" Content="FPV roiQp"
+                           ToolTip.Tip="{x:Static assets:Resources.FpvRoiQpToolTip}" />
+
+                    <Label Grid.Row="3" Grid.Column="2" Margin="5,0,0,0" Content="FPV refEnhance "
+                           ToolTip.Tip="{x:Static assets:Resources.FpvRefEnhanceToolTip}" />
+
+                    <Label Grid.Row="4" Grid.Column="2" Margin="5,0,0,0" Content="FPV refPred "
+                           ToolTip.Tip="{x:Static assets:Resources.FpvRefPredToolTip}" />
+
+                    <Label Grid.Row="5" Grid.Column="2" Margin="5,0,0,0" Content="FPV intraLine "
+                           ToolTip.Tip="{x:Static assets:Resources.FpvIntraLineToolTip}" />
+
+                    <Label Grid.Row="6" Grid.Column="2" Margin="5,0,0,0" Content="FPV intraQp "
+                           ToolTip.Tip="{x:Static assets:Resources.FpvIntraQpToolTip}" />
+
+                    <Label Grid.Row="7" Grid.Column="2" Margin="5,0,0,0" Content="FPV roiRect "
+                           ToolTip.Tip="{x:Static assets:Resources.FpvRoiRectToolTip}" />
+
+
+                    <!-- <ComboBox Grid.Row="0" Grid.Column="3" -->
+                    <!--           ItemsSource="{Binding FpvEnabled}" -->
+                    <!--           SelectedItem="{Binding SelectedFpvEnabled, Mode=TwoWay}" /> -->
+                    <!-- -->
+                    <ToggleSwitch Grid.Row="0" Grid.Column="3" 
+                                  IsEnabled="{Binding CanConnect}"
+                                  OnContent="ON" OffContent="OFF"
+                                  Padding="5,5,0,0"
+                                  Margin="5,0,0,0"
+                                  IsChecked="{Binding SelectedFpvEnabled}"
+                                  ToolTip.Tip="{x:Static assets:Resources.FpvEnabledToolTip}" />
+
+                    
+                    <ComboBox Grid.Row="1" Grid.Column="3"
+                              IsEnabled="{Binding CanConnect}"
+                              ItemsSource="{Binding FpvNoiseLevel}"
+                              SelectedItem="{Binding SelectedFpvNoiseLevel, Mode=TwoWay}" />
+                    <ComboBox Grid.Row="2" Grid.Column="3"
+                              IsEnabled="{Binding CanConnect}"
+                              ItemsSource="{Binding FpvRoiQp}"
+                              SelectedItem="{Binding SelectedFpvRoiQp, Mode=TwoWay}" />
+                    <ComboBox Grid.Row="3" Grid.Column="3"
+                              IsEnabled="{Binding CanConnect}"
+                              ItemsSource="{Binding FpvRefEnhance}"
+                              SelectedItem="{Binding SelectedFpvRefEnhance, Mode=TwoWay}" />
+                    <ComboBox Grid.Row="4" Grid.Column="3"
+                              IsEnabled="{Binding CanConnect}"
+                              ItemsSource="{Binding FpvRefPred}"
+                              SelectedItem="{Binding SelectedFpvRefPred, Mode=TwoWay}" />
+                    <ComboBox Grid.Row="5" Grid.Column="3"
+                              IsEnabled="{Binding CanConnect}"
+                              ItemsSource="{Binding FpvIntraLine}"
+                              SelectedItem="{Binding SelectedFpvIntraLine, Mode=TwoWay}" />
+                    <ComboBox Grid.Row="6" Grid.Column="3"
+                              IsEnabled="{Binding CanConnect}"
+                              ItemsSource="{Binding FpvIntraQp}"
+                              SelectedItem="{Binding SelectedFpvIntraQp, Mode=TwoWay}" />
+
+                    <StackPanel Grid.Row="7" Grid.Column="3"
+                                IsEnabled="{Binding CanConnect}"
+                                Orientation="Horizontal">
+                        <TextBox Watermark="Left"
+                                 Text="{Binding FpvRoiRectLeft[0], Mode=TwoWay}" />
+                        <TextBox Watermark="Top"
+                                 Text="{Binding FpvRoiRectTop[0], Mode=TwoWay}" />
+                        </StackPanel>
+                    <StackPanel Grid.Row="8" Grid.Column="3"
+                                IsEnabled="{Binding CanConnect}"
+                                Orientation="Horizontal">
+                        <TextBox Watermark="Height"
+                                 Text="{Binding FpvRoiRectHeight[0], Mode=TwoWay}" />
+                        <TextBox Watermark="Width"
+                                 Text="{Binding FpvRoiRectWidth[0], Mode=TwoWay}" />
+                    </StackPanel>
+                
+
+                <!-- Restart Majestic Button -->
+                <Button Grid.Row="12" Grid.Column="0" Grid.ColumnSpan="2" Content="Save &amp; Restart Majestic" 
+                        HorizontalAlignment="Left" Margin="0,5,0,0"
+                        Command="{Binding RestartMajesticCommand}"
+                        IsEnabled="{Binding CanConnect}"
+                        ToolTip.Tip="{x:Static assets:Resources.RestartMajesticToolTip}" />
+
+                <!-- ~1~ Warning Label @1@ -->
+                <!-- <TextBlock Text="Be careful what you enter here" HorizontalAlignment="Right" FontSize="12" /> -->
+                </Grid>
+            
+        </Border>
+    </Panel>
+</UserControl>
