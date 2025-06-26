@@ -108,7 +108,7 @@ public partial class WfbTabViewModel : ViewModelBase
         Power24GHz = new ObservableCollection<int>(Enumerable.Range(1, MaxPower24GHz).Select(i => (i * 1)));
 
         Bandwidth = new ObservableCollectionExtended<int> { 20, 40 };
-        McsIndex = new ObservableCollectionExtended<int>(Enumerable.Range(1, 31));
+        McsIndex = new ObservableCollectionExtended<int>(Enumerable.Range(0, 31));
         Stbc = new ObservableCollectionExtended<int> { 0, 1 };
         Ldpc = new ObservableCollectionExtended<int> { 0, 1 };
         FecK = new ObservableCollectionExtended<int>(Enumerable.Range(0, 20));
