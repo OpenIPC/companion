@@ -163,7 +163,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
     #region Initialization Methods
     private void InitializeCollections()
     {
-        SerialPorts = new ObservableCollection<string> { "ttyS0", "ttyS1", "ttyS2" };
+        SerialPorts = new ObservableCollection<string> { "ttyS0", "ttyS1", "ttyS2", "ttyS3" };
         BaudRates = new ObservableCollection<string> { "4800", "9600", "19200", "38400", "57600", "115200" };
         McsIndex = new ObservableCollection<string> { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
         Aggregate = new ObservableCollection<string> { "0", "1", "2", "4", "6", "8", "10", "12", "14", "15" };
