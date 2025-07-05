@@ -1,0 +1,350 @@
+name: Build and Package Flatpak
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  DOTNET_VERSION: '8.0.x'  # Adjust to your .NET version
+  APP_ID: 'com.openipc.OpenIPC_Config'
+
+jobs:
+  build-dotnet:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [linux-x64, linux-arm64]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies (Desktop only)
+        run: dotnet restore OpenIPC_Config.Desktop
+
+      - name: Run tests (if test project exists)
+        run: |
+          if [ -d "OpenIPC_Config.Tests" ]; then
+            dotnet test OpenIPC_Config.Tests --logger "trx;LogFileName=TestResults.xml"
+          elif [ -d "tests" ]; then
+            dotnet test tests --logger "trx;LogFileName=TestResults.xml"
+          else
+            echo "No test project found, skipping tests"
+          fi
+
+      - name: Build for ${{ matrix.arch }}
+        run: |
+          mkdir -p build/OpenIPC_Config.Desktop/${{ matrix.arch }}
+          dotnet publish OpenIPC_Config.Desktop -c Release -r ${{ matrix.arch }} \
+            --output "build/OpenIPC_Config.Desktop/${{ matrix.arch }}" \
+            --self-contained -p:PublishSingleFile=true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-build-${{ matrix.arch }}
+          path: build/OpenIPC_Config.Desktop/${{ matrix.arch }}/
+          retention-days: 1
+
+  build-flatpak:
+    needs: build-dotnet
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dotnet-build-linux-x64
+          path: build/OpenIPC_Config.Desktop/linux-x64/
+
+      - name: Install Flatpak and dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y flatpak flatpak-builder imagemagick librsvg2-bin
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install -y flathub org.freedesktop.Platform//23.08
+          sudo flatpak install -y flathub org.freedesktop.Sdk//23.08
+
+      - name: Create application icon
+        run: |
+          # Check if icon exists in the repository
+          if [ -f "OpenIPC_Config/Assets/Icons/OpenIPC.png" ]; then
+            cp "OpenIPC_Config/Assets/Icons/OpenIPC.png" ./OpenIPC.png
+          elif [ -f "OpenIPC_Config/Assets/Icons/OpenIPC.icns" ]; then
+            # Convert icns to png
+            convert "OpenIPC_Config/Assets/Icons/OpenIPC.icns[0]" -resize 256x256 OpenIPC.png
+          else
+            # Create a placeholder icon
+            cat > OpenIPC.svg << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+            <rect width="256" height="256" fill="#4a90e2" rx="32"/>
+            <circle cx="128" cy="100" r="40" fill="white" stroke="#333" stroke-width="4"/>
+            <rect x="88" y="120" width="80" height="60" fill="white" stroke="#333" stroke-width="4" rx="8"/>
+            <text x="128" y="200" text-anchor="middle" fill="white" font-family="sans-serif" font-size="16" font-weight="bold">OpenIPC</text>
+            <text x="128" y="220" text-anchor="middle" fill="white" font-family="sans-serif" font-size="12">Config</text>
+          </svg>
+          EOF
+            rsvg-convert -w 256 -h 256 OpenIPC.svg -o OpenIPC.png
+          fi
+
+      - name: Prepare configuration files
+        run: |
+          # Check if config files exist in the source and copy them
+          if [ -d "OpenIPC_Config/config" ]; then
+            echo "Found config directory in source, copying..."
+            cp -r OpenIPC_Config/config ./
+          elif [ -d "config" ]; then
+            echo "Found config directory in root, using it..."
+          else
+            echo "No config directory found, will create default in Flatpak build"
+            mkdir -p config/OpenIPC_Config
+            cat > config/OpenIPC_Config/appsettings.json << 'EOF'
+          {
+            "Logging": {
+              "LogLevel": {
+                "Default": "Information",
+                "Microsoft.AspNetCore": "Warning"
+              }
+            },
+            "AllowedHosts": "*",
+            "AppSettings": {
+              "DefaultTheme": "Dark",
+              "AutoSave": true,
+              "CheckForUpdates": true
+            }
+          }
+          EOF
+          fi
+
+      - name: Create Flatpak manifest
+        run: |
+          cat > ${{ env.APP_ID }}.yml << 'EOF'
+          app-id: com.openipc.OpenIPC_Config
+          runtime: org.freedesktop.Platform
+          runtime-version: '23.08'
+          sdk: org.freedesktop.Sdk
+          command: OpenIPC_Config.Desktop
+          separate-locales: false
+          
+          finish-args:
+            - --share=network
+            - --filesystem=home
+            - --filesystem=xdg-config:rw
+            - --filesystem=xdg-data:rw
+            - --socket=x11
+            - --socket=wayland
+            - --socket=pulseaudio
+            - --device=all
+            - --talk-name=org.freedesktop.Notifications
+            - --env=XDG_DATA_DIRS=/app/share:/usr/share:/var/lib/flatpak/exports/share:$HOME/.local/share/flatpak/exports/share
+            # Network access for ping and camera connectivity
+            - --share=network
+            - --system-talk-name=org.freedesktop.NetworkManager
+            - --system-talk-name=org.freedesktop.resolve1
+            # Allow spawning host processes for network tools
+            - --talk-name=org.freedesktop.Flatpak
+            # Allow development/debugging tools (needed for some network operations)
+            - --allow=devel
+          
+          modules:
+            - name: openipc-config
+              buildsystem: simple
+              build-commands:
+                - mkdir -p /app/bin
+                - cp -r linux-x64/* /app/bin/
+                - chmod +x /app/bin/OpenIPC_Config.Desktop
+                # Copy config files if they exist
+                - |
+                  if [ -d "config" ]; then
+                    cp -r config /app/bin/
+                  fi
+                # Create default config if it doesn't exist
+                - mkdir -p /app/bin/config/OpenIPC_Config
+                - |
+                  if [ ! -f "/app/bin/config/OpenIPC_Config/appsettings.json" ]; then
+                    cat > /app/bin/config/OpenIPC_Config/appsettings.json << 'CONFIG_EOF'
+                  {
+                    "Logging": {
+                      "LogLevel": {
+                        "Default": "Information",
+                        "Microsoft.AspNetCore": "Warning"
+                      }
+                    },
+                    "AllowedHosts": "*",
+                    "Serilog": {
+                      "Using": ["Serilog.Sinks.Console", "Serilog.Sinks.File"],
+                      "MinimumLevel": "Information",
+                      "WriteTo": [
+                        {
+                          "Name": "Console",
+                          "Args": {
+                            "outputTemplate": "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}"
+                          }
+                        },
+                        {
+                          "Name": "File",
+                          "Args": {
+                            "path": "~/.var/app/com.openipc.OpenIPC_Config/data/OpenIPC_Config/Logs/configurator.log",
+                            "rollingInterval": "Day",
+                            "retainedFileCountLimit": "5",
+                            "outputTemplate": "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                  CONFIG_EOF
+                  fi
+                - mkdir -p /app/share/applications
+                - cp com.openipc.OpenIPC_Config.desktop /app/share/applications/
+                - mkdir -p /app/share/icons/hicolor/256x256/apps
+                - cp OpenIPC.png /app/share/icons/hicolor/256x256/apps/com.openipc.OpenIPC_Config.png
+                - mkdir -p /app/share/metainfo
+                - cp com.openipc.OpenIPC_Config.metainfo.xml /app/share/metainfo/
+          
+              sources:
+                - type: dir
+                  path: build/OpenIPC_Config.Desktop/
+                - type: dir
+                  path: config/
+                  dest: config
+                - type: file
+                  path: com.openipc.OpenIPC_Config.desktop
+                - type: file
+                  path: com.openipc.OpenIPC_Config.metainfo.xml
+                - type: file
+                  path: OpenIPC.png
+          EOF
+
+      - name: Create desktop file
+        run: |
+          cat > ${{ env.APP_ID }}.desktop << 'EOF'
+          [Desktop Entry]
+          Type=Application
+          Name=OpenIPC Config
+          GenericName=Camera Configuration Tool
+          Comment=Configuration tool for OpenIPC cameras
+          Exec=OpenIPC_Config.Desktop
+          Icon=com.openipc.OpenIPC_Config
+          Categories=Network;Settings;
+          Keywords=camera;openipc;configuration;network;
+          StartupNotify=true
+          EOF
+
+      - name: Create metainfo file
+        run: |
+          # Get version from tag or use default
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION="1.0.0"
+          fi
+          
+          cat > ${{ env.APP_ID }}.metainfo.xml << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <component type="desktop-application">
+            <id>com.openipc.OpenIPC_Config</id>
+            <name>OpenIPC Config</name>
+            <summary>Configuration tool for OpenIPC cameras</summary>
+            <description>
+              <p>
+                OpenIPC Config is a comprehensive configuration tool for OpenIPC camera systems.
+                It provides an easy-to-use interface for managing camera settings, network configuration,
+                and system parameters.
+              </p>
+            </description>
+            <launchable type="desktop-id">com.openipc.OpenIPC_Config.desktop</launchable>
+            <screenshots>
+              <screenshot type="default">
+                <caption>Main application window</caption>
+                <image>https://openipc.org/screenshot.png</image>
+              </screenshot>
+            </screenshots>
+            <url type="homepage">https://openipc.org</url>
+            <url type="bugtracker">https://github.com/OpenIPC/OpenIPC_Config/issues</url>
+            <metadata_license>CC0-1.0</metadata_license>
+            <project_license>GPL-3.0+</project_license>
+            <releases>
+              <release version="${VERSION}" date="$(date +%Y-%m-%d)"/>
+            </releases>
+            <content_rating type="oars-1.1"/>
+          </component>
+          EOF
+
+      - name: Build Flatpak
+        run: |
+          # Create repo directory
+          mkdir -p repo
+          
+          # Build the Flatpak for x86_64
+          flatpak-builder --arch=x86_64 --force-clean --repo=repo \
+            flatpak-build ${{ env.APP_ID }}.yml
+          
+          # Create bundle
+          flatpak build-bundle repo ${{ env.APP_ID }}-x86_64.flatpak \
+            ${{ env.APP_ID }} --arch=x86_64
+
+      - name: Upload Flatpak bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-x86_64
+          path: ${{ env.APP_ID }}-x86_64.flatpak
+
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build-flatpak
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Flatpak artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: flatpak-x86_64
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            *.flatpak
+          body: |
+            ## OpenIPC Config ${{ github.ref_name }}
+            
+            ### Installation
+            
+            **Flatpak (Linux x86_64):**
+            Download `com.openipc.OpenIPC_Config-x86_64.flatpak` and install with:
+            ```bash
+            flatpak install --user --bundle com.openipc.OpenIPC_Config-x86_64.flatpak
+            flatpak run com.openipc.OpenIPC_Config
+            ```
+            
+            ### Changes
+            - See commit history for detailed changes
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
