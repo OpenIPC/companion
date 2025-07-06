@@ -171,13 +171,13 @@ public partial class CameraSettingsTabViewModel : ViewModelBase
     partial void OnSelectedFlipChanged(string value)
     {
         Logger.Debug($"SelectedFlip updated to {value}");
-        UpdateYamlConfig(Majestic.ImageFlip, value);
+        UpdateYamlConfig(Majestic.ImageFlip, value.ToLower());
     }
 
     partial void OnSelectedMirrorChanged(string value)
     {
         Logger.Debug($"SelectedMirror updated to {value}");
-        UpdateYamlConfig(Majestic.ImageMirror, value);
+        UpdateYamlConfig(Majestic.ImageMirror, value.ToLower());
     }
 
     partial void OnSelectedFpvEnabledChanged(string value)
