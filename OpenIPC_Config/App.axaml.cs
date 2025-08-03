@@ -105,6 +105,13 @@ public class App : Application
                         cameraArray.Add(targetHostname);
                         hasChanges = true;
                     }
+
+                    targetHostname = "openipc-ssc378qe";
+                    if (!cameraArray.Any(token => token.ToString() == targetHostname))
+                    {
+                        cameraArray.Add(targetHostname);
+                        hasChanges = true;
+                    }
                 }
             }
             
@@ -474,7 +481,7 @@ public class App : Application
             ),
             new JProperty("DeviceHostnameMapping",
                 new JObject(
-                    new JProperty("Camera", new JArray("openipc-ssc338q", "openipc-ssc30kq", "openipc-gk7205v300")),
+                    new JProperty("Camera", new JArray("openipc-ssc338q", "openipc-ssc30kq", "openipc-ssc378qe", "openipc-gk7205v300")),
                     new JProperty("Radxa", new JArray("radxa", "raspberrypi")),
                     new JProperty("NVR", new JArray("openipc-hi3536dv100"))
                 )
