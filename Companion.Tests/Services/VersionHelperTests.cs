@@ -1,7 +1,7 @@
 using Moq;
 using Companion.Services;
 
-namespace OpenIPC_Config.Tests.Services;
+namespace OpenIPC.Companion.Tests.Services;
 
 [TestFixture]
 public class VersionHelperTests

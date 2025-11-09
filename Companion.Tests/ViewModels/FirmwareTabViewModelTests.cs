@@ -4,7 +4,7 @@ using Companion.Services;
 using Companion.ViewModels;
 using Serilog;
 
-namespace OpenIPC_Config.Tests.ViewModels;
+namespace OpenIPC.Companion.Tests.ViewModels;
 
 [TestFixture]
 public class FirmwareTabViewModelTests

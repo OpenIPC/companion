@@ -93,7 +93,7 @@ public class TelemetryTabViewModelTests
         _mockSshClientService.Verify(
             service => service.UploadFileStringAsync(
                 It.IsAny<DeviceConfig>(),
-                OpenIPC.TelemetryConfFileLoc,
+                Companion.Models.OpenIPC.TelemetryConfFileLoc,
                 It.Is<string>(content =>
                     content.Contains("serial=/dev/ttyS0") &&
                     content.Contains("baud=9600") &&

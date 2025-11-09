@@ -2,9 +2,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Companion.Services;
 using Companion.ViewModels;
+using Prism.Events;
 using Serilog;
 
-namespace OpenIPC_Config.Tests;
+namespace OpenIPC.Companion.Tests;
 
 public class DependencyInjectionTests
 {

@@ -1,16 +1,18 @@
 using Avalonia.Rendering;
 using Moq;
 using Companion.Services;
+using Prism.Events;
 using Serilog;
 
-namespace OpenIPC_Config.Tests.Services;
+namespace OpenIPC.Companion.Tests.Services;
 
 public class TestEvent : PubSubEvent<string>
 {
 }
 
 [TestFixture]
-public class EventSubscriptionServiceTests
+public class 
+EventSubscriptionServiceTests
 {
     [SetUp]
     public void SetUp()

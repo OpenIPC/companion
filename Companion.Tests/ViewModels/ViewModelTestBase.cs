@@ -2,9 +2,10 @@ using Moq;
 using Companion.Events;
 using Companion.Services;
 using Companion.ViewModels;
+using Prism.Events;
 using Serilog;
 
-namespace OpenIPC_Config.Tests.ViewModels;
+namespace OpenIPC.Companion.Tests.ViewModels;
 
 public abstract class ViewModelTestBase
 {

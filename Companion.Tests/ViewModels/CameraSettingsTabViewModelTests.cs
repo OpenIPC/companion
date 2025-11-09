@@ -3,10 +3,11 @@ using Companion.Events;
 using Companion.Models;
 using Companion.Services;
 using Companion.ViewModels;
+using Prism.Events;
 using Serilog;
 using Assert = NUnit.Framework.Assert;
 
-namespace OpenIPC_Config.Tests.ViewModels;
+namespace OpenIPC.Companion.Tests.ViewModels;
 
 [TestFixture]
 public class CameraSettingsTabViewModelTests : ViewModelTestBase

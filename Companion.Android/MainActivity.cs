@@ -5,13 +5,13 @@ using Android.Views;
 using Avalonia;
 using Avalonia.Android;
 using Companion.Android;
-using OpenIPC_Config.Android.Helpers;
+using OpenIPC.Companion.Android.Helpers;
 using Application = Android.App.Application;
 
 namespace Companion.Android;
 
 [Activity(
-    Label = "OpenIPC_Config.Android",
+    Label = "OpenIPC.Companion.Android",
     Theme = "@style/MyTheme.NoActionBar",
     Icon = "@drawable/icon",
     MainLauncher = true,

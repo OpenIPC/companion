@@ -2,5 +2,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <application android:label="OpenIPC_Config" android:icon="@drawable/Icon"/>
+    <application android:label="OpenIPC.Companion" android:icon="@drawable/Icon"/>
 </manifest>

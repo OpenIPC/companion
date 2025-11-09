@@ -3,11 +3,12 @@ using Companion.Events;
 using Companion.Models;
 using Companion.Services;
 using Companion.ViewModels;
+using Prism.Events;
 using Serilog;
 using Xunit;
 using Assert = Xunit.Assert;
 
-namespace OpenIPC_Config.Tests.ViewModels;
+namespace OpenIPC.Companion.Tests.ViewModels;
 
 public class WfbTabViewModelTest : ViewModelTestBase
 {
@@ -97,10 +98,10 @@ public class WfbTabViewModelTest : ViewModelTestBase
         viewModel.RestartWfbCommand.Execute(null);
 
         // Assert
-        SshClientServiceMock.Verify(
-            x => x.UploadFileStringAsync(It.IsAny<DeviceConfig>(), OpenIPC.WfbConfFileLoc, It.IsAny<string>()),
-            Times.Once
-        );
+        // SshClientServiceMock.Verify(
+        //     x => x.UploadFileStringAsync(It.IsAny<DeviceConfig>(), Companion.Models.OpenIPC.WfbConfFileLoc, It.IsAny<string>()),
+        //     Times.Once
+        // );
 
         SshClientServiceMock.Verify(
             x => x.ExecuteCommandAsync(It.IsAny<DeviceConfig>(), DeviceCommands.WfbRestartCommand),

@@ -108,7 +108,7 @@ public class OpenIPC
             AppDataConfigDirectory =
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), appName);
             AppDataConfigPath = Path.Combine(AppDataConfigDirectory, "appsettings.json");
-            DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "openipc_config.json");
+            DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "OpenIPC.Companion.json");
             LocalTempFolder = Path.Combine(AppDataConfigDirectory, "Temp");
             LocalFirmwareFolder = Path.Combine(AppDataConfigDirectory, "firmware");
 
@@ -123,7 +123,7 @@ public class OpenIPC
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 appName);
             AppDataConfigPath = Path.Combine(AppDataConfigDirectory, "appsettings.json");
-            DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "openipc_config.json");
+            DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "OpenIPC.Companion.json");
             LocalTempFolder = Path.Combine(AppDataConfigDirectory, "Temp");
             LocalFirmwareFolder = Path.Combine(AppDataConfigDirectory, "firmware");
             LocalBackUpFolder = Path.Combine(AppDataConfigDirectory, "backup");
@@ -138,7 +138,7 @@ public class OpenIPC
 
             AppDataConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 appName, "appsettings.json");
-            DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "openipc_config.json");
+            DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "OpenIPC.Companion.json");
             LocalTempFolder = Path.Combine(AppDataConfigDirectory, "Temp");
             LocalFirmwareFolder = Path.Combine(AppDataConfigDirectory, "firmware");
             LocalBackUpFolder = Path.Combine(AppDataConfigDirectory, "backup");
@@ -152,7 +152,7 @@ public class OpenIPC
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), appName);
             AppDataConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 appName, "appsettings.json");
-            DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "openipc_config.json");
+            DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "OpenIPC.Companion.json");
             LocalTempFolder = Path.Combine(AppDataConfigDirectory, "Temp");
             LocalFirmwareFolder = Path.Combine(AppDataConfigDirectory, "firmware");
             LocalBackUpFolder = Path.Combine(AppDataConfigDirectory, "backup");
@@ -164,7 +164,7 @@ public class OpenIPC
         {
             AppDataConfigDirectory = Path.Combine($"./config/{appName}");
             AppDataConfigPath = Path.Combine(AppDataConfigDirectory, "appsettings.json");
-            DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "openipc_config.json");
+            DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "OpenIPC.Companion.json");
             LocalTempFolder = Path.Combine(AppDataConfigDirectory, "Temp");
             LocalFirmwareFolder = Path.Combine(AppDataConfigDirectory, "firmware");
             LocalBackUpFolder = Path.Combine(AppDataConfigDirectory, "backup");

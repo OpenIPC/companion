@@ -5,7 +5,7 @@ using Android.Content;
 using Android.Content.Res;
 using Android.Util;
 
-namespace OpenIPC_Config.Android.Helpers;
+namespace OpenIPC.Companion.Android.Helpers;
 
 public class AndroidFileHelper
 {

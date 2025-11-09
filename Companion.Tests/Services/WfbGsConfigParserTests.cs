@@ -5,7 +5,7 @@ using Serilog.Events;
 using Xunit;
 using Assert = Xunit.Assert;
 
-namespace OpenIPC_Config.Tests.Services;
+namespace OpenIPC.Companion.Tests.Services;
 
 public class WfbGsConfigParserTests : IDisposable
 {

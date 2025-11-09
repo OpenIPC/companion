@@ -2,9 +2,10 @@ using Moq;
 using Newtonsoft.Json;
 using Companion.Models;
 using Companion.Services;
+using Prism.Events;
 using Serilog;
 
-namespace OpenIPC_Config.Tests.Services;
+namespace OpenIPC.Companion.Tests.Services;
 
 [TestFixture]
 public class SettingsManagerTests

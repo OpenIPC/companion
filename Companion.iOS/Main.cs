@@ -1,7 +1,7 @@
 using Companion.iOS;
 using UIKit;
 
-namespace OpenIPC_Config.iOS;
+namespace OpenIPC.Companion.iOS;
 
 public class Application
 {

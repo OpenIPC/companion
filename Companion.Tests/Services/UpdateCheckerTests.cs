@@ -4,7 +4,7 @@ using Moq;
 using Moq.Protected;
 using Companion.Services;
 
-namespace OpenIPC_Config.Tests.Services;
+namespace OpenIPC.Companion.Tests.Services;
 
 public class UpdateCheckerTests
 {
