@@ -47,11 +47,11 @@ public class SettingsManagerTests
         var result = SettingsManager.LoadSettings();
 
         // Assert
-        Assert.IsNotNull(result);
-        Assert.AreEqual(expectedConfig.IpAddress, result.IpAddress);
-        Assert.AreEqual(expectedConfig.Username, result.Username);
-        Assert.AreEqual(expectedConfig.Password, result.Password);
-        Assert.AreEqual(expectedConfig.DeviceType, result.DeviceType);
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.IpAddress, Is.EqualTo(expectedConfig.IpAddress));
+        Assert.That(result.Username, Is.EqualTo(expectedConfig.Username));
+        Assert.That(result.Password, Is.EqualTo(expectedConfig.Password));
+        Assert.That(result.DeviceType, Is.EqualTo(expectedConfig.DeviceType));
     }
 
     [Test]
@@ -61,11 +61,11 @@ public class SettingsManagerTests
         var result = SettingsManager.LoadSettings();
 
         // Assert
-        Assert.IsNotNull(result);
-        Assert.AreEqual("", result.IpAddress);
-        Assert.AreEqual("", result.Username);
-        Assert.AreEqual("", result.Password);
-        Assert.AreEqual(DeviceType.Camera, result.DeviceType);
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.IpAddress, Is.EqualTo(string.Empty));
+        Assert.That(result.Username, Is.EqualTo(string.Empty));
+        Assert.That(result.Password, Is.EqualTo(string.Empty));
+        Assert.That(result.DeviceType, Is.EqualTo(DeviceType.Camera));
     }
 
     [Test]
@@ -84,13 +84,13 @@ public class SettingsManagerTests
         SettingsManager.SaveSettings(configToSave);
 
         // Assert
-        Assert.IsTrue(File.Exists(_testSettingsFilePath));
+        Assert.That(File.Exists(_testSettingsFilePath), Is.True);
         var savedConfig = JsonConvert.DeserializeObject<DeviceConfig>(File.ReadAllText(_testSettingsFilePath));
-        Assert.IsNotNull(savedConfig);
-        Assert.AreEqual(configToSave.IpAddress, savedConfig.IpAddress);
-        Assert.AreEqual(configToSave.Username, savedConfig.Username);
-        Assert.AreEqual(configToSave.Password, savedConfig.Password);
-        Assert.AreEqual(configToSave.DeviceType, savedConfig.DeviceType);
+        Assert.That(savedConfig, Is.Not.Null);
+        Assert.That(savedConfig.IpAddress, Is.EqualTo(configToSave.IpAddress));
+        Assert.That(savedConfig.Username, Is.EqualTo(configToSave.Username));
+        Assert.That(savedConfig.Password, Is.EqualTo(configToSave.Password));
+        Assert.That(savedConfig.DeviceType, Is.EqualTo(configToSave.DeviceType));
     }
 
     [Test]
@@ -114,10 +114,10 @@ public class SettingsManagerTests
         //         It.Is<string>(msg => msg.StartsWith("LoadSettings: Failed to parse JSON"))),
         //     Times.Once);
         //
-        Assert.IsNotNull(result);
-        Assert.AreEqual("", result.IpAddress);
-        Assert.AreEqual("", result.Username);
-        Assert.AreEqual("", result.Password);
-        Assert.AreEqual(DeviceType.Camera, result.DeviceType);
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.IpAddress, Is.EqualTo(string.Empty));
+        Assert.That(result.Username, Is.EqualTo(string.Empty));
+        Assert.That(result.Password, Is.EqualTo(string.Empty));
+        Assert.That(result.DeviceType, Is.EqualTo(DeviceType.Camera));
     }
 }

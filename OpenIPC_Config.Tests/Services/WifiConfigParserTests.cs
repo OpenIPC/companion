@@ -40,10 +40,10 @@ public class WifiConfigParserTests
         _wifiConfigParser.ParseConfigString(configContent);
 
         // Assert
-        Assert.AreEqual(6, _wifiConfigParser.WifiChannel);
-        Assert.AreEqual("US", _wifiConfigParser.WifiRegion);
-        Assert.AreEqual("192.168.0.2", _wifiConfigParser.GsMavlinkPeer);
-        Assert.AreEqual("192.168.0.3", _wifiConfigParser.GsVideoPeer);
+        Assert.That(_wifiConfigParser.WifiChannel, Is.EqualTo(6));
+        Assert.That(_wifiConfigParser.WifiRegion, Is.EqualTo("US"));
+        Assert.That(_wifiConfigParser.GsMavlinkPeer, Is.EqualTo("192.168.0.2"));
+        Assert.That(_wifiConfigParser.GsVideoPeer, Is.EqualTo("192.168.0.3"));
     }
 
     [Test]
@@ -72,10 +72,10 @@ public class WifiConfigParserTests
         var updatedConfig = _wifiConfigParser.GetUpdatedConfigString();
 
         // Assert
-        StringAssert.Contains("wifi_channel = 11", updatedConfig);
-        StringAssert.Contains("wifi_region = 'EU'", updatedConfig);
-        StringAssert.Contains("peer = '192.168.1.1'", updatedConfig);
-        StringAssert.Contains("peer = '192.168.1.2'", updatedConfig);
+        Assert.That(updatedConfig, Does.Contain("wifi_channel = 11"));
+        Assert.That(updatedConfig, Does.Contain("wifi_region = 'EU'"));
+        Assert.That(updatedConfig, Does.Contain("peer = '192.168.1.1'"));
+        Assert.That(updatedConfig, Does.Contain("peer = '192.168.1.2'"));
     }
 
 
@@ -93,7 +93,7 @@ public class WifiConfigParserTests
         _wifiConfigParser.ParseConfigString(configContent);
 
         // Assert
-        Assert.AreEqual(6, _wifiConfigParser.WifiChannel);
-        Assert.AreEqual("US", _wifiConfigParser.WifiRegion);
+        Assert.That(_wifiConfigParser.WifiChannel, Is.EqualTo(6));
+        Assert.That(_wifiConfigParser.WifiRegion, Is.EqualTo("US"));
     }
 }

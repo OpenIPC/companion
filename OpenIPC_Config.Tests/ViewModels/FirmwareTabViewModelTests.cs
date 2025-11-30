@@ -124,7 +124,7 @@ public class FirmwareTabViewModelTests
         var canExecute = _viewModel.DownloadFirmwareAsyncCommand.CanExecute(null);
 
         // Assert
-        Assert.IsFalse(canExecute);
+        Assert.That(canExecute, Is.False);
     }
 
     [Test]
@@ -137,6 +137,6 @@ public class FirmwareTabViewModelTests
         var canExecute = _viewModel.DownloadFirmwareAsyncCommand.CanExecute(null);
 
         // Assert
-        Assert.IsTrue(canExecute);
+        Assert.That(canExecute, Is.True);
     }
 }

@@ -32,8 +32,8 @@ public class YamlConfigServiceTests
         _yamlConfigService.ParseYaml(yamlContent, yamlConfig);
 
         // Assert
-        Assert.AreEqual("1920x1080", yamlConfig["video_size"]);
-        Assert.AreEqual("30", yamlConfig["video_fps"]);
+        Assert.That(yamlConfig["video_size"], Is.EqualTo("1920x1080"));
+        Assert.That(yamlConfig["video_fps"], Is.EqualTo("30"));
     }
 
     [Test]
@@ -50,7 +50,7 @@ public class YamlConfigServiceTests
         var result = _yamlConfigService.UpdateYaml(yamlConfig);
 
         // Assert
-        Assert.IsTrue(result.Contains("video_size: 1920x1080"));
-        Assert.IsTrue(result.Contains("video_fps: 30"));
+        Assert.That(result, Does.Contain("video_size: 1920x1080"));
+        Assert.That(result, Does.Contain("video_fps: 30"));
     }
 }

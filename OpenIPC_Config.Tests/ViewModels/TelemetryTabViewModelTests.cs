@@ -50,12 +50,12 @@ public class TelemetryTabViewModelTests
     [Test]
     public void Constructor_InitializesWithDefaults()
     {
-        Assert.IsNotNull(_viewModel.SerialPorts);
-        Assert.IsNotNull(_viewModel.BaudRates);
-        Assert.IsNotNull(_viewModel.McsIndex);
-        Assert.AreEqual("ttyS0", _viewModel.SerialPorts[0]);
-        Assert.AreEqual("4800", _viewModel.BaudRates[0]);
-        Assert.AreEqual("0", _viewModel.McsIndex[0]);
+        Assert.That(_viewModel.SerialPorts, Is.Not.Null);
+        Assert.That(_viewModel.BaudRates, Is.Not.Null);
+        Assert.That(_viewModel.McsIndex, Is.Not.Null);
+        Assert.That(_viewModel.SerialPorts[0], Is.EqualTo("ttyS0"));
+        Assert.That(_viewModel.BaudRates[0], Is.EqualTo("4800"));
+        Assert.That(_viewModel.McsIndex[0], Is.EqualTo("0"));
     }
 
     [Test]
@@ -69,10 +69,10 @@ public class TelemetryTabViewModelTests
         _viewModel.HandleTelemetryContentUpdated(message);
 
         // Assert
-        Assert.AreEqual("ttyS0", _viewModel.SelectedSerialPort);
-        Assert.AreEqual("9600", _viewModel.SelectedBaudRate);
-        Assert.AreEqual("mavlink-routed", _viewModel.SelectedRouter);
-        Assert.AreEqual("3", _viewModel.SelectedMcsIndex);
+        Assert.That(_viewModel.SelectedSerialPort, Is.EqualTo("ttyS0"));
+        Assert.That(_viewModel.SelectedBaudRate, Is.EqualTo("9600"));
+        Assert.That(_viewModel.SelectedRouter, Is.EqualTo("mavlink-routed"));
+        Assert.That(_viewModel.SelectedMcsIndex, Is.EqualTo("3"));
     }
 
     [Test]
