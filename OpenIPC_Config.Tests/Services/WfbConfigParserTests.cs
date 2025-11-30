@@ -51,25 +51,25 @@ public class WfbConfigParserTests
         _wfbConfigParser.ParseConfigString(configContent);
 
         // Assert
-        Assert.AreEqual("test_unit", _wfbConfigParser.Unit);
-        Assert.AreEqual("wlan0", _wfbConfigParser.Wlan);
-        Assert.AreEqual("US", _wfbConfigParser.Region);
-        Assert.AreEqual("6", _wfbConfigParser.Channel);
-        Assert.AreEqual(30, _wfbConfigParser.TxPower);
-        Assert.AreEqual(1, _wfbConfigParser.DriverTxPowerOverride);
-        Assert.AreEqual(20, _wfbConfigParser.Bandwidth);
-        Assert.AreEqual(1, _wfbConfigParser.Stbc);
-        Assert.AreEqual(1, _wfbConfigParser.Ldpc);
-        Assert.AreEqual(7, _wfbConfigParser.McsIndex);
-        Assert.AreEqual(2, _wfbConfigParser.Stream);
-        Assert.AreEqual(12345, _wfbConfigParser.LinkId);
-        Assert.AreEqual(14550, _wfbConfigParser.UdpPort);
-        Assert.AreEqual(1048576, _wfbConfigParser.RcvBuf);
-        Assert.AreEqual("data", _wfbConfigParser.FrameType);
-        Assert.AreEqual(10, _wfbConfigParser.FecK);
-        Assert.AreEqual(20, _wfbConfigParser.FecN);
-        Assert.AreEqual(100, _wfbConfigParser.PoolTimeout);
-        Assert.AreEqual("long", _wfbConfigParser.GuardInterval);
+        Assert.That(_wfbConfigParser.Unit, Is.EqualTo("test_unit"));
+        Assert.That(_wfbConfigParser.Wlan, Is.EqualTo("wlan0"));
+        Assert.That(_wfbConfigParser.Region, Is.EqualTo("US"));
+        Assert.That(_wfbConfigParser.Channel, Is.EqualTo("6"));
+        Assert.That(_wfbConfigParser.TxPower, Is.EqualTo(30));
+        Assert.That(_wfbConfigParser.DriverTxPowerOverride, Is.EqualTo(1));
+        Assert.That(_wfbConfigParser.Bandwidth, Is.EqualTo(20));
+        Assert.That(_wfbConfigParser.Stbc, Is.EqualTo(1));
+        Assert.That(_wfbConfigParser.Ldpc, Is.EqualTo(1));
+        Assert.That(_wfbConfigParser.McsIndex, Is.EqualTo(7));
+        Assert.That(_wfbConfigParser.Stream, Is.EqualTo(2));
+        Assert.That(_wfbConfigParser.LinkId, Is.EqualTo(12345));
+        Assert.That(_wfbConfigParser.UdpPort, Is.EqualTo(14550));
+        Assert.That(_wfbConfigParser.RcvBuf, Is.EqualTo(1048576));
+        Assert.That(_wfbConfigParser.FrameType, Is.EqualTo("data"));
+        Assert.That(_wfbConfigParser.FecK, Is.EqualTo(10));
+        Assert.That(_wfbConfigParser.FecN, Is.EqualTo(20));
+        Assert.That(_wfbConfigParser.PoolTimeout, Is.EqualTo(100));
+        Assert.That(_wfbConfigParser.GuardInterval, Is.EqualTo("long"));
     }
 
     [Test]
@@ -86,7 +86,7 @@ public class WfbConfigParserTests
         _wfbConfigParser.ParseConfigString(configContent);
 
         // Assert
-        Assert.AreEqual("test_unit", _wfbConfigParser.Unit);
-        Assert.AreEqual("6", _wfbConfigParser.Channel);
+        Assert.That(_wfbConfigParser.Unit, Is.EqualTo("test_unit"));
+        Assert.That(_wfbConfigParser.Channel, Is.EqualTo("6"));
     }
 }

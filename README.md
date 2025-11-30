@@ -2,7 +2,7 @@
 
 ![OpenIPC](OpenIPC_Config/Assets/Icons/OpenIPC.png)
 
-A multi-platform configuration tool for OpenIPC cameras, built using Avalonia UI. The application provides a user-friendly interface for managing camera settings, viewing telemetry data, and setting up the camera.
+A official multi-platform configuration tool for OpenIPC cameras, built using Avalonia UI. The application provides a user-friendly interface for managing camera settings, viewing telemetry data, and setting up the camera.
 
 [![Telegram](https://openipc.org/images/telegram_button.svg)][telegram]
 

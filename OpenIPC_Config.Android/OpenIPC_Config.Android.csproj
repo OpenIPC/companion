@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net8.0-android</TargetFramework>
+        <TargetFramework>net8.0-android34.0</TargetFramework>
         <SupportedOSPlatformVersion>21</SupportedOSPlatformVersion>
         <Nullable>enable</Nullable>
         <ApplicationId>org.openipc.Configurator</ApplicationId>
@@ -13,7 +13,7 @@
         <RootNamespace>OpenIPC_Config.Android</RootNamespace>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-android'">
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-android34.0'">
         <DefineConstants>$(DefineConstants);ANDROID</DefineConstants>
     </PropertyGroup>
 
