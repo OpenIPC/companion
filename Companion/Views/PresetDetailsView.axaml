@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Companion.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="450"
+             x:Class="Companion.Views.PresetDetailsView"
+             x:DataType="vm:PresetDetailsViewModel">
+    <Design.DataContext>
+        <!-- For Preview Purposes, You Can Instantiate a Dummy ViewModel -->
+        <vm:PresetDetailsViewModel />
+    </Design.DataContext>
+    <ScrollViewer>
+    <Border Padding="10">
+        <StackPanel Spacing="5">
+            <TextBlock Text="{Binding Preset.Name, StringFormat='Name: {0}'}" FontWeight="Bold" FontSize="16" />
+            <TextBlock Text="{Binding Preset.Category, StringFormat='Category: {0}'}" />
+            <TextBlock Text="{Binding Preset.Author, StringFormat='Author: {0}'}" />
+            <TextBlock Text="{Binding Preset.Status, StringFormat='Status: {0}'}" />
+            <TextBlock Text="{Binding Preset.Description, StringFormat='Description: {0}'}" TextWrapping="Wrap" />
+
+            <TextBlock Text="File Modifications:" FontWeight="Bold" Margin="0,10,0,0" />
+            <ItemsControl ItemsSource="{Binding Preset.FileModifications}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderBrush="Gray" BorderThickness="1" Padding="5" Margin="0,0,0,5">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="{Binding FileName, StringFormat='File: {0}'}" FontWeight="Bold" />
+                                <ItemsControl ItemsSource="{Binding Changes}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock>
+                                                <Run Text="{Binding Key}" FontWeight="Bold"/>
+                                                <Run Text=": "/>
+                                                <Run Text="{Binding Value}"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            
+            <!-- Additional Files Section -->
+            <TextBlock Text="Additional Files:" FontWeight="Bold" Margin="0,10,0,0" 
+                       IsVisible="{Binding Preset.AdditionalFiles.Count}" />
+            <ItemsControl ItemsSource="{Binding Preset.AdditionalFiles}" 
+                         IsVisible="{Binding Preset.AdditionalFiles.Count}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderBrush="LightBlue" BorderThickness="1" Padding="5" Margin="0,0,0,5">
+                            <TextBlock Text="{Binding}" />
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Border>
+    </ScrollViewer>
+</UserControl>

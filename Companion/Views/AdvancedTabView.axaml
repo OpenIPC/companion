@@ -1,0 +1,169 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Companion"
+             xmlns:viewModels="clr-namespace:Companion.ViewModels"
+             xmlns:converters="clr-namespace:Companion.Converters"
+             xmlns:assets="clr-namespace:Companion.Assets"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Companion.Views.AdvancedTabView"
+             x:DataType="viewModels:AdvancedTabViewModel">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:InvertedBooleanConverter x:Key="InvertedBooleanConverter" />
+
+
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Orientation="Vertical" Margin="10">
+            <!-- Info Panel -->
+            <Border Background="#B0B0B0" CornerRadius="10" Padding="10" Margin="0,0,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Path
+                        Data="M10,20 A10,10 0 1,1 10,0 A10,10 0 1,1 10,20 Z M10,7 A1.5,1.5 0 1,0 10,4 A1.5,1.5 0 1,0 10,7 Z M9,8 L11,8 L11,14 L9,14 Z"
+                        Fill="White"
+                        Width="20"
+                        Height="20"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Margin="5" />
+                    <TextBlock Grid.Column="1"
+                               Text="This tab contains various experimental and advanced features."
+                               Foreground="Black"
+                               FontSize="14"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center"
+                               Margin="10,0,0,0" />
+                </Grid>
+            </Border>
+
+            <!-- Feature Sections Container -->
+            <ItemsControl>
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Spacing="16" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.Items>
+                    <!-- Section 1: Adaptive Link -->
+                    <Border Background="#F0F0F0" CornerRadius="8" Padding="16">
+                        <StackPanel>
+                            <!-- Section Header -->
+                            <Grid ColumnDefinitions="*, Auto">
+                                <TextBlock Grid.Column="0"
+                                           Text="Adaptive Link"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,10" />
+
+                                <!-- Running Status (Green) -->
+                                <StackPanel Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center"
+                                            IsVisible="{Binding IsAdaptiveLinkRunning}">
+                                    <Ellipse Width="10"
+                                             Height="10"
+                                             Fill="#4CAF50"
+                                             Margin="0,0,5,0" />
+                                    <TextBlock Text="Running"
+                                               FontSize="12"
+                                               Foreground="#4CAF50"
+                                               Margin="0,0,10,0" />
+                                </StackPanel>
+
+
+                                <!-- Installed But Not Running Status (Orange) -->
+                                <StackPanel Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center"
+                                            IsVisible="{Binding InstalledButNotRunning}">
+                                    <Ellipse Width="10"
+                                             Height="10"
+                                             Fill="#FFA000"
+                                             Margin="0,0,5,0" />
+                                    <TextBlock Text="Installed"
+                                               FontSize="12"
+                                               Foreground="#FFA000"
+                                               Margin="0,0,10,0" />
+                                    <!-- <TextBlock Text="{Binding AdaptiveLinkVersion}"  -->
+                                    <!--            FontSize="12" -->
+                                    <!--            Opacity="0.7"/> -->
+                                </StackPanel>
+                            </Grid>
+
+
+                            <StackPanel Orientation="Horizontal" ToolTip.Tip="{x:Static assets:Resources.ALinkSwitchToolTip}">
+                                <TextBlock VerticalAlignment="Center">Alink Drone on Boot:</TextBlock>
+                                <ToggleSwitch IsChecked="{Binding IsAlinkDroneEnabled}"
+                                              IsEnabled="{Binding CanConnect}"
+                                              OnContent="Enabled"
+                                              OffContent="Disabled" />
+                            </StackPanel>
+
+
+                            <!-- Not Installed Message -->
+                            <Border Background="#EEEEEE" BorderBrush="#CCCCCC" BorderThickness="1" CornerRadius="4"
+                                    Padding="10" Margin="0,0,0,16"
+                                    IsVisible="{Binding NotInstalled}">
+                                <TextBlock Text="Adaptive Link is not installed on this device."
+                                           FontStyle="Italic"
+                                           TextWrapping="Wrap" />
+                            </Border>
+
+                            <!-- Section Actions -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Content="Check Installation Status"
+                                        Command="{Binding CheckAdaptiveLinkStatusCommand}"
+                                        IsEnabled="{Binding CanConnect}"
+                                        Margin="0,0,10,0" />
+
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Section 2: Debug Tools -->
+                    <Border Background="#F0F0F0" CornerRadius="8" Padding="16">
+                        <StackPanel>
+                            <!-- Section Header -->
+                            <TextBlock Text="Debug Tools"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,10" />
+
+                            <!-- Section Description -->
+                            <TextBlock Text="Advanced debugging tools and system diagnostics."
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,16" />
+
+                            <!-- Section Controls -->
+                            <WrapPanel Orientation="Horizontal">
+                                <Button Content="Generate System Report"
+                                        IsEnabled="{Binding CanConnect}"
+                                        Command="{Binding GenerateSystemReportCommand}"
+                                        Margin="0,0,8,8" />
+
+                                <Button Content="View System Logs"
+                                        IsEnabled="{Binding CanConnect}"
+                                        Command="{Binding ViewSystemLogsCommand}"
+                                        Margin="0,0,8,8" />
+
+                                <Button Content="Network Diagnostics"
+                                        IsEnabled="{Binding CanConnect}"
+                                        Command="{Binding NetworkDiagnosticsCommand}"
+                                        Margin="0,0,8,8" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                </ItemsControl.Items>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

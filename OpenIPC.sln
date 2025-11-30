@@ -3,20 +3,22 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32811.315
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenIPC", "OpenIPC_Config\OpenIPC_Config.csproj", "{EBFA8512-1EA5-4D8C-B4AC-AB5B48A6D568}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenIPC.Desktop", "OpenIPC_Config.Desktop\OpenIPC_Config.Desktop.csproj", "{ABC31E74-02FF-46EB-B3B2-4E6AE43B456C}"
-EndProject
-# Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenIPC.iOS", "OpenIPC_Config.iOS\OpenIPC_Config.iOS.csproj", "{EBD9022F-BC83-4846-9A11-6F7F3772DC64}"
-# EndProject
-# Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenIPC_Config.Android", "OpenIPC_Config.Android\OpenIPC_Config.Android.csproj", "{7AD1DAC8-7FBE-49D5-8614-7321233DB82E}"
-# EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3DA99C4E-89E3-4049-9C22-0A7EC60D83D8}"
 	ProjectSection(SolutionItems) = preProject
 		Directory.Build.props = Directory.Build.props
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenIPC_Config.Tests", "OpenIPC_Config.Tests\OpenIPC_Config.Tests.csproj", "{A6D98E45-2DD7-47B1-B22D-86B712B51A1F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Companion", "Companion\Companion.csproj", "{656078DF-342B-42F1-BBDC-ED98754B7535}"
+EndProject
+#Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Companion.Android", "Companion.Android\Companion.Android.csproj", "{518D9156-56B9-4F4B-A392-A31B27F2358A}"
+#EndProject
+#Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Companion.Browser", "Companion.Browser\Companion.Browser.csproj", "{DBB84DC4-F939-4AA9-94FA-0C063E8316A4}"
+#EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Companion.Desktop", "Companion.Desktop\Companion.Desktop.csproj", "{E3A47598-3D57-4DA2-B266-5A8A43F581AD}"
+EndProject
+#Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Companion.iOS", "Companion.iOS\Companion.iOS.csproj", "{1F0A7196-9C15-4803-BD03-E6BA308D7FFA}"
+#EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Companion.Tests", "Companion.Tests\Companion.Tests.csproj", "{C117D7F8-6047-4F71-B927-936C35D3C80D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,26 +26,30 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{EBFA8512-1EA5-4D8C-B4AC-AB5B48A6D568}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EBFA8512-1EA5-4D8C-B4AC-AB5B48A6D568}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EBFA8512-1EA5-4D8C-B4AC-AB5B48A6D568}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EBFA8512-1EA5-4D8C-B4AC-AB5B48A6D568}.Release|Any CPU.Build.0 = Release|Any CPU
-		{ABC31E74-02FF-46EB-B3B2-4E6AE43B456C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{ABC31E74-02FF-46EB-B3B2-4E6AE43B456C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{ABC31E74-02FF-46EB-B3B2-4E6AE43B456C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{ABC31E74-02FF-46EB-B3B2-4E6AE43B456C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EBD9022F-BC83-4846-9A11-6F7F3772DC64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EBD9022F-BC83-4846-9A11-6F7F3772DC64}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EBD9022F-BC83-4846-9A11-6F7F3772DC64}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EBD9022F-BC83-4846-9A11-6F7F3772DC64}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7AD1DAC8-7FBE-49D5-8614-7321233DB82E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7AD1DAC8-7FBE-49D5-8614-7321233DB82E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7AD1DAC8-7FBE-49D5-8614-7321233DB82E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7AD1DAC8-7FBE-49D5-8614-7321233DB82E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A6D98E45-2DD7-47B1-B22D-86B712B51A1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A6D98E45-2DD7-47B1-B22D-86B712B51A1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A6D98E45-2DD7-47B1-B22D-86B712B51A1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A6D98E45-2DD7-47B1-B22D-86B712B51A1F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{656078DF-342B-42F1-BBDC-ED98754B7535}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{656078DF-342B-42F1-BBDC-ED98754B7535}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{656078DF-342B-42F1-BBDC-ED98754B7535}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{656078DF-342B-42F1-BBDC-ED98754B7535}.Release|Any CPU.Build.0 = Release|Any CPU
+		{518D9156-56B9-4F4B-A392-A31B27F2358A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{518D9156-56B9-4F4B-A392-A31B27F2358A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{518D9156-56B9-4F4B-A392-A31B27F2358A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{518D9156-56B9-4F4B-A392-A31B27F2358A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBB84DC4-F939-4AA9-94FA-0C063E8316A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBB84DC4-F939-4AA9-94FA-0C063E8316A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBB84DC4-F939-4AA9-94FA-0C063E8316A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBB84DC4-F939-4AA9-94FA-0C063E8316A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3A47598-3D57-4DA2-B266-5A8A43F581AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3A47598-3D57-4DA2-B266-5A8A43F581AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3A47598-3D57-4DA2-B266-5A8A43F581AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3A47598-3D57-4DA2-B266-5A8A43F581AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F0A7196-9C15-4803-BD03-E6BA308D7FFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F0A7196-9C15-4803-BD03-E6BA308D7FFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F0A7196-9C15-4803-BD03-E6BA308D7FFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F0A7196-9C15-4803-BD03-E6BA308D7FFA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C117D7F8-6047-4F71-B927-936C35D3C80D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C117D7F8-6047-4F71-B927-936C35D3C80D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C117D7F8-6047-4F71-B927-936C35D3C80D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C117D7F8-6047-4F71-B927-936C35D3C80D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Companion.ViewModels"
+             xmlns:assets="clr-namespace:Companion.Assets"
+             mc:Ignorable="d"
+             x:Class="Companion.Views.SetupCameraButtonsView"
+             x:DataType="vm:SetupTabViewModel">
+
+    <!-- Left Panel -->
+    <Panel Margin="0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Key Management Section -->
+            <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" 
+                    BorderBrush="SlateGray" BorderThickness="0,0,0,1" 
+                    Margin="0,5,0,5" Padding="0,0,0,5">
+                <TextBlock Text="Enhanced Key Management" 
+                          FontSize="14" 
+                          FontWeight="Bold" />
+            </Border>
+
+            <ComboBox Grid.Row="1" Grid.Column="0"
+                      x:Name="KeyManagementActionComboBox"
+                      PlaceholderText="Select Key Action"
+                      FontSize="12"
+                      Width="160"
+                      ItemsSource="{Binding KeyManagementActionItems}"
+                      SelectedItem="{Binding SelectedKeyManagementAction}"
+                      HorizontalContentAlignment="Left"
+                      HorizontalAlignment="Left"
+                      IsEnabled="{Binding CanConnect}" />
+
+            <Button Grid.Row="1" Grid.Column="1"
+                    Content="Execute"
+                    Command="{Binding KeyManagementCommand}"
+                    IsEnabled="{Binding CanConnect}"
+                    HorizontalAlignment="Stretch" />
+
+            <!-- Key Validation Status -->
+            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                        Orientation="Horizontal" 
+                        Margin="5,5,0,0">
+                <Ellipse Width="10" Height="10" 
+                         Margin="0,3,5,0"
+                         Fill="{Binding KeyValidationColor}" />
+                <TextBlock Text="{Binding KeyValidationMessage}"
+                           FontSize="12" />
+            </StackPanel>
+
+            <Panel Grid.Row="3" Grid.Column="0" Height="10" />
+
+            <Panel Grid.Row="6" Grid.Column="0" Height="10" />
+
+            <!-- Checksum Display -->
+            <Border Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2" 
+                    BorderBrush="SlateGray" BorderThickness="0,0,0,1" 
+                    Margin="0,5,0,5" Padding="0,0,0,5">
+                <TextBlock Text="Key Status" 
+                          FontSize="14" 
+                          FontWeight="Bold" />
+            </Border>
+
+            <TextBlock Grid.Column="0" Grid.Row="8" 
+                       Margin="5,5,0,0" 
+                       FontSize="12"
+                       Text="Encryption Key Checksum:" />
+
+            <TextBlock Grid.Column="0" Grid.Row="9" Grid.ColumnSpan="2"
+                       TextWrapping="Wrap"
+                       MaxWidth="375"
+                       FontSize="12"
+                       Margin="5,5,0,0"
+                       Foreground="{Binding ChkSumStatusColor}"
+                       ToolTip.Tip="{x:Static assets:Resources.DeviceChkSumToolTip}"
+                       Text="{Binding KeyChecksum}" />
+
+            <!-- Sensors Section -->
+            <Border Grid.Row="10" Grid.Column="0" Grid.ColumnSpan="2" 
+                    BorderBrush="SlateGray" BorderThickness="0,0,0,1" 
+                    Margin="0,15,0,5" Padding="0,0,0,5">
+                <TextBlock Text="Camera Sensors" 
+                           FontSize="14" 
+                           FontWeight="Bold" />
+            </Border>
+
+            <ComboBox Grid.Row="11" Grid.Column="0"
+                      x:Name="SensorsComboBox"
+                      PlaceholderText="Select Sensor"
+                      FontSize="12"
+                      Width="160"
+                      ItemsSource="{Binding LocalSensors}"
+                      SelectedItem="{Binding SelectedSensor}"
+                      HorizontalContentAlignment="Left"
+                      HorizontalAlignment="Left"
+                      IsEnabled="{Binding CanConnect}" />
+
+            <Button Grid.Row="11" Grid.Column="1"
+                    Content="Apply"
+                    Command="{Binding SensorFilesUpdate}"
+                    IsEnabled="{Binding CanConnect}"
+                    HorizontalAlignment="Stretch" />
+            
+        </Grid>
+    </Panel>
+
+</UserControl>

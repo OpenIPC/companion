@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Companion.ViewModels"
+             xmlns:assets="clr-namespace:Companion.Assets"
+             mc:Ignorable="d"
+             d:DesignWidth="400" d:DesignHeight="400"
+             x:Class="Companion.Views.SetupRadxaButtonsView"
+             x:DataType="vm:SetupTabViewModel">
+
+    <!-- Left Panel -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+
+        <ComboBox x:Name="RadxaKeyComboBox" Grid.Row="0" Grid.Column="0" PlaceholderText="Encryption Key Actions"
+                  ItemsSource="{Binding DroneKeyActionItems}"
+                  SelectedItem="{Binding SelectedDroneKeyAction}"
+                  HorizontalAlignment="Stretch"
+                  ToolTip.Tip="{x:Static assets:Resources.DroneKeyActionsToolTip}" />
+
+        <Button Grid.Row="0" Grid.Column="1" Content="Execute"
+                Command="{Binding EncryptionKeyActionCommand}"
+                CommandParameter="CameraKeyComboBox"
+                VerticalAlignment="Top"
+                ToolTip.Tip="{x:Static assets:Resources.DeviceChkSumToolTip}"
+                HorizontalAlignment="Stretch" />
+
+
+    </Grid>
+
+</UserControl>
