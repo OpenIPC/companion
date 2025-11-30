@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Companion.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Companion.Views.PresetsAddRepoView"
+             x:DataType="vm:PresetsAddRepoViewModel">
+    <Design.DataContext>
+        <!-- For Preview Purposes, You Can Instantiate a Dummy ViewModel -->
+        <vm:PresetsAddRepoViewModel />
+    </Design.DataContext>
+    
+    <Grid RowDefinitions="Auto, Auto, Auto, *"
+          ColumnDefinitions="*" Margin="10">
+        
+        <!-- Header with Information -->
+        <Border Grid.Row="0" Background="#B0B0B0" CornerRadius="10" Padding="10" Margin="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                
+                <Path Data="M10,20 A10,10 0 1,1 10,0 A10,10 0 1,1 10,20 Z M10,7 A1.5,1.5 0 1,0 10,4 A1.5,1.5 0 1,0 10,7 Z M9,8 L11,8 L11,14 L9,14 Z"
+                      Fill="White"
+                      Width="20"
+                      Height="20"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Center"
+                      Margin="5" />
+                <TextBlock Grid.Column="1"
+                           Text="Add Github Repository URL where your custom presets are defined."
+                           Foreground="Black"
+                           FontSize="14"
+                           TextWrapping="Wrap"
+                           VerticalAlignment="Center"
+                           Margin="10,0,0,0" />
+            </Grid>
+        </Border>
+        
+        <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="0,0,0,10" Spacing="10">
+            <!-- URL Box -->
+            <TextBox Width="200"
+                     Watermark="📂 Url of presets"
+                     Margin="10,0,0,0"
+                     Text="{Binding RepoUrl, Mode=TwoWay}"/>
+            
+            <Button Width="150" Height="35" Background="{StaticResource OpenIPCBlueBrush}"
+                    VerticalAlignment="Center" CornerRadius="10"
+                    Command="{Binding AddRepositoryCommand, Mode=TwoWay}">
+                <!-- Text -->
+                <TextBlock Text="Add" FontSize="14" Foreground="White" VerticalAlignment="Center" />
+            </Button>
+            
+        </StackPanel>
+      </Grid>  
+    
+</UserControl>

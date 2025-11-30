@@ -1,6 +1,6 @@
 # Companion
 
-![OpenIPC](OpenIPC_Config/Assets/Icons/OpenIPC.png)
+![Companion](OpenIPC_Config/Assets/Icons/OpenIPC.png)
 
 A official multi-platform configuration tool for OpenIPC cameras, built using Avalonia UI. The application provides a user-friendly interface for managing camera settings, viewing telemetry data, and setting up the camera.
 
@@ -31,8 +31,8 @@ A official multi-platform configuration tool for OpenIPC cameras, built using Av
 * Preset repositories - Configures multiple GitHub repositories containing FPV (First Person View) camera presets, including both official OpenIPC presets and custom user presets
 
 ### App Configuration locations
-* Mac: "$HOME/Library/Application Support/OpenIPC_Config/appsettings.json"
-* Windows: %APPDATA%\Local\OpenIPC_Config\appsettings.json
+* Mac: "$HOME/Library/Application Support/Companion/appsettings.json"
+* Windows: %APPDATA%\Local\Companion\appsettings.json
 * Linux: ~/.config/appsettings.json
 
 
@@ -41,18 +41,18 @@ A official multi-platform configuration tool for OpenIPC cameras, built using Av
 https://github.com/serilog/serilog/wiki/Configuration-Basics
 
 ### App Logs
-* Android: /data/user/0/org.openipc.OpenIPC/files/.config/openipc-configurator.log
-* Mac: "$HOME/Library/Application Support/OpenIPC_Config/Logs"
-* Windows: %APPDATA%\Local\OpenIPC_Config\Logs
-* Linux: ~/.config/openipc-configurator.log
+* Android: /data/user/0/org.openipc.Companion/files/.config/companion.log
+* Mac: "$HOME/Library/Application Support/Companion/Logs"
+* Windows: %APPDATA%\Local\Companion\Logs
+* Linux: ~/.config/companion.log
 * 
 ## Known Issues
 * Device Hostname Error when you select connect
   * Edit appsettings.json located in one of the below locations:
-      * Android: /data/user/0/org.openipc.OpenIPC/files/.config/openipc-configurator.log
-      * Mac: "$HOME/Library/Application Support/OpenIPC_Config/Logs"
-      * Windows: %APPDATA%\Local\OpenIPC_Config\Logs
-      * Linux: ~/.config/openipc-configurator.log
+      * Android: /data/user/0/org.openipc.Companion/files/.config/companion.log
+      * Mac: "$HOME/Library/Application Support/Companion/Logs"
+      * Windows: %APPDATA%\Local\Companion\Logs"
+      * Linux: ~/.config/companion.log
   * Change to:
     * ```
       "DeviceHostnameMapping": {

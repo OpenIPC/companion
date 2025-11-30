@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Companion.ViewModels"
+             xmlns:assets="clr-namespace:Companion.Assets"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Companion.Views.VRXTabView"
+             x:DataType="vm:VRXTabViewModel">
+
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Label Grid.Row="0" Grid.Column="0" Width="250" Content="Resolution"
+               ToolTip.Tip="{DynamicResource SelectResolutionToolTip}" />
+        <Label Grid.Row="1" Grid.Column="0" Width="250" Content="FPS" ToolTip.Tip="Select FPS" />
+        <Label Grid.Row="2" Grid.Column="0" Width="250" Content="VRX Key Checksum"
+               ToolTip.Tip="Returns the chksum of the drone.key" />
+
+        <ComboBox Grid.Row="0" Grid.Column="1" Width="250"
+                  ItemsSource="{Binding Resolution}"
+                  SelectedItem="{Binding SelectedResolution, 
+                  Mode=TwoWay}" />
+        <ComboBox Grid.Row="1" Grid.Column="1" Width="250" ItemsSource="{Binding Fps}"
+                  SelectedItem="{Binding SelectedFps, 
+                  Mode=TwoWay}" />
+
+        <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12"
+                   Text="{Binding DroneKeyChecksum}" />
+
+        <Button Grid.Column="0" HorizontalAlignment="Left" Grid.Row="3" Content="Restart WFB"
+                Command="{Binding RestartWfbCommand}"
+                IsEnabled="{Binding CanConnect}" />
+
+        <Button Grid.Row="0" Grid.Column="2" Content="MSP Displayport" HorizontalAlignment="Left" Margin="10"
+                Command="{Binding EnableVrxMSPDisplayportCommand}"
+                IsEnabled="{Binding CanConnect}"
+                ToolTip.Tip="{x:Static assets:Resources.btnVRXMSPDisplayPort}" />
+
+        <Button Grid.Row="1" Grid.Column="2" Content="Mavlink OSD" HorizontalAlignment="Left" Margin="10"
+                Command="{Binding EnableVrxMajesticCommand}"
+                IsEnabled="{Binding CanConnect}"
+                ToolTip.Tip="{x:Static assets:Resources.btnVRXMajestic}" />
+
+        <StackPanel Grid.Row="1" Grid.Column="3" Orientation="Vertical">
+            <RadioButton Content="Simple" FontSize="12" GroupName="MavLinkOSD" Margin="0"
+                         IsEnabled="{Binding CanConnect}"
+                         IsChecked="{Binding IsSimpleMavLinkOSD, Mode=TwoWay}"
+                         ToolTip.Tip="{x:Static assets:Resources.btnVRXMajestic}" />
+            <!-- Enable MSPOSD on ttyS0") -->
+            <RadioButton Content="Extended" FontSize="12" GroupName="MavLinkOSD" Margin="0"
+                         IsEnabled="{Binding CanConnect}"
+                         IsChecked="{Binding IsExtendedMavLinkOSD, Mode=TwoWay}"
+                         ToolTip.Tip="{x:Static assets:Resources.btnVRXMajestic}" />
+            <!-- Enable MSPOSD on ttyS2") -->
+        </StackPanel>
+
+
+    </Grid>
+</UserControl>

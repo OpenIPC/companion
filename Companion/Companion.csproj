@@ -1,0 +1,119 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFrameworks>net8.0</TargetFrameworks>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <ApplicationIcon>Assets/Icons/OpenIPC.ico</ApplicationIcon>
+        <RootNamespace>Companion</RootNamespace>
+        <AssemblyName>Companion</AssemblyName>
+        <!--        <RuntimeIdentifiers>osx-arm64;win-x64;win-arm64;linux-x64;linux-arm64</RuntimeIdentifiers>-->
+    </PropertyGroup>
+
+
+    <ItemGroup>
+        <AvaloniaResource Include="Assets\**">
+            <Link>Assets/%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </AvaloniaResource>
+        <None Update="binaries\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <!-- Windows -->
+        <None Update="Assets/Icons/OpenIPC.ico">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <!-- Mac OSX -->
+        <None Update="Assets/Icons/OpenIPC.icns">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="appsettings.Development.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="VERSION">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="binaries\clean\telemetry_msposd_gs">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="binaries\presets\create_preset.sh">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)"/>
+        <PackageReference Include="Avalonia.Svg.Skia" Version="11.2.0.2"/>
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)"/>
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)"/>
+        <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="$(AvaloniaVersion)"/>
+        <PackageReference Include="Avalonia.Xaml.Interactivity" Version="11.2.0.12" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1"/>
+        <PackageReference Include="MessageBox.Avalonia" Version="3.2.0"/>
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.2" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0-rc.2.24473.5"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0-rc.2.24473.5"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0"/>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+        <PackageReference Include="Prism.Core" Version="9.0.537"/>
+        <PackageReference Include="ReactiveUI" Version="20.1.63"/>
+        <PackageReference Include="Serilog" Version="4.1.1-dev-02318"/>
+        <PackageReference Include="Serilog.Settings.AppSettings" Version="3.0.0"/>
+        <PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0"/>
+        <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0"/>
+        <PackageReference Include="Serilog.Sinks.File" Version="6.0.0"/>
+        <PackageReference Include="Serilog.Sinks.TextWriter" Version="3.0.0"/>
+        <PackageReference Include="SharpCompress" Version="0.39.0" />
+        <PackageReference Include="SSH.NET" Version="2024.1.0"/>
+        <PackageReference Include="YamlDotNet" Version="16.3.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="appsettings.json"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Update="Assets/Resources.resx">
+            <Generator>PublicResXFileCodeGenerator</Generator>
+            <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+            <LogicalName>Companion.Assets.Resources.resources</LogicalName>
+        </EmbeddedResource>
+
+        <Compile Update="Resources.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>Resources.resx</DependentUpon>
+        </Compile>
+
+        <EmbeddedResource Update="Assets\Resources.es.resx">
+            <Generator>ResXFileCodeGenerator</Generator>
+            <LastGenOutput>Resources.es.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
+
+        <Compile Update="Assets\Resources.es.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>Resources.es.resx</DependentUpon>
+        </Compile>
+
+        <Compile Update="ViewModels\StatusBarViewModel.cs">
+          <DependentUpon>PresetsTabViewModel.cs</DependentUpon>
+        </Compile>
+
+        <!--        <Compile Update="Views\PreferencesTabView.axaml.cs">-->
+        <!--          <DependentUpon>PreferencesTabView.axaml</DependentUpon>-->
+        <!--        </Compile>-->
+
+        <!--                <Compile Update="Views\WfbGSTabView.axaml.cs">-->
+        <!--                  <DependentUpon>WfbGSTabView.axaml</DependentUpon>-->
+        <!--                  <SubType>Code</SubType>-->
+        <!--                </Compile>-->
+
+        <!--                <Compile Update="Views\SetupRadxaButtonsView.axaml.cs">-->
+        <!--                  <DependentUpon>SetupRadxaButtonsView.axaml</DependentUpon>-->
+        <!--                  <SubType>Code</SubType>-->
+        <!--                </Compile>-->
+    </ItemGroup>
+
+</Project>

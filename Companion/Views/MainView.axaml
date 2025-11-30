@@ -1,0 +1,143 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Companion.ViewModels"
+             xmlns:views="clr-namespace:Companion.Views"
+             xmlns:converters="clr-namespace:Companion.Converters"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Companion.Views.MainView"
+             x:DataType="vm:MainViewModel"
+             x:Name="MainViewControl">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:BooleanToWidthConverter x:Key="BooleanToWidthConverter" />
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:InvertedBooleanConverter x:Key="InvertedBooleanConverter" />
+    </UserControl.Resources>
+    
+    <!-- Main Layout -->
+    <Grid>
+        <!-- Define Rows -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /> <!-- Header -->
+            <RowDefinition Height="*" />   <!-- Tab Content -->
+            <RowDefinition Height="Auto" MinHeight="5" /> <!-- GridSplitter -->
+            <RowDefinition Height="60" MinHeight="60" /> <!-- Log Viewer with default height -->
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <views:HeaderView Grid.Row="0" Height="83" />
+        
+        <!-- Tab Content -->
+        <Grid Grid.Row="1" 
+              ColumnDefinitions="Auto,Auto,*" Margin="0" ShowGridLines="False">
+            <!-- Collapsible TabControl -->
+            <TabControl x:Name="MainTabControl"
+                        Grid.Column="0"
+                        ItemsSource="{Binding Tabs}"
+                        SelectedIndex="{Binding SelectedTabIndex}"
+                        SelectedItem="{Binding SelectedTab}"
+                        Width="{Binding IsTabsCollapsed, 
+                        Converter={StaticResource BooleanToWidthConverter},
+                        ConverterParameter='80,180'}"
+                        Padding="0,0,10,0">
+                
+                <TabControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Height="40" VerticalAlignment="Center" >
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="30" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Icon -->
+                            <Svg Grid.Column="0" Path="{Binding Icon}" Margin="0" />
+
+                            <!-- Tab Name -->
+                            <TextBlock Text="{Binding TabName}" Grid.Column="1" 
+                                       VerticalAlignment="Center" HorizontalAlignment="Left"
+                                       FontSize="18" Margin="10,0,10,0"
+                                       IsVisible="{Binding IsTabsCollapsed, 
+                               Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        </Grid>
+                    </DataTemplate>
+                </TabControl.ItemTemplate>
+            </TabControl>
+
+            <!-- Toggle Tabs Button -->
+            <Button Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" 
+                    VerticalAlignment="Top"
+                    Classes="DrawerButton"
+                    Command="{Binding ToggleTabsCommand}" 
+                    BorderThickness="0"
+                    Background="Transparent">
+
+                <StackPanel Orientation="Horizontal" 
+                            Background="Transparent"
+                             Spacing="0">
+                    <Svg Path="/Assets/Icons/drawer-handle.svg"
+                         Margin="0,0,0,0"  />
+                    <Svg Path="{Binding SvgPath}"
+                         Width="10"
+                         Margin="0,0,0,0"
+                         HorizontalAlignment="Left"
+                         />
+                </StackPanel>
+            </Button>
+            
+            <!-- Tab Content -->
+            <ContentControl Grid.Column="2" 
+                            Content="{Binding SelectedTab.Content}"
+                            Padding="0"
+                            Margin="0"/>
+        </Grid>
+        
+        <!-- GridSplitter -->
+        <GridSplitter Grid.Row="2"
+                      Background="#CCCCCC"
+                      ResizeDirection="Rows"
+                      ResizeBehavior="PreviousAndNext"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      Cursor="SizeNorthSouth" />
+
+        <!-- Log Viewer Section -->
+        <Grid Grid.Row="3" Background="LightGray">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="20" MinWidth="20" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            
+            <!-- Log Label and Explorer Link -->
+            <StackPanel Grid.Column="0" Margin="5,3,5,3" VerticalAlignment="Top" >
+                <!-- Vertical "LOG" text -->
+                <!-- <StackPanel Orientation="Vertical" Margin="0,0,0,10" HorizontalAlignment="Center"> -->
+                <!--     <TextBlock Text="L" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" /> -->
+                <!--     <TextBlock Text="O" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" /> -->
+                <!--     <TextBlock Text="G" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" /> -->
+                <!-- </StackPanel> -->
+    
+                <Button Command="{Binding OpenLogFolderCommand}" 
+                        Background="Transparent" 
+                        Padding="0"
+                        BorderThickness="0"
+                        ToolTip.Tip="Open log folder in system file explorer">
+                    <!-- <StackPanel Orientation="Horizontal" Spacing="5"> -->
+                    <!--     <Svg Path="/Assets/Icons/folder-open.svg" Width="16" Height="16" /> -->
+                    <!--     ~1~ <TextBlock Text="Open Folder" /> @1@ -->
+                    <!-- </StackPanel> -->
+                    <StackPanel Orientation="Vertical" Margin="0,0,0,10" HorizontalAlignment="Center">
+                    <TextBlock Text="L" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center"  Foreground="Black"/>
+                    <TextBlock Text="O" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Foreground="Black"/>
+                    <TextBlock Text="G" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Foreground="Black"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+            
+            <!-- Log Viewer -->
+            <views:LogViewer Grid.Column="1" Margin="3,3,3,3" />
+        </Grid>
+    </Grid>
+</UserControl>

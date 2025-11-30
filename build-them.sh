@@ -2,9 +2,9 @@
 
 
 # Define the project names and paths
-desktop_project="OpenIPC_Config.Desktop"
-android_project="OpenIPC_Config.Android"
-ios_project="OpenIPC_Config.iOS"
+desktop_project="Companion.Desktop"
+android_project="Companion.Android"
+ios_project="Companion.iOS"
 
 # Build output directory
 output_dir="build"
@@ -29,29 +29,26 @@ run_tests() {
 }
 # Function to create macOS .app bundle
 create_macos_app_bundle() {
-    app_name="OpenIPC_Config"
+    app_name="Companion"
+    src="$output_dir/$desktop_project/osx-arm64"
     app_bundle="$output_dir/$desktop_project/osx-arm64/$app_name.app"
 
-    echo "Creating .app bundle structure for $app_name..."
-    mkdir -p "$app_bundle/Contents/MacOS"
-    mkdir -p "$app_bundle/Contents/Resources"
+    echo "Creating .app bundle at $app_bundle..."
+    rm -rf "$app_bundle"
+    mkdir -p "$app_bundle/Contents/MacOS" "$app_bundle/Contents/Resources"
 
-    # Copy the icon file
-    echo "Copying icon file..."
-    
-    cp "OpenIPC_Config/Assets/Icons/OpenIPC.icns" "$app_bundle/Contents/Resources/$app_name.icns"
+    # Icon (adjust path if needed)
+    cp "Companion/Assets/Icons/OpenIPC.icns" "$app_bundle/Contents/Resources/$app_name.icns" 2>/dev/null || true
 
-    # Move the executable file
-    echo "Moving executable to .app bundle..."
-    
-    cp -r $output_dir/$desktop_project/osx-arm64/* "$app_bundle/Contents/MacOS/"
-    
-    echo "App bundl created at $app_bundle"
-    chmod +x "$app_bundle"
+    # Copy published payload into MacOS
+    cp -R "$src/"* "$app_bundle/Contents/MacOS/"
 
-    # Create Info.plist file
-    echo "Creating Info.plist..."
-  
+    # Ensure the apphost is executable; if framework-dependent, use the dll runner
+    if [ -f "$app_bundle/Contents/MacOS/Companion.Desktop" ]; then
+        chmod +x "$app_bundle/Contents/MacOS/Companion.Desktop"
+    fi
+
+    # Info.plist
     cat > "$app_bundle/Contents/Info.plist" <<EOL
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -59,34 +56,46 @@ create_macos_app_bundle() {
 <dict>
     <key>CFBundleName</key>
     <string>$app_name</string>
+    <key>CFBundleDisplayName</key>
+    <string>$app_name</string>
     <key>CFBundleExecutable</key>
-    <string>OpenIPC_Config.Desktop</string>
+    <string>Companion.Desktop</string>
     <key>CFBundleIdentifier</key>
-    <string>com.openipc.$app_name</string>    
+    <string>com.openipc.$app_name</string>
     <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
     <string>1.0</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>LSMinimumSystemVersion</key>
-    <string>10.12</string>
+    <string>13.0</string>
     <key>CFBundleIconFile</key>
     <string>$app_name.icns</string>
 </dict>
 </plist>
 EOL
 
-    echo "$app_name.app bundle created successfully at $app_bundle"
+    echo "$app_name.app created: $app_bundle"
 }
 
 # Function to build for macOS with verbose output
 build_macos() {
     echo "Building $desktop_project for macOS (osx-arm64) as .app bundle..."
-    dotnet publish $desktop_project -c Release -r osx-arm64 --output "$output_dir/$desktop_project/osx-arm64" --self-contained -v $verbosity -p:PublishSingleFile=true
-  
-    if [ -f "$output_dir/$desktop_project/osx-arm64/OpenIPC_Config.Desktop.dll" ]; then
+    out="$output_dir/$desktop_project/osx-arm64"
+    dotnet publish "$desktop_project" -c Release -r osx-arm64 \
+      --output "$out" --self-contained true -v "$verbosity" \
+      -p:PublishSingleFile=true -p:UseAppHost=true
+
+    # Expect a native apphost when self-contained single-file
+    apphost="$out/Companion.Desktop"
+    dll="$out/Companion.Desktop.dll"
+
+    if [ -f "$apphost" ] || [ -f "$dll" ]; then
         create_macos_app_bundle
     else
-        echo "Error: macOS build failed or executable file not found."
+        echo "Error: macOS publish didn't produce Companion.Desktop or Companion.Desktop.dll in $out"
+        ls -la "$out"
     fi
 }
 

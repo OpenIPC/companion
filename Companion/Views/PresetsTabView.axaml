@@ -1,0 +1,354 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Companion.ViewModels"
+             xmlns:models="clr-namespace:Companion.Models.Presets"
+             xmlns:i="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Companion.Views"
+             xmlns:converters="clr-namespace:Companion.Converters"
+             x:Class="Companion.Views.PresetsTabView"
+             x:DataType="vm:PresetsTabViewModel">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converters:CanConnectConverter x:Key="CanConnectConverter" />
+        <converters:TagsToStringConverter x:Key="TagsToStringConverter" />
+
+    </UserControl.Resources>
+
+    
+    
+    <Grid RowDefinitions="Auto, Auto, Auto, *"
+          ColumnDefinitions="*" Margin="10">
+        <!-- Header with Information -->
+        <Border Background="#B0B0B0" CornerRadius="10" Padding="10" Margin="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Path
+                    Data="M10,20 A10,10 0 1,1 10,0 A10,10 0 1,1 10,20 Z M10,7 A1.5,1.5 0 1,0 10,4 A1.5,1.5 0 1,0 10,7 Z M9,8 L11,8 L11,14 L9,14 Z"
+                    Fill="White"
+                    Width="20"
+                    Height="20"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    Margin="5" />
+                <TextBlock Grid.Column="1"
+                           Text="Presets are predefined configuration sets for camera settings that can be downloaded from GitHub repositories, loaded locally, and applied to customize camera parameters with a single click, allowing users to quickly configure their camera with specific optimized settings."
+                           Foreground="Black"
+                           FontSize="14"
+                           TextWrapping="Wrap"
+                           VerticalAlignment="Center"
+                           Margin="10,0,0,0" />
+            </Grid>
+        </Border>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="0,0,0,10" Spacing="10">
+            <!-- Search Box -->
+            <TextBox Width="200"
+                     Watermark="🔍Search presets"
+                     Text="{Binding SearchQuery, Mode=TwoWay}" />
+
+            <!-- Fetch Button -->
+            <Button Width="150" Height="30" Background="{StaticResource OpenIPCBlueBrush}"
+                    VerticalAlignment="Center" CornerRadius="10"
+                    IsEnabled="{Binding CanConnect}"
+                    Command="{Binding FetchPresetsCommand}">
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Spacing="5">
+
+                    <!-- SVG Icon -->
+                    <Svg Width="20" Height="20" Path="avares://Companion.Assets/Icons/iconoir_github.svg" />
+
+                    <!-- Text -->
+                    <TextBlock Text="Update" FontSize="14" Foreground="White" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+
+
+        </StackPanel>
+
+        <!-- Filter Bar -->
+        <StackPanel Orientation="Horizontal" Grid.Row="2" Margin="0,0,0,10">
+            <!-- Categories Dropdown -->
+            <ComboBox Width="165"
+                      ItemsSource="{Binding Categories}"
+                      SelectedItem="{Binding SelectedCategory}"
+                      PlaceholderText="Select Category" />
+
+            <!-- Tags Dropdown -->
+            <ComboBox Width="150"
+                      ItemsSource="{Binding Tags}"
+                      SelectedItem="{Binding SelectedTag}"
+                      PlaceholderText="Select Tag" />
+
+            <!-- Authors Dropdown -->
+            <ComboBox Width="150"
+                      ItemsSource="{Binding Authors}"
+                      SelectedItem="{Binding SelectedAuthor}"
+                      PlaceholderText="Select Author" />
+
+            <!-- Status Dropdown -->
+            <ComboBox Width="150"
+                      ItemsSource="{Binding StatusOptions}"
+                      SelectedItem="{Binding SelectedStatus}"
+                      PlaceholderText="Select Status" />
+
+            <!-- Clear Filters Button -->
+            <Button Content="Clear Filters" Command="{Binding ClearFiltersCommand}" />
+        </StackPanel>
+
+        <!-- Presets List -->
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Presets}"
+                          IsEnabled="{Binding CanConnect}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+    <DataTemplate x:DataType="models:Preset">
+        <!-- Main card border with blue outline -->
+        <Border Width="350" Height="180" 
+                BorderBrush="#4169E1" 
+                BorderThickness="1" 
+                CornerRadius="10" 
+                Margin="10,10"
+                Background="White">
+            <Grid RowDefinitions="Auto,*">
+                <!-- Header section with blue background - FULL WIDTH -->
+                <Border Grid.Row="0" 
+                        Background="#4169E1" 
+                        CornerRadius="9,9,0,0"
+                        Height="40">
+                    <Grid>
+                        <!-- Title -->
+                        <TextBlock Text="{Binding Name}"
+                                   FontWeight="Bold" 
+                                   FontSize="18"
+                                   Foreground="White"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Left"
+                                   Margin="15,0,0,0"
+                                   TextTrimming="CharacterEllipsis" />
+                        
+                        <!-- Gold Star for Official status aligned to right -->
+                        <Path Width="24" 
+                              Height="24" 
+                              Fill="Gold"
+                              HorizontalAlignment="Right"
+                              VerticalAlignment="Center"
+                              Margin="0,0,15,0"
+                              Data="M9,2 L7.1,7.3 L1.5,7.5 L6,11.1 L4.4,16.7 L9,14 L13.6,16.7 L12,11.1 L16.5,7.5 L10.9,7.3 Z"
+                              IsVisible="{Binding Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter='Official'}" />
+                    </Grid>
+                </Border>
+
+                <!-- Completely separate content areas for enabled/disabled states to ensure full control -->
+                <Border Grid.Row="1" 
+                        Background="#707070"
+                        CornerRadius="0,0,9,9"
+                        IsVisible="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}, Path=IsEnabled, Converter={x:Static BoolConverters.Not}}">
+                    <Grid>
+                        <!-- Static content for disabled state -->
+                        <Grid Margin="15,10,15,10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Description -->
+                            <TextBlock Grid.Row="0" 
+                                       Text="{Binding Description}"
+                                       FontSize="14" 
+                                       TextWrapping="Wrap"
+                                       Foreground="White"
+                                       MaxHeight="40"
+                                       TextTrimming="CharacterEllipsis" 
+                                       Margin="0,0,0,5"/>
+                            
+                            <!-- Metadata section -->
+                            <StackPanel Grid.Row="1" VerticalAlignment="Bottom" Spacing="5">
+                                <!-- Category -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" 
+                                               Text="Category: "
+                                               FontWeight="Bold" 
+                                               Foreground="White" />
+                                    <TextBlock Grid.Column="1" 
+                                               Text="{Binding Category}"
+                                               Foreground="White" 
+                                               TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                                
+                                <!-- Author -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" 
+                                               Text="Author: "
+                                               FontWeight="Bold" 
+                                               Foreground="White" />
+                                    <TextBlock Grid.Column="1" 
+                                               Text="{Binding Author}"
+                                               Foreground="White" 
+                                               TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                                
+                                <!-- Status -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" 
+                                               Text="Status: "
+                                               FontWeight="Bold" 
+                                               Foreground="White" />
+                                    <TextBlock Grid.Column="1" 
+                                               Text="{Binding Status}"
+                                               Foreground="White" 
+                                               TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Disabled Apply button styled inline -->
+                        <Button Content="Apply"
+                                Width="100"
+                                Height="40"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Background="#707070"
+                                Foreground="White"
+                                BorderBrush="#707070"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                IsEnabled="False"
+                                Margin="0,0,15,15" 
+                                ZIndex="10" />
+                    </Grid>
+                </Border>
+                
+                <!-- Enabled state content - only visible when ItemsControl is enabled -->
+                <Border Grid.Row="1" 
+                        Background="White"
+                        CornerRadius="0,0,9,9"
+                        IsVisible="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}, Path=IsEnabled}">
+                    <Grid>
+                        <!-- Main content button for details view -->
+                        <Button Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                Margin="0"
+                                Click="OnShowPresetDetailsClicked"
+                                ClickMode="Press">
+                            
+                            <Grid Margin="15,10,15,10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                
+                                <!-- Description -->
+                                <TextBlock Grid.Row="0" 
+                                           Text="{Binding Description}"
+                                           FontSize="14" 
+                                           TextWrapping="Wrap"
+                                           Foreground="#333333"
+                                           MaxHeight="40"
+                                           TextTrimming="CharacterEllipsis" 
+                                           Margin="0,0,0,5"/>
+                                
+                                <!-- Metadata section with blue labels -->
+                                <StackPanel Grid.Row="1" VerticalAlignment="Bottom" Spacing="5">
+                                    <!-- Category -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" 
+                                                   Text="Category: "
+                                                   FontWeight="Bold" 
+                                                   Foreground="#4169E1" />
+                                        <TextBlock Grid.Column="1" 
+                                                   Text="{Binding Category}"
+                                                   Foreground="#333333" 
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                    
+                                    <!-- Author -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" 
+                                                   Text="Author: "
+                                                   FontWeight="Bold" 
+                                                   Foreground="#4169E1" />
+                                        <TextBlock Grid.Column="1" 
+                                                   Text="{Binding Author}"
+                                                   Foreground="#333333" 
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                    
+                                    <!-- Status -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" 
+                                                   Text="Status: "
+                                                   FontWeight="Bold" 
+                                                   Foreground="#4169E1" />
+                                        <TextBlock Grid.Column="1" 
+                                                   Text="{Binding Status}"
+                                                   Foreground="#333333" 
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                        
+                        <!-- Apply button positioned in bottom right corner -->
+                        <Button Content="Apply"
+                                Width="100"
+                                Height="40"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Background="#4169E1"
+                                Foreground="White"
+                                CornerRadius="10"
+                                CommandParameter="{Binding}"
+                                Click="OnApplyPresetClicked"
+                                Margin="0,0,15,15" 
+                                ZIndex="10" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+    </DataTemplate>
+</ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+    </Grid>
+</UserControl>
