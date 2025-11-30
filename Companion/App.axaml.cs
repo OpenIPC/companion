@@ -247,7 +247,7 @@ public class App : Application
         
         logger.Information(
             "**********************************************************************************************");
-        logger.Information($"Starting up log for OpenIPC Configurator {VersionHelper.GetAppVersion()}");
+        logger.Information($"Starting up log for OpenIPC Companion {VersionHelper.GetAppVersion()}");
         logger.Information("Logger initialized successfully.");
         logger.Information("Starting up....");
 
@@ -274,7 +274,8 @@ public class App : Application
 
     private string GetConfigPath()
     {
-        var appName = Assembly.GetExecutingAssembly().GetName().Name;
+        //var appName = Assembly.GetExecutingAssembly().GetName().Name;
+        var appName = "OpenIPC Companion";
         string configPath;
 
         if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || OperatingSystem.IsMacOS())
@@ -419,7 +420,7 @@ public class App : Application
 
     private JObject createDefaultAppSettings()
     {
-        string logPath = Path.Combine(OpenIPC.AppDataConfigDirectory, "Logs", "configurator.log");
+        string logPath = Path.Combine(OpenIPC.AppDataConfigDirectory, "Logs", "Companion.log");
 
         // Create default settings
         var defaultSettings = new JObject(
@@ -474,7 +475,7 @@ public class App : Application
                     ),
                     new JProperty("Properties",
                         new JObject(
-                            new JProperty("Application", "Companion")
+                            new JProperty("Application", "OpenIPC Companion")
                         )
                     )
                 )

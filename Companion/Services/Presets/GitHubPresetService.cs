@@ -25,7 +25,7 @@ public class GitHubPresetService : IGitHubPresetService
         _logger = logger?.ForContext(GetType()) ?? 
                  throw new ArgumentNullException(nameof(logger));
         _httpClient = httpClient ?? new HttpClient();
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "Companion");
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", "OpenIPC Companion");
     }
 
     /// <summary>
@@ -34,7 +34,7 @@ public class GitHubPresetService : IGitHubPresetService
     private string GetTempDirectory()
     {
         // Use the system's temp directory as a base
-        string baseDir = Path.Combine(Path.GetTempPath(), "Companion", "Presets");
+        string baseDir = Path.Combine(Path.GetTempPath(), "OpenIPC Companion", "Presets");
     
         // Create the directory if it doesn't exist
         if (!Directory.Exists(baseDir))

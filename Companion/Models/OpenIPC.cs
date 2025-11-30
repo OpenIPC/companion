@@ -15,7 +15,7 @@ public class OpenIPC
     }
 
     
-    public const string AppName = "Companion";
+    public const string AppName = "OpenIPC Companion";
 
     public const string OpenIPCBuilderGitHubApiUrl = "https://api.github.com/repos/OpenIPC/builder/releases/latest";
     public const string MajesticFileLoc = "/etc/majestic.yaml";
@@ -99,8 +99,8 @@ public class OpenIPC
 
     private static void InitializePaths()
     {
-        var appName = Assembly.GetExecutingAssembly().GetName().Name;
-
+        //var appName = Assembly.GetExecutingAssembly().GetName().Name;
+        var appName = "OpenIPC Companion";
 
         if (OperatingSystem.IsAndroid())
         {

@@ -205,7 +205,7 @@ public partial class PresetsTabViewModel : ViewModelBase
     private string GetTempPresetsDirectory(string repositoryName)
     {
         // Use the system's temp directory as a base
-        string baseDir = Path.Combine(Path.GetTempPath(), "Companion", "Presets", repositoryName);
+        string baseDir = Path.Combine(Path.GetTempPath(), "OpenIPC Companion", "Presets", repositoryName);
 
         // Just ensure the directory exists but don't delete it - let the GitHubPresetService handle cleaning
         if (!Directory.Exists(baseDir))

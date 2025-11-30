@@ -48,7 +48,7 @@ MSPVTX is partially working, do NOT use</value>
 /root/ and /usr/sbin/channels.sh
 of the OpenIPC camera
 to the location of the 
-OpenIPC Configurator executable</value>
+OpenIPC Companion executable</value>
     </data>
     <data name="RecOffToolTip" xml:space="preserve">
         <value>Turn OFF the onboard REC</value>
@@ -82,18 +82,18 @@ Must also be selected to the Serial Selector</value>
         <value>Transfer the imx415_fpv.bin 
 from the the Sigmastar OpenIPC camera
 to the backup folder in the location 
-of the OpenIPC Configurator.exe file</value>
+of the OpenIPC Companion.exe file</value>
     </data>
     <data name="SensorDriverBackupToolTip" xml:space="preserve">
         <value>Transfer the sensor_imx415_mipi.ko
 from the the Sigmastar OpenIPC camera
 to the backup folder in the location 
-of the OpenIPC Configurator executable file</value>
+of the OpenIPC Companion executable file</value>
     </data>
     <data name="SensorDriverUpdateToolTip" xml:space="preserve">
         <value>Transfer the sensor_imx415_mipi.ko
 from the location of the 
-OpenIPC Configurator.exe file
+OpenIPC Companion.exe file
 to the Sigmastar OpenIPC camera
         </value>
     </data>
@@ -106,7 +106,7 @@ to the Sigmastar OpenIPC camera
     <data name="ScriptFilesRestoreToolTip" xml:space="preserve">
         <value>Transfer all the *.sh files
 from the location of the 
-OpenIPC Configurator executable to
+OpenIPC Companion executable to
 /root/ and /usr/sbin/channels.sh"
 of the OpenIPC camera"</value>
     </data>

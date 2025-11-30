@@ -962,7 +962,7 @@ public partial class MainViewModel : ViewModelBase
     {
         // Use AppData folder for Windows, or appropriate location for other platforms
         string appDataFolder;
-        string appName = "Companion";
+        string appName = "OpenIPC Companion";
         string logPath;
         
         if (OperatingSystem.IsWindows())
