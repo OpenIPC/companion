@@ -71,10 +71,11 @@ public class GitHubServiceTests
 
         // Assert
         Assert.That(apiResponse, Is.EqualTo(result));
-        _memoryCache.TryGetValue("GitHubData", out string cachedResult);
-            
-        // Assert.True(_memoryCache.TryGetValue("GitHubData", out string cachedResult));
-        Assert.That(apiResponse, Is.EqualTo(cachedResult)); // Assert that the cached data matches the API response cachedResult);
+        _memoryCache.TryGetValue("GitHubData", out string? cachedResult);
+        
+        // Assert that the cached data matches the API response
+        Assert.That(cachedResult, Is.Not.Null);
+        Assert.That(apiResponse, Is.EqualTo(cachedResult));
     }
 
     [Fact]

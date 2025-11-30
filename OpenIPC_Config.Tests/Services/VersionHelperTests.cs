@@ -36,7 +36,7 @@ public class VersionHelperTests
         var version = VersionHelper.GetAppVersion();
 
         // Assert
-        Assert.AreEqual(expectedVersion, version);
+        Assert.That(version, Is.EqualTo(expectedVersion));
     }
 
 
@@ -51,6 +51,6 @@ public class VersionHelperTests
         var version = VersionHelper.GetAppVersion();
 
         // Assert
-        Assert.AreEqual("Unknown Version", version);
+        Assert.That(version, Is.EqualTo("Unknown Version"));
     }
 }

@@ -46,9 +46,9 @@ public class UpdateCheckerTests
         var result = await updateChecker.CheckForUpdateAsync("v0.0.1");
 
         // Assert
-        Assert.True(result.HasUpdate);
-        Assert.AreEqual("Bug fixes and performance improvements.", result.ReleaseNotes);
-        Assert.AreEqual("https://example.com/download", result.DownloadUrl);
-        Assert.AreEqual("release-v1.2.0", result.NewVersion);
+        Assert.That(result.HasUpdate, Is.True);
+        Assert.That(result.ReleaseNotes, Is.EqualTo("Bug fixes and performance improvements."));
+        Assert.That(result.DownloadUrl, Is.EqualTo("https://example.com/download"));
+        Assert.That(result.NewVersion, Is.EqualTo("release-v1.2.0"));
     }
 }

@@ -15,9 +15,9 @@ Bus 001 Device 002: ID 0bda:8812
         
 
         string expectedDriver = "88XXau";
-        string actualDriver = WifiCardDetector.DetectWifiCard(lsusbOutput); //Or WifiCardDetector.DetectWifiCard(lsusbOutput);
+        string actualDriver = WifiCardDetector.DetectWifiCard(lsusbOutput);
 
-        Assert.AreEqual(expectedDriver, actualDriver, "Driver detection failed for Realtek 8812.");
+        Assert.That(actualDriver, Is.EqualTo(expectedDriver), "Driver detection failed for Realtek 8812.");
     }
 
     [Test]
@@ -29,10 +29,10 @@ Bus 001 Device 002: ID 1234:5678
 "; //No matching DeviceID
         
 
-        string expectedDriver = null;
-        string actualDriver = WifiCardDetector.DetectWifiCard(lsusbOutput); //Or WifiCardDetector.DetectWifiCard(lsusbOutput);
+        string? expectedDriver = null;
+        string? actualDriver = WifiCardDetector.DetectWifiCard(lsusbOutput);
 
-        Assert.AreEqual(expectedDriver, actualDriver, "Driver detection failed for no matching device ID.");
+        Assert.That(actualDriver, Is.EqualTo(expectedDriver), "Driver detection failed for no matching device ID.");
     }
 
     [Test]
@@ -43,12 +43,10 @@ Bus 001 Device 001: ID 1d6b:0002
 Bus 001 Device 002: ID 0bda:881a
 "; //Device ID with letter
 
-        
-
         string expectedDriver = "88XXau";
-        string actualDriver = WifiCardDetector.DetectWifiCard(lsusbOutput); //Or WifiCardDetector.DetectWifiCard(lsusbOutput);
+        string actualDriver = WifiCardDetector.DetectWifiCard(lsusbOutput);
 
-        Assert.AreEqual(expectedDriver, actualDriver, "Driver detection failed for the correct device id.");
+        Assert.That(actualDriver, Is.EqualTo(expectedDriver), "Driver detection failed for the correct device id.");
     }
     
     [Test]
@@ -59,12 +57,10 @@ Bus 001 Device 001: ID 1d6b:0002
 Bus 001 Device 002: ID 0bda:f72b
 "; //Device ID with letter
 
-        
-
         string expectedDriver = "8733bu";
-        string actualDriver = WifiCardDetector.DetectWifiCard(lsusbOutput); //Or WifiCardDetector.DetectWifiCard(lsusbOutput);
+        string actualDriver = WifiCardDetector.DetectWifiCard(lsusbOutput);
 
-        Assert.AreEqual(expectedDriver, actualDriver, "Driver detection failed for the correct device id.");
+        Assert.That(actualDriver, Is.EqualTo(expectedDriver), "Driver detection failed for the correct device id.");
     }
     
     [Test]
@@ -75,11 +71,9 @@ Bus 001 Device 001: ID 1d6b:0002
 Bus 001 Device 002: ID 0bda:a81a
 "; //Device ID with letter
 
-        
-
         string expectedDriver = "8812eu";
-        string actualDriver = WifiCardDetector.DetectWifiCard(lsusbOutput); //Or WifiCardDetector.DetectWifiCard(lsusbOutput);
+        string actualDriver = WifiCardDetector.DetectWifiCard(lsusbOutput);
 
-        Assert.AreEqual(expectedDriver, actualDriver, "Driver detection failed for the correct device id.");
+        Assert.That(actualDriver, Is.EqualTo(expectedDriver), "Driver detection failed for the correct device id.");
     }
 }

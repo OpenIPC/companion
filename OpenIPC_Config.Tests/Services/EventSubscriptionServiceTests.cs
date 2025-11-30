@@ -45,7 +45,7 @@ public class EventSubscriptionServiceTests
     public void Subscribe_InvokesActionWhenEventIsPublished()
     {
         // Arrange
-        string receivedPayload = null;
+        string? receivedPayload = null;
 
         // Subscribe to the event
         _eventSubscriptionService.Subscribe<TestEvent, string>(payload => 
@@ -69,7 +69,7 @@ public class EventSubscriptionServiceTests
         Console.WriteLine($"After Publish: Received Payload: {receivedPayload}");
 
         // Assert: Check that the payload was correctly received
-        Assert.AreEqual("Test Payload", receivedPayload);
+        Assert.That(receivedPayload, Is.EqualTo("Test Payload"));
 
         // Verify logger was called for publishing event
         _mockLogger.Verify(
@@ -83,14 +83,14 @@ public class EventSubscriptionServiceTests
     public void Publish_TriggersSubscribers()
     {
         // Arrange
-        string receivedPayload = null;
+        string? receivedPayload = null;
         _testEvent.Subscribe(payload => receivedPayload = payload);
 
         // Act
         _eventSubscriptionService.Publish<TestEvent, string>("Another Test Payload");
 
         // Assert
-        Assert.AreEqual("Another Test Payload", receivedPayload);
+        Assert.That(receivedPayload, Is.EqualTo("Another Test Payload"));
         _mockLogger.Verify(
             logger => logger.Verbose(It.Is<string>(msg =>
                 msg.Contains("Published event TestEvent with payload Another Test Payload"))), Times.Once);
@@ -99,14 +99,14 @@ public class EventSubscriptionServiceTests
     [Test]
     public void Constructor_ThrowsArgumentNullException_IfEventAggregatorIsNull()
     {
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new EventSubscriptionService(null, _mockLogger.Object));
+        // Assert
+Assert.That(() => new EventSubscriptionService(null!, _mockLogger.Object), Throws.ArgumentNullException);
     }
 
     [Test]
     public void Constructor_ThrowsArgumentNullException_IfLoggerIsNull()
     {
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new EventSubscriptionService(_mockEventAggregator.Object, null));
+        // Assert
+Assert.That(() => new EventSubscriptionService(_mockEventAggregator.Object, null!), Throws.ArgumentNullException);
     }
 }
