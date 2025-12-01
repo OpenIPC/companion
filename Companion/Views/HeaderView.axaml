@@ -111,10 +111,10 @@
                     <Svg Width="16" Path="/Assets/Icons/mdi-github.svg" />
                 </Button>
 
-                <Button Name="DiscordButton" Margin="0" Padding="20,0,5,5" Click="DiscordButton_OnClick"
-                        Background="Transparent" BorderThickness="0">
-                    <Svg Width="16" Path="/Assets/Icons/ic-discord.svg" />
-                </Button>
+                <!-- <Button Name="DiscordButton" Margin="0" Padding="20,0,5,5" Click="DiscordButton_OnClick" -->
+                <!--         Background="Transparent" BorderThickness="0"> -->
+                <!--     <Svg Width="16" Path="/Assets/Icons/ic-discord.svg" /> -->
+                <!-- </Button> -->
             </StackPanel>
 
             <StackPanel Orientation="Vertical" Grid.Column="2" HorizontalAlignment="Right"
