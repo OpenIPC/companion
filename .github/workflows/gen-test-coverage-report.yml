@@ -40,13 +40,13 @@ jobs:
         run: dotnet workload restore
         
       - name: Restore dependencies
-        run: dotnet restore OpenIPC_Config/OpenIPC_Config.csproj
+        run: dotnet restore Companion/OpenIPC_Config.csproj
 
       - name: Build project
-        run: dotnet build OpenIPC_Config/OpenIPC_Config.csproj --configuration Release
+        run: dotnet build Companion/OpenIPC_Config.csproj --configuration Release
         
       - name: "Restore/Build/Test"
-        run: dotnet test OpenIPC_Config.Tests --configuration Release --verbosity normal --logger trx --collect:"XPlat Code Coverage"
+        run: dotnet test Companion.Tests --configuration Release --verbosity normal --logger trx --collect:"XPlat Code Coverage"
 
       - name: Combine Coverage Reports # This is because one report is produced per project, and we want one result for all of them.
         uses: danielpalme/ReportGenerator-GitHub-Action@5.2.4

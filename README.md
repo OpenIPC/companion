@@ -1,6 +1,6 @@
 # Companion
 
-![Companion](OpenIPC_Config/Assets/Icons/OpenIPC.png)
+![Companion](Companion/Assets/Icons/OpenIPC.png)
 
 A official multi-platform configuration tool for OpenIPC cameras, built using Avalonia UI. The application provides a user-friendly interface for managing camera settings, viewing telemetry data, and setting up the camera.
 
