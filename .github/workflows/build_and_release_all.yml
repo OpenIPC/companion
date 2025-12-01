@@ -217,8 +217,8 @@ jobs:
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: OpenIPC-Companion-macos-${{ matrix.arch }}.dmg
-          path: OpenIPC-Companion-macos-${{ matrix.arch }}.dmg
+          name: Companion-macos-${{ matrix.arch }}.dmg
+          path: Companion-macos-${{ matrix.arch }}.dmg
           compression-level: 9
 
       - name: Upload Windows Artifact
