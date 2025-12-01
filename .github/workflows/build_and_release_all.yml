@@ -136,11 +136,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          APP_NAME="OpenIPC Companion"
+          APP_NAME="Companion"
           ICON_SRC="./Companion/Assets/Icons/OpenIPC.icns"
           PUBLISH_DIR="./Companion.Desktop/bin/Release/net8.0/osx-${{ matrix.arch }}/publish"
           APP_DIR="${APP_NAME}.app"
-          DMG_NAME="OpenIPC-Companion-macos-${{ matrix.arch }}.dmg"
+          DMG_NAME="Companion-macos-${{ matrix.arch }}.dmg"
 
           echo "Publish dir:"
           ls -la "$PUBLISH_DIR"
