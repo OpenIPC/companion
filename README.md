@@ -36,6 +36,8 @@ A official multi-platform configuration tool for OpenIPC cameras, built using Av
 * Linux: ~/.config/appsettings.json
 
 
+![Companion](docs/images/companion-1.png)
+
 ## Logging
 
 https://github.com/serilog/serilog/wiki/Configuration-Basics
