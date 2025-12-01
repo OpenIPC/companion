@@ -40,10 +40,10 @@ jobs:
         run: dotnet workload restore
         
       - name: Restore dependencies
-        run: dotnet restore Companion/OpenIPC_Config.csproj
+        run: dotnet restore Companion/Companion.csproj
 
       - name: Build project
-        run: dotnet build Companion/OpenIPC_Config.csproj --configuration Release
+        run: dotnet build Companion/Companion.csproj --configuration Release
         
       - name: "Restore/Build/Test"
         run: dotnet test Companion.Tests --configuration Release --verbosity normal --logger trx --collect:"XPlat Code Coverage"
