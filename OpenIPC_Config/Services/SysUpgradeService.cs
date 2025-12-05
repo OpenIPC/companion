@@ -49,4 +49,98 @@ public class SysUpgradeService
             updateProgress($"Error: {ex.Message}");
         }
     }
+    
+    public async Task PerformBootloaderUpdateAsync(DeviceConfig deviceConfig, string bootloaderPath, 
+        Action<string> updateProgress, CancellationToken cancellationToken)
+    {
+        try
+        {
+            updateProgress("Uploading bootloader...");
+            string bootloaderFilename = Path.GetFileName(bootloaderPath);
+            string sentinel = "nya";
+            await _sshClientService.UploadFileAsync(deviceConfig, bootloaderPath, $"{OpenIPC.RemoteTempFolder}/{bootloaderFilename}");
+            updateProgress("Bootloader uploaded successfully.");
+            
+
+            //updateProgress("Starting sysupgrade...");
+            updateProgress("Now flashing 1-st stage");
+            updateProgress($"Name of uboot file is {bootloaderFilename}");
+            await _sshClientService.ExecuteCommandWithProgressAsync(
+                deviceConfig,
+                "flashcp -v /tmp/u-boot-ssc338q-nor.bin /dev/mtd0; echo \"nya\"",
+                updateProgress,
+                cancellationToken,
+                null,
+                (output) => output.Trim() == sentinel
+            );
+            updateProgress("Phase 1 - completed");
+            
+            await _sshClientService.ExecuteCommandWithProgressAsync(
+                deviceConfig,
+                "flash_eraseall /dev/mtd1; echo \"nya\"",
+                updateProgress,
+                cancellationToken,
+                null,
+                (output) => output.Trim() == sentinel
+            );
+
+            updateProgress("Bootloader update process completed.");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error during sysupgrade.");
+            updateProgress($"Error: {ex.Message}");
+        }
+    }
+    
+    public async Task<string> GetUpdateLinkAsync(DeviceConfig deviceConfig, CancellationToken cancellationToken)
+    {
+        try
+        {
+           var res = await _sshClientService.ExecuteCommandWithResponseAsync(
+               deviceConfig,
+               "fw_printenv -n upgrade",
+               cancellationToken);
+            return res.Result;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error during sysupgrade.");
+            return null;
+        }
+    }
+    
+    public async Task<string> GetFlashTypeAsync(DeviceConfig deviceConfig, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var res = await _sshClientService.ExecuteCommandWithResponseAsync(
+                deviceConfig,
+                "ipcinfo -F",
+                cancellationToken);
+            return res.Result;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error during sysupgrade.");
+            return null;
+        }
+    }
+    
+    public async Task<string> GetSOCTypeAsync(DeviceConfig deviceConfig, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var res = await _sshClientService.ExecuteCommandWithResponseAsync(
+                deviceConfig,
+                "fw_printenv -n soc",
+                cancellationToken);
+            return res.Result;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error during sysupgrade.");
+            return null;
+        }
+    }
 }

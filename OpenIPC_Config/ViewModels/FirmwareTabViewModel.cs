@@ -107,6 +107,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     public ICommand SelectLocalFirmwarePackageCommand { get; set; }
     public ICommand PerformFirmwareUpgradeAsyncCommand { get; set; }
+    public ICommand PerformFirmwareAutoUpgradeCommand { get; set; }
+    public ICommand PerformBootloaderAutoUpgradeCommand { get; set; }
     public ICommand ClearFormCommand { get; set; }
     public IRelayCommand DownloadFirmwareAsyncCommand { get; set; }
 
@@ -158,7 +160,13 @@ public partial class FirmwareTabViewModel : ViewModelBase
             CanExecuteDownloadFirmware);
 
         PerformFirmwareUpgradeAsyncCommand = new RelayCommand(
-            async () => await DownloadAndPerformFirmwareUpgradeAsync()); 
+            async () => await DownloadAndPerformFirmwareUpgradeAsync());
+
+        PerformFirmwareAutoUpgradeCommand =
+            new RelayCommand(async () => await PerformAutoFirmwareUpgradeAsync());
+        
+        PerformBootloaderAutoUpgradeCommand =
+            new RelayCommand(async () => await PerformAutoBootloaderUpgradeAsync());
 
         SelectLocalFirmwarePackageCommand = new RelayCommand<Window>(async window =>
             await SelectLocalFirmwarePackage(window));
@@ -417,6 +425,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
             InitializeCommands();
             (DownloadFirmwareAsyncCommand as RelayCommand)?.NotifyCanExecuteChanged();
             (PerformFirmwareUpgradeAsyncCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            (PerformFirmwareAutoUpgradeCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            (PerformBootloaderAutoUpgradeCommand as RelayCommand)?.NotifyCanExecuteChanged();
             (SelectLocalFirmwarePackageCommand as RelayCommand)?.NotifyCanExecuteChanged();
         }
     }
@@ -896,6 +906,80 @@ public partial class FirmwareTabViewModel : ViewModelBase
             Logger.Error(ex, "Error performing firmware upgrade from dropdown");
         }
     }
+    
+    private async Task PerformAutoFirmwareUpgradeAsync()
+    {
+        try
+        {
+            ProgressValue = 0;
+            
+            Logger.Information("Performing automatic firmware upgrade.");
+            var sysupgradeService = new SysUpgradeService(SshClientService, Logger);
+            string downloadUrl = await sysupgradeService.GetUpdateLinkAsync(DeviceConfig.Instance, CancellationToken.None);
+            var filename = string.Empty;
+            
+            if (!string.IsNullOrEmpty(downloadUrl))
+            {
+                Logger.Information("Got link");
+                Logger.Information(downloadUrl);
+                filename = downloadUrl.Remove(0, downloadUrl.LastIndexOf("/") + 1 );
+                Logger.Information(filename);
+            }
+            
+            else
+            {
+                Logger.Warning("Failed to get link. Missing or invalid data.");
+                return;
+            }
+            string firmwareFilePath = await DownloadFirmwareAsync(downloadUrl, filename);
+            if (!string.IsNullOrEmpty(firmwareFilePath))
+            {
+                await UpgradeFirmwareFromFileAsync(firmwareFilePath);
+            }
+            
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error performing firmware upgrade from dropdown");
+        }
+    }
+    
+    private async Task PerformAutoBootloaderUpgradeAsync()
+    {
+        try
+        {
+            ProgressValue = 0;
+            
+            Logger.Information("Performing automatic bootloader upgrade.");
+            var sysupgradeService = new SysUpgradeService(SshClientService, Logger);
+            string flashType = await sysupgradeService.GetFlashTypeAsync(DeviceConfig.Instance, CancellationToken.None);
+            string socType = await sysupgradeService.GetSOCTypeAsync(DeviceConfig.Instance, CancellationToken.None);
+            string ubootType = null;
+            if (!string.IsNullOrEmpty(flashType) && !string.IsNullOrEmpty(socType))
+            {
+                Logger.Information("Needed u-boot release identified");
+                ubootType = $"u-boot-{socType.Trim()}-{flashType.Trim()}.bin";
+                Logger.Information(ubootType);
+            }
+            
+            else
+            {
+                Logger.Warning("Failed to get link. Missing or invalid data.");
+                return;
+            }
+            string bootloaderFilePath = await DownloadFirmwareAsync($"https://github.com/OpenIPC/firmware/releases/download/latest/{ubootType}", ubootType);
+            if (!string.IsNullOrEmpty(bootloaderFilePath))
+            {
+                await UpgradeBootloaderFromFileAsync(bootloaderFilePath);
+            }
+            
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error performing firmware upgrade from dropdown");
+        }
+    }
+    
     private async Task PerformFirmwareUpgradeFromDropdownAsync()
     {
         try
@@ -1039,6 +1123,63 @@ public partial class FirmwareTabViewModel : ViewModelBase
             Logger.Error(ex, "Error upgrading firmware from file");
         }
     }
+    
+    private async Task UpgradeBootloaderFromFileAsync(string bootloaderFilePath)
+    {
+        try
+        {
+            Logger.Information($"Upgrading bootloader from file: {bootloaderFilePath}");
+
+            ProgressValue = 5;
+
+            ProgressValue = 10;
+
+            ProgressValue = 20;
+
+            var sysupgradeService = new SysUpgradeService(SshClientService, Logger);
+
+            await Task.Run(async () =>
+            {
+                await sysupgradeService.PerformBootloaderUpdateAsync(DeviceConfig.Instance, bootloaderFilePath,
+                    progress =>
+                    {
+                        Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            switch (progress)
+                            {
+                                case var s when s.Contains("Bootloader uploaded successfully."):
+                                    ProgressValue = 50;
+                                    Logger.Debug("Update bootloader from ProgressValue: " + ProgressValue);
+                                    break;
+                                case var s when s.Contains("Bootloader update process completed."):
+                                    ProgressValue = 90;
+                                    Logger.Debug("Kernel updated to ProgressValue: " + ProgressValue);
+                                    break;
+                            }
+
+                            Logger.Debug(progress);
+                        });
+                    },
+                    CancellationToken.None);
+
+                await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    //ProgressValue = 100;
+                    Logger.Information("Bootloader upgrade completed successfully.");
+                });
+            });
+
+            ProgressValue = 100;
+            await _messageBoxService.ShowCustomMessageBox("Bootloader upgrade Complete!!", "Device has been flashed!", ButtonEnum.Ok, Icon.Success);
+            Logger.Information("Bootloader upgrade completed successfully.");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error upgrading bootloader from file");
+        }
+    }
+    
+    
 
     public async Task SelectLocalFirmwarePackage(Window window)
     {

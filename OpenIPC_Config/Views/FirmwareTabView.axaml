@@ -117,10 +117,46 @@
 
                     </Grid>
                 </Border>
+                
+                <TextBlock Text="OR" Grid.Row="7" Grid.Column="1" Padding="0,5,0,5" VerticalAlignment="Center" />
+                
+                <Border Grid.Column="0" Grid.Row="8" Grid.ColumnSpan="2" Background="#E7E7E7" 
+                        CornerRadius="8" Padding="5">
+                    <Grid ColumnDefinitions="Auto,*,*,*,*,*"
+                          RowDefinitions="Auto"
+                          ShowGridLines="False">
+                            <TextBlock Text="Auto" Grid.Row="0" Grid.Column="0"
+                               VerticalAlignment="Center" />
+                            
+                            <Button Content="Firmware"
+                                    Grid.Row="0"
+                                    Grid.Column="2"
+                                    IsDefault="True"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Width="100"
+                                    Command="{Binding PerformFirmwareAutoUpgradeCommand}"
+                                    IsEnabled="{Binding CanConnect}"
+                                    Margin="0,10,0,0" />
+                            
+                            <Button Content="Bootloader"
+                                    Grid.Row="0"
+                                    Grid.Column="4"
+                                    IsDefault="True"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Width="100"
+                                    Command="{Binding PerformBootloaderAutoUpgradeCommand}"
+                                    IsEnabled="{Binding CanConnect}"
+                                    Margin="0,10,0,0" />
 
+
+                          </Grid>
+
+                </Border>
                 <!-- Clear Button -->
                 <Button Content="Clear"
-                        Grid.Row="7"
+                        Grid.Row="9"
                         Grid.Column="0"
                         HorizontalAlignment="Left"
                         Background="LightGray"
@@ -132,7 +168,7 @@
 
                 <!-- Update Button -->
                 <Button Content="Update"
-                        Grid.Row="7"
+                        Grid.Row="9"
                         Grid.Column="1"
                         IsDefault="True"
                         HorizontalAlignment="Right"
