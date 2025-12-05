@@ -1,0 +1,77 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Companion.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="450"
+             x:Class="Companion.Views.StatusBarView"
+             x:DataType="vm:StatusBarViewModel">
+
+    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+        <Border BorderBrush="Beige" BorderThickness="1">
+
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+
+                <!-- Hostname -->
+                <Border BorderBrush="Gray" BorderThickness="0" Grid.Row="0" Grid.Column="0">
+                    <Label FontWeight="Bold" Content="Hostname:" />
+                </Border>
+
+                <Border BorderBrush="Gray" BorderThickness="0" Grid.Row="0" Grid.Column="1">
+                    <TextBlock VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding HostNameText}" />
+                </Border>
+
+                <!-- ~1~ Status @1@  -->
+                <!-- <Border BorderBrush="Gray" BorderThickness="0" Grid.Row="0" Grid.Column="2"> -->
+                <!--     <Label FontWeight="Bold" Content="Status:" /> -->
+                <!-- </Border> -->
+
+                <Border BorderBrush="Gray" BorderThickness="0" Grid.Row="0" Grid.Column="3">
+                    <TextBlock VerticalAlignment="Center" Width="100" Text="{Binding StatusText}" />
+                </Border>
+
+                <!-- Last Message -->
+                <Border BorderBrush="Gray" BorderThickness="0" Grid.Row="0" Grid.Column="4">
+                    <Label FontWeight="Bold" Content="Last Message:" />
+                </Border>
+
+                <Border BorderBrush="Gray" BorderThickness="0" Grid.Row="0" Grid.Column="5">
+                    <TextBlock VerticalAlignment="Center" Text="{Binding MessageText}" />
+                </Border>
+
+                <!-- OpenIPC -->
+                <Border BorderBrush="White" BorderThickness="0" Grid.Row="0" Grid.Column="6" Width="150">
+                    <Label Content="OpenIPC" HorizontalContentAlignment="Right" />
+                </Border>
+
+                <!-- App Version -->
+                <Border BorderBrush="White" BorderThickness="0" Grid.Row="0" Grid.Column="7"
+                        HorizontalAlignment="Right">
+                    <Label Content="{Binding AppVersionText}" />
+                </Border>
+
+
+            </Grid>
+
+
+        </Border>
+    </ScrollViewer>
+
+</UserControl>

@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Companion.ViewModels"
+             mc:Ignorable="d"
+             d:DesignHeight="80"
+             
+             x:Class="Companion.Views.LogViewer"
+             x:DataType="vm:LogViewerViewModel">
+
+
+    
+    <Border Background="#F0F0F0" CornerRadius="8" Padding="0,3,0,5" Margin="0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid>
+            <Grid.RowDefinitions>
+                <!-- Label -->
+                <!-- <RowDefinition Height="Auto" />  -->
+                <!-- ListBox -->
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" /> <!-- Single column for simplicity -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Label for log file information -->
+            <!-- <Label Grid.Row="0"  -->
+            <!--        FontStyle="Italic"  -->
+            <!--        FontSize="14" -->
+            <!--        Margin="5,5,5,10" -->
+            <!--        Content="Log File is also available in the System Application Folder" /> -->
+
+            <!-- Log viewer ListBox -->
+            <ListBox Grid.Row="0"
+                     Padding="0"
+                     Margin="0"
+                     CornerRadius="8"
+                     BorderBrush="Black"
+                     BorderThickness="0"
+                     ItemsSource="{Binding LogMessages}"
+                     ScrollViewer.VerticalScrollBarVisibility="Visible"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     HorizontalAlignment="Stretch">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid HorizontalAlignment="Stretch">
+                            <TextBlock Text="{Binding}"
+                                       TextWrapping="Wrap"
+                                       FontSize="12"
+                                       Margin="0,0" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+        </Grid>
+        </ScrollViewer>
+    </Border>
+
+</UserControl>

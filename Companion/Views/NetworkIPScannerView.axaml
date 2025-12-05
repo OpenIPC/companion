@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Companion.ViewModels"
+             xmlns:assets="clr-namespace:Companion.Assets"
+             x:Class="Companion.Views.NetworkIPScannerView"
+             x:DataType="vm:SetupTabViewModel">
+
+
+    <!-- Scan IP -->
+    <Panel Margin="5">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+
+            </Grid.ColumnDefinitions>
+
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" FontSize="12" Margin="5 5" xml:space="preserve">1. Type the IP subnet to scan (e.g. 192.168.0.)
+2. Press [SCAN]
+3. Wait for the [Scan Completed] message to appear
+Do not touch anything until finished</TextBlock>
+
+
+            <TextBox Grid.Row="2" Grid.Column="0"
+                     Text="{Binding ScanIpLabel, Mode=TwoWay}" />
+
+            <!-- -->
+            <!-- <TextBlock Grid.Row="1" Grid.Column="0" Text="Text IP" DataContext="{Binding ScanIPDescription}" /> -->
+
+            <Button Grid.Row="2" Grid.Column="1" Content="SCAN"
+                    Command="{Binding ScanCommand}"
+                    ToolTip.Tip="{x:Static assets:Resources.ScanIpToolTip}" />
+
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" 
+                       Background="Transparent"
+                       FontWeight="Bold"
+                       FontSize="12"
+                       Height="40"
+                       Focusable="False"
+                       Padding="5,10,0,0"
+                       VerticalAlignment="Center"
+                       MaxLines="1"
+                       Text="{Binding ScanMessages}" />
+
+            <TextBlock Grid.Row="4" Grid.Column="0"
+                     FontSize="12" 
+                     Focusable="False"
+                     Padding="5,10,0,0"
+                     Background="Transparent"
+                     Text="Available IP Addresses on your network:" />
+            <!-- <TextBox Grid.Row="4" Grid.Column="0" -->
+            <!--          FontSize="12" BorderThickness="0" -->
+            <!--          IsReadOnly="True" -->
+            <!--          Focusable="False" -->
+            <!--          Background="Transparent" -->
+            <!--          Text="Available IP Addresses on your network:" /> -->
+
+            <ScrollViewer Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" VerticalScrollBarVisibility="Auto">
+                <TextBox AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         Height="125"
+                         IsReadOnly="True"
+                         Focusable="False"
+                         Text="{Binding ScanIPResultTextBox}" />
+            </ScrollViewer>
+
+            <TextBlock Grid.Row="6" Grid.Column="0"
+                       FontStyle="Italic"
+                       TextAlignment="Left"
+                       VerticalAlignment="Center"
+                       FontSize="12"
+                       Text="{Binding LocalIp}"
+                       ToolTip.Tip="{x:Static assets:Resources.LocalIpToolTip}" />
+
+
+        </Grid>
+    </Panel>
+
+</UserControl>
