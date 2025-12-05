@@ -57,7 +57,7 @@ public class SysUpgradeService
         {
             updateProgress("Uploading bootloader...");
             string bootloaderFilename = Path.GetFileName(bootloaderPath);
-            string sentinel = "nya";
+            string sentinel = "done";
             await _sshClientService.UploadFileAsync(deviceConfig, bootloaderPath, $"{OpenIPC.RemoteTempFolder}/{bootloaderFilename}");
             updateProgress("Bootloader uploaded successfully.");
             
@@ -67,7 +67,7 @@ public class SysUpgradeService
             updateProgress($"Name of uboot file is {bootloaderFilename}");
             await _sshClientService.ExecuteCommandWithProgressAsync(
                 deviceConfig,
-                "flashcp -v /tmp/u-boot-ssc338q-nor.bin /dev/mtd0; echo \"nya\"",
+                "flashcp -v /tmp/u-boot-ssc338q-nor.bin /dev/mtd0; echo \"done\"",
                 updateProgress,
                 cancellationToken,
                 null,
@@ -77,7 +77,7 @@ public class SysUpgradeService
             
             await _sshClientService.ExecuteCommandWithProgressAsync(
                 deviceConfig,
-                "flash_eraseall /dev/mtd1; echo \"nya\"",
+                "flash_eraseall /dev/mtd1; echo \"done\"",
                 updateProgress,
                 cancellationToken,
                 null,
@@ -105,7 +105,7 @@ public class SysUpgradeService
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error during sysupgrade.");
+            _logger.Error(ex, "Error, couldn't get update link.");
             return null;
         }
     }
