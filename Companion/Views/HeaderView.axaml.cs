@@ -12,7 +12,7 @@ public partial class HeaderView : UserControl
     
     private const string TelegramLink = "https://t.me/+BMyMoolVOpkzNWUy";
     private const string GithubLink = "https://github.com/OpenIPC/";
-    private const string DiscordLink = "https://discord.gg/KtWgDV6Y";
+    //private const string DiscordLink = "https://discord.gg/KtWgDV6Y";
     
     public HeaderView()
     {
@@ -34,9 +34,9 @@ public partial class HeaderView : UserControl
         launcher.LaunchUriAsync(new Uri(GithubLink));
     }
 
-    private void DiscordButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        var launcher = TopLevel.GetTopLevel(this).Launcher;
-        launcher.LaunchUriAsync(new Uri(DiscordLink));
-    }
+    // private void DiscordButton_OnClick(object? sender, RoutedEventArgs e)
+    // {
+    //     var launcher = TopLevel.GetTopLevel(this).Launcher;
+    //     launcher.LaunchUriAsync(new Uri(DiscordLink));
+    // }
 }
