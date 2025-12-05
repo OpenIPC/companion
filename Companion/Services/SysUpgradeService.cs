@@ -63,7 +63,6 @@ public class SysUpgradeService
             
 
             //updateProgress("Starting sysupgrade...");
-            updateProgress("Now flashing 1-st stage");
             updateProgress($"Name of uboot file is {bootloaderFilename}");
             await _sshClientService.ExecuteCommandWithProgressAsync(
                 deviceConfig,
@@ -73,7 +72,6 @@ public class SysUpgradeService
                 null,
                 (output) => output.Trim() == sentinel
             );
-            updateProgress("Phase 1 - completed");
             
             await _sshClientService.ExecuteCommandWithProgressAsync(
                 deviceConfig,
