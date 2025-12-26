@@ -28,7 +28,6 @@ jobs:
         arch: [x64, arm64]
 
     steps:
-      # Optional space cleanup (keep if you actually need it)
       - name: Free Disk Space (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -50,7 +49,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          # If manually triggered, use the input branch; otherwise use the tag ref
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.target_branch || github.ref_name }}
 
       - name: Setup .NET (8.x)
         uses: actions/setup-dotnet@v3
@@ -132,7 +132,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         shell: bash
         env:
-          CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }} # e.g. "Developer ID Application: Mike Carr (EQKLR945TW)"
+          CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
         run: |
           set -euo pipefail
 
@@ -145,18 +145,15 @@ jobs:
           echo "Publish dir:"
           ls -la "$PUBLISH_DIR"
 
-          # Create .app bundle
           rm -rf "$APP_DIR"
           mkdir -p "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Resources"
           cp -R "${PUBLISH_DIR}/"* "${APP_DIR}/Contents/MacOS/"
           [[ -f "$ICON_SRC" ]] && cp "$ICON_SRC" "${APP_DIR}/Contents/Resources/${APP_NAME}.icns" || true
 
-          # Ensure native apphost is executable
           if [[ -f "${APP_DIR}/Contents/MacOS/Companion.Desktop" ]]; then
             chmod +x "${APP_DIR}/Contents/MacOS/Companion.Desktop"
           fi
 
-          # Info.plist (matches your csproj BundleIdentifier: org.openipc.Companion)
           cat > "${APP_DIR}/Contents/Info.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -175,14 +172,12 @@ jobs:
           </plist>
           EOF
 
-          # Sign, if identity provided
           if [[ -n "${CODESIGN_IDENTITY:-}" ]]; then
             codesign --deep --force --verify --verbose --sign "${CODESIGN_IDENTITY}" "${APP_DIR}"
             codesign --verify --verbose=4 "${APP_DIR}"
             spctl --assess --type execute --verbose "${APP_DIR}" || true
           fi
 
-          # DMG
           rm -f "${DMG_NAME}"
           mkdir -p dmg_build && cp -R "${APP_DIR}" dmg_build/ && ln -s /Applications dmg_build/Applications
           hdiutil create -volname "Companion" -srcfolder dmg_build -ov -format UDZO -fs HFS+ -size 500m "${DMG_NAME}"
@@ -217,7 +212,8 @@ jobs:
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: Companion-macos-${{ matrix.arch }}.dmg
+          # (recommended) do NOT include .dmg in artifact name
+          name: Companion-macos-${{ matrix.arch }}
           path: Companion-macos-${{ matrix.arch }}.dmg
           compression-level: 9
 
@@ -261,17 +257,22 @@ jobs:
       - name: Prepare Release Assets
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p release_files
+
           # Re-zip Windows folders to a single file per arch
           for arch in x64 arm64; do
             if [ -d "./artifacts/Companion-windows-${arch}" ]; then
               (cd "./artifacts/Companion-windows-${arch}" && zip -r "../../release_files/Companion-windows-${arch}.zip" .)
             fi
           done
-          # Copy Linux zips
-          cp ./artifacts/Companion-linux-*.zip ./release_files/ || true
-          # Copy macOS DMGs
-          find ./artifacts -name "Companion-macos-*.dmg" -exec cp {} ./release_files/ \;
+
+          # Copy Linux zips (they are inside artifact folders)
+          find ./artifacts -type f -name "Companion-linux-*.zip" -exec cp {} ./release_files/ \;
+
+          # Copy macOS DMGs (also inside artifact folders)
+          find ./artifacts -type f -name "Companion-macos-*.dmg" -exec cp {} ./release_files/ \;
+
           ls -la ./release_files
 
       - name: Generate latest.json
@@ -295,7 +296,7 @@ jobs:
 
             ### Downloads
             * **Windows**: `Companion-windows-x64.zip` / `Companion-windows-arm64.zip`
-            * **macOS (Apple Silicon)**: `Companion-macos-arm64.dmg`
+            * **macOS**: `Companion-macos-x64.dmg` / `Companion-macos-arm64.dmg`
             * **Linux**: `Companion-linux-x64.zip` / `Companion-linux-arm64.zip`
 
             ### Install
