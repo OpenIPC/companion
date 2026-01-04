@@ -106,15 +106,16 @@ jobs:
 
       # ----- macOS: bundle .app and (optionally) sign + dmg -----
       - name: Decode signing certificate
-        if: matrix.os == 'macos-latest' && env.APPLE_CERTIFICATE != ''
+        if: matrix.os == 'macos-latest'
+        shell: bash
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          MACOS_PROVISION_PROFILE: ${{ secrets.MACOS_PROVISION_PROFILE }}
         run: |
-          echo "$APPLE_CERTIFICATE" | base64 --decode > macos_signing_cert.p12
-          if [[ -n "$MACOS_PROVISION_PROFILE" ]]; then
-            echo "$MACOS_PROVISION_PROFILE" | base64 --decode > macos_provision_profile.mobileprovision
+          if [[ -z "${APPLE_CERTIFICATE:-}" ]]; then
+            echo "No APPLE_CERTIFICATE; skipping signing setup."
+            exit 0
           fi
+          echo "$APPLE_CERTIFICATE" | base64 --decode > macos_signing_cert.p12
 
       - name: Create and manage custom keychain
         if: matrix.os == 'macos-latest' && secrets.APPLE_CERTIFICATE != ''
