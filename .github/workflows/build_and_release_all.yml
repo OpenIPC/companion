@@ -23,12 +23,12 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
         arch: [x64, arm64]
 
     steps:
-      # Optional space cleanup (keep if you actually need it)
       - name: Free Disk Space (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -50,7 +50,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          # If manually triggered, use the input branch; otherwise use the tag ref
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.target_branch || github.ref_name }}
 
       - name: Setup .NET (8.x)
         uses: actions/setup-dotnet@v3
@@ -61,6 +62,7 @@ jobs:
         id: get_version
         shell: bash
         run: |
+          set -euo pipefail
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             VERSION="0.0.1"
           elif [[ "${{ github.ref_type }}" == "tag" ]]; then
@@ -70,7 +72,9 @@ jobs:
             VERSION="0.0.0-dev"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "v$VERSION" > Companion/VERSION
+
+          # NOTE: project paths changed — VERSION belongs with the desktop project now
+          echo "v$VERSION" > Companion.Desktop/VERSION
 
       - name: Restore dependencies
         run: dotnet restore Companion.Desktop/Companion.Desktop.csproj
@@ -104,13 +108,14 @@ jobs:
               -p:PublishSingleFile=true
           fi
 
-      # ----- macOS: bundle .app and (optionally) sign + dmg -----
+      # ----- macOS: bundle .app + sign + dmg -----
       - name: Decode signing certificate
         if: matrix.os == 'macos-latest'
         shell: bash
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
         run: |
+          set -euo pipefail
           if [[ -z "${APPLE_CERTIFICATE:-}" ]]; then
             echo "No APPLE_CERTIFICATE; skipping signing setup."
             exit 0
@@ -126,29 +131,31 @@ jobs:
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
           set -euo pipefail
-      
+
           if [[ -z "${APPLE_CERTIFICATE:-}" ]]; then
             echo "No APPLE_CERTIFICATE; skipping keychain setup."
             exit 0
           fi
-      
+
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
-      
+
           security create-keychain -p "$MY_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$MY_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-      
+
           security import macos_signing_cert.p12 \
             -k "$KEYCHAIN_PATH" \
             -P "$APPLE_CERTIFICATE_PASSWORD" \
             -T /usr/bin/codesign \
             -T /usr/bin/security
-      
+
+          # Let codesign access the key without UI prompts
           security set-key-partition-list -S apple-tool:,apple: -s -k "$MY_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-      
+
+          # Ensure codesign searches this keychain
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
           security default-keychain -d user -s "$KEYCHAIN_PATH"
-      
+
           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
 
       - name: Verify codesigning identity is present
@@ -159,40 +166,43 @@ jobs:
           CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
         run: |
           set -euo pipefail
-      
+
           if [[ -z "${APPLE_CERTIFICATE:-}" ]]; then
             echo "No APPLE_CERTIFICATE; skipping identity verification."
             exit 0
           fi
-      
+
           if [[ -z "${KEYCHAIN_PATH:-}" ]]; then
             echo "ERROR: KEYCHAIN_PATH not set. Keychain setup likely did not run."
             exit 1
           fi
-      
+
           echo "Searching identities in: $KEYCHAIN_PATH"
           security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
-      
+
           if [[ -z "${CODESIGN_IDENTITY:-}" ]]; then
             echo "ERROR: MACOS_CODESIGN_IDENTITY is empty"
             exit 1
           fi
-      
+
           if ! security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -Fq "$CODESIGN_IDENTITY"; then
             echo "ERROR: Identity not found in keychain: $CODESIGN_IDENTITY"
             exit 1
           fi
-    
+
       - name: Package (and sign) macOS App
         if: matrix.os == 'macos-latest'
         shell: bash
         env:
-          CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }} # e.g. "Developer ID Application: Mike Carr (EQKLR945TW)"
+          CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }} # "Developer ID Application: Mike Carr (EQKLR945TW)"
         run: |
           set -euo pipefail
 
           APP_NAME="Companion"
-          ICON_SRC="./Companion/Assets/Icons/OpenIPC.icns"
+
+          # NOTE: project paths changed — icons now live under Companion.Desktop
+          ICON_SRC="./Companion.Desktop/Assets/Icons/OpenIPC.icns"
+
           PUBLISH_DIR="./Companion.Desktop/bin/Release/net8.0/osx-${{ matrix.arch }}/publish"
           APP_DIR="${APP_NAME}.app"
           DMG_NAME="Companion-macos-${{ matrix.arch }}.dmg"
@@ -200,18 +210,15 @@ jobs:
           echo "Publish dir:"
           ls -la "$PUBLISH_DIR"
 
-          # Create .app bundle
           rm -rf "$APP_DIR"
           mkdir -p "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Resources"
           cp -R "${PUBLISH_DIR}/"* "${APP_DIR}/Contents/MacOS/"
           [[ -f "$ICON_SRC" ]] && cp "$ICON_SRC" "${APP_DIR}/Contents/Resources/${APP_NAME}.icns" || true
 
-          # Ensure native apphost is executable
           if [[ -f "${APP_DIR}/Contents/MacOS/Companion.Desktop" ]]; then
             chmod +x "${APP_DIR}/Contents/MacOS/Companion.Desktop"
           fi
 
-          # Info.plist (matches your csproj BundleIdentifier: org.openipc.Companion)
           cat > "${APP_DIR}/Contents/Info.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -242,7 +249,6 @@ jobs:
             echo "Signing skipped (missing CODESIGN_IDENTITY or KEYCHAIN_PATH)"
           fi
 
-          # DMG
           rm -f "${DMG_NAME}"
           mkdir -p dmg_build && cp -R "${APP_DIR}" dmg_build/ && ln -s /Applications dmg_build/Applications
           hdiutil create -volname "Companion" -srcfolder dmg_build -ov -format UDZO -fs HFS+ -size 500m "${DMG_NAME}"
@@ -266,7 +272,8 @@ jobs:
         shell: pwsh
         run: |
           $PublishDir = "./Companion.Desktop/bin/Release/net8.0/win-${{ matrix.arch }}/publish"
-          $Icon = "./Companion/Assets/Icons/OpenIPC.ico"
+          # NOTE: icons now live under Companion.Desktop
+          $Icon = "./Companion.Desktop/Assets/Icons/OpenIPC.ico"
           choco install rcedit -y
           if (Test-Path "$PublishDir/Companion.Desktop.exe") {
             rcedit "$PublishDir/Companion.Desktop.exe" --set-icon "$Icon"
@@ -277,7 +284,8 @@ jobs:
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: Companion-macos-${{ matrix.arch }}.dmg
+          # Name without extension keeps folders sane when downloaded
+          name: Companion-macos-${{ matrix.arch }}
           path: Companion-macos-${{ matrix.arch }}.dmg
           compression-level: 9
 
@@ -303,11 +311,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Read Version from VERSION File
-        id: get_version
+      - name: Read Version from tag
         shell: bash
         run: |
+          set -euo pipefail
           VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${VERSION#release-v}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Download All Artifacts
@@ -321,21 +330,28 @@ jobs:
       - name: Prepare Release Assets
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p release_files
+
           # Re-zip Windows folders to a single file per arch
           for arch in x64 arm64; do
             if [ -d "./artifacts/Companion-windows-${arch}" ]; then
               (cd "./artifacts/Companion-windows-${arch}" && zip -r "../../release_files/Companion-windows-${arch}.zip" .)
             fi
           done
-          # Copy Linux zips
-          cp ./artifacts/Companion-linux-*.zip ./release_files/ || true
-          # Copy macOS DMGs
-          find ./artifacts -name "Companion-macos-*.dmg" -exec cp {} ./release_files/ \;
+
+          # Copy Linux zips (they are inside artifact folders)
+          find ./artifacts -type f -name "Companion-linux-*.zip" -exec cp {} ./release_files/ \;
+
+          # Copy macOS DMGs (also inside artifact folders)
+          find ./artifacts -type f -name "Companion-macos-*.dmg" -exec cp {} ./release_files/ \;
+
           ls -la ./release_files
 
       - name: Generate latest.json
+        shell: bash
         run: |
+          set -euo pipefail
           cat << EOF > ./release_files/latest.json
           {
             "version": "${{ env.VERSION }}",
@@ -355,7 +371,7 @@ jobs:
 
             ### Downloads
             * **Windows**: `Companion-windows-x64.zip` / `Companion-windows-arm64.zip`
-            * **macOS (Apple Silicon)**: `Companion-macos-arm64.dmg`
+            * **macOS**: `Companion-macos-x64.dmg` / `Companion-macos-arm64.dmg`
             * **Linux**: `Companion-linux-x64.zip` / `Companion-linux-arm64.zip`
 
             ### Install
