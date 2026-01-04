@@ -273,7 +273,7 @@ jobs:
         run: |
           $PublishDir = "./Companion.Desktop/bin/Release/net8.0/win-${{ matrix.arch }}/publish"
           # NOTE: icons now live under Companion.Desktop
-          $Icon = "./Companion.Desktop/Assets/Icons/OpenIPC.ico"
+          $Icon = "./Companion/Assets/Icons/OpenIPC.ico"
           choco install rcedit -y
           if (Test-Path "$PublishDir/Companion.Desktop.exe") {
             rcedit "$PublishDir/Companion.Desktop.exe" --set-icon "$Icon"
