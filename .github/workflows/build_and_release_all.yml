@@ -213,7 +213,7 @@ jobs:
           rm -rf "$APP_DIR"
           mkdir -p "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Resources"
           cp -R "${PUBLISH_DIR}/"* "${APP_DIR}/Contents/MacOS/"
-          [[ -f "$ICON_SRC" ]] && cp "$ICON_SRC" "${APP_DIR}/Contents/Resources/${APP_NAME}.icns" || true
+          [[ -f "$ICON_SRC" ]] && cp "$ICON_SRC" "${APP_DIR}/Contents/Resources/OpenIPC.icns" || true
 
           if [[ -f "${APP_DIR}/Contents/MacOS/Companion.Desktop" ]]; then
             chmod +x "${APP_DIR}/Contents/MacOS/Companion.Desktop"
@@ -232,7 +232,7 @@ jobs:
             <key>CFBundleShortVersionString</key><string>${{ env.VERSION }}</string>
             <key>CFBundlePackageType</key><string>APPL</string>
             <key>LSMinimumSystemVersion</key><string>13.0</string>
-            <key>CFBundleIconFile</key><string>${APP_NAME}.icns</string>
+            <key>CFBundleIconFile</key><string>OpenIPC.icns</string>
           </dict>
           </plist>
           EOF
