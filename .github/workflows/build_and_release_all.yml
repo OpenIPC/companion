@@ -201,7 +201,7 @@ jobs:
           APP_NAME="Companion"
 
           # NOTE: project paths changed — icons now live under Companion.Desktop
-          ICON_SRC="./Companion.Desktop/Assets/Icons/OpenIPC.icns"
+          ICON_SRC="./Companion/Assets/Icons/OpenIPC.icns"
 
           PUBLISH_DIR="./Companion.Desktop/bin/Release/net8.0/osx-${{ matrix.arch }}/publish"
           APP_DIR="${APP_NAME}.app"
