@@ -118,13 +118,19 @@ jobs:
           echo "$APPLE_CERTIFICATE" | base64 --decode > macos_signing_cert.p12
 
       - name: Create and manage custom keychain
-        if: matrix.os == 'macos-latest' && secrets.APPLE_CERTIFICATE != ''
+        if: matrix.os == 'macos-latest'
         shell: bash
         env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           MY_KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
           set -euo pipefail
+      
+          if [[ -z "${APPLE_CERTIFICATE:-}" ]]; then
+            echo "No APPLE_CERTIFICATE; skipping keychain setup."
+            exit 0
+          fi
       
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
       
@@ -138,22 +144,32 @@ jobs:
             -T /usr/bin/codesign \
             -T /usr/bin/security
       
-          # Let codesign access the key without UI prompts
           security set-key-partition-list -S apple-tool:,apple: -s -k "$MY_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
       
-          # Ensure codesign searches this keychain
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
           security default-keychain -d user -s "$KEYCHAIN_PATH"
       
           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
 
       - name: Verify codesigning identity is present
-        if: matrix.os == 'macos-latest' && secrets.APPLE_CERTIFICATE != ''
+        if: matrix.os == 'macos-latest'
         shell: bash
         env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
         run: |
           set -euo pipefail
+      
+          if [[ -z "${APPLE_CERTIFICATE:-}" ]]; then
+            echo "No APPLE_CERTIFICATE; skipping identity verification."
+            exit 0
+          fi
+      
+          if [[ -z "${KEYCHAIN_PATH:-}" ]]; then
+            echo "ERROR: KEYCHAIN_PATH not set. Keychain setup likely did not run."
+            exit 1
+          fi
+      
           echo "Searching identities in: $KEYCHAIN_PATH"
           security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
       
@@ -214,11 +230,16 @@ jobs:
           </plist>
           EOF
 
-          # Sign, if identity provided
-          if [[ -n "${CODESIGN_IDENTITY:-}" ]]; then
-            codesign --keychain "$KEYCHAIN_PATH" --deep --force --verify --verbose --sign "${CODESIGN_IDENTITY}" "${APP_DIR}"
+          # Sign only if everything required is present
+          if [[ -n "${CODESIGN_IDENTITY:-}" && -n "${KEYCHAIN_PATH:-}" ]]; then
+            echo "Signing app with identity: $CODESIGN_IDENTITY"
+            codesign --keychain "$KEYCHAIN_PATH" \
+                     --deep --force --verify --verbose \
+                     --sign "${CODESIGN_IDENTITY}" "${APP_DIR}"
             codesign --verify --verbose=4 "${APP_DIR}"
             spctl --assess --type execute --verbose "${APP_DIR}" || true
+          else
+            echo "Signing skipped (missing CODESIGN_IDENTITY or KEYCHAIN_PATH)"
           fi
 
           # DMG
