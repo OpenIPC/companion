@@ -1,66 +1,56 @@
 name: 🐞 Bug Report
-description: Create a report to help us improve
-title: "[Bug]: <title>"
+description: Report a problem with Companion
+title: "[Bug]: "
 labels: ["bug"]
+
 body:
-    - type: checkboxes
-      attributes:
-          label: Requirements
-          options:
-              - label: I checked the troubleshooting section in the README to verify that I have the latest Configurator version.
-                required: true
-              - label: I did a search to see if there is a similar issue or if a pull request is open.
-                required: true
-    - type: textarea
-      attributes:
-          label: Current Behavior
-          description: A concise description of what you're experiencing.
-      validations:
-          required: false
-    - type: textarea
-      attributes:
-          label: Expected Behavior
-          description: A concise description of what you expected to happen.
-      validations:
-          required: false
-    - type: textarea
-      attributes:
-          label: Steps To Reproduce
-          description: Steps to reproduce the behavior.
-          placeholder: |
-              1. In this environment...
-              2. With this config...
-              3. Run '...'
-              4. See error...
-      validations:
-          required: false
-    - type: textarea
-      attributes:
-          label: Context
-          description: |
-              If your issue is about a certain config parameter enter config here .Otherwise, you can leave this section blank.
-          value: |
-              YAML state
-              ```yaml
+  - type: checkboxes
+    attributes:
+      label: Quick check
+      options:
+        - label: I searched existing issues to make sure this isn’t already reported.
+          required: true
 
-              ```
-      validations:
-          required: false
-    - type: textarea
-      attributes:
-          label: Environment
-          description: |
-              examples:
-                - **OpenIPC Configurator**: arm64 2.3.4
-          value: |
-              - Config Version:
-          render: markdown
-      validations:
-          required: false
-    - type: textarea
-      attributes:
-          label: Anything else?
-          description: |
-              Links? References? Anything that will give us more context about the issue you are encountering!
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Briefly describe the problem (what you did + what you saw).
+      placeholder: "When I click ..., the app ... and shows ..."
+    validations:
+      required: true
 
-              Tip: You can attach images or log files by clicking this area to highlight it and then dragging files in.
+  - type: textarea
+    attributes:
+      label: Steps to reproduce (if you know them)
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. Observe ...
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Expected result (optional)
+      placeholder: "I expected ..."
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Environment (optional)
+      description: Help us reproduce it. Just fill what you know.
+      placeholder: |
+        - Companion version:
+        - OS (macOS/Windows/Linux + version):
+        - CPU (Intel/Apple Silicon):
+        - Device/camera model (if relevant):
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Logs / screenshots (optional)
+      description: Paste logs or drag/drop screenshots here.
+    validations:
+      required: false
