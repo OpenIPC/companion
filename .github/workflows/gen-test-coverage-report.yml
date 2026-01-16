@@ -38,10 +38,10 @@ jobs:
         run: dotnet workload restore
 
       - name: Restore dependencies
-        run: dotnet restore Companion.Desktop/Companion.Desktop.csproj
+        run: dotnet restore Companion/Companion.csproj
 
       - name: Build project
-        run: dotnet build Companion.Desktop/Companion.Desktop.csproj --configuration Release --no-restore
+        run: dotnet build Companion/Companion.csproj --configuration Release --no-restore
 
       - name: Run tests with coverage
         run: dotnet test Companion.Tests/Companion.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx" --collect:"XPlat Code Coverage"
