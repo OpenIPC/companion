@@ -1,5 +1,6 @@
 using Moq;
 using Companion.Services;
+using System.Reflection;
 
 namespace OpenIPC.Companion.Tests.Services;
 
@@ -52,5 +53,28 @@ public class VersionHelperTests
 
         // Assert
         Assert.That(version, Is.EqualTo("Unknown Version"));
+    }
+
+    [Test]
+    public void GetAppVersion_ReturnsAssemblyVersion_WhenFileMissing()
+    {
+        // Arrange
+        _mockFileSystem.Setup(fs => fs.Exists(It.IsAny<string>())).Returns(false);
+        var targetAssembly = typeof(VersionHelper).Assembly;
+        var informationalVersion = targetAssembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+        var assemblyVersion = targetAssembly.GetName().Version?.ToString();
+
+        // Act
+        var version = VersionHelper.GetAppVersion();
+
+        // Assert
+        var expected = !string.IsNullOrWhiteSpace(informationalVersion)
+            ? $"v{informationalVersion}"
+            : $"v{assemblyVersion}";
+
+        Assert.That(expected, Is.Not.Null.And.Not.Empty);
+        Assert.That(version, Is.EqualTo(expected));
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using Serilog;
 
 namespace Companion.Services;
@@ -39,12 +40,16 @@ public static class VersionHelper
         {
             var versionFilePath = Path.Combine(AppContext.BaseDirectory, "VERSION");
             if (_fileSystem.Exists(versionFilePath)) return _fileSystem.ReadAllText(versionFilePath).Trim();
-            return "v0.0.1";
+            var informationalVersion = Assembly.GetExecutingAssembly()
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                .InformationalVersion;
+            if (!string.IsNullOrWhiteSpace(informationalVersion))
+                return EnsureVersionPrefix(informationalVersion.Trim());
 
-
-            // return Assembly.GetExecutingAssembly()
-            //     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            //     .InformationalVersion ?? "Unknown Version";
+            var assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString();
+            return string.IsNullOrWhiteSpace(assemblyVersion)
+                ? "Unknown Version"
+                : EnsureVersionPrefix(assemblyVersion);
         }
         catch (Exception ex)
         {
@@ -53,9 +58,8 @@ public static class VersionHelper
         }
     }
 
-    private static bool IsDevelopment()
+    private static string EnsureVersionPrefix(string version)
     {
-        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-        return string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase);
+        return version.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? version : $"v{version}";
     }
 }

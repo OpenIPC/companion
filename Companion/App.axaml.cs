@@ -350,17 +350,7 @@ public class App : Application
 
         try
         {
-            string currentVersion;
-#if DEBUG
-            // In debug mode, read the version from VERSION.txt
-            var versionFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "VERSION");
-            if (File.Exists(versionFilePath))
-                currentVersion = File.ReadAllText(versionFilePath).Trim();
-            else
-                currentVersion = "0.0.0.0"; // Default version for debugging
-#else
-            currentVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-#endif
+            var currentVersion = VersionHelper.GetAppVersion();
 
             var result = await updateChecker.CheckForUpdateAsync(currentVersion);
 

@@ -3,12 +3,28 @@
         <TargetFrameworks>net8.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
+        <Version Condition="'$(Version)' == ''">0.0.0</Version>
+        <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(Version)</InformationalVersion>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <ApplicationIcon>Assets/Icons/OpenIPC.ico</ApplicationIcon>
         <RootNamespace>Companion</RootNamespace>
         <AssemblyName>Companion</AssemblyName>
         <!--        <RuntimeIdentifiers>osx-arm64;win-x64;win-arm64;linux-x64;linux-arm64</RuntimeIdentifiers>-->
     </PropertyGroup>
+    
+    <Target Name="WriteVersionFile" AfterTargets="Build">
+        <ItemGroup>
+            <_VersionFileLines Include="v$(InformationalVersion)" />
+        </ItemGroup>
+        <WriteLinesToFile File="$(OutputPath)VERSION" Lines="@(_VersionFileLines)" Overwrite="true" />
+    </Target>
+
+    <Target Name="WriteVersionFileForPublish" AfterTargets="Publish">
+        <ItemGroup>
+            <_VersionFileLines Include="v$(InformationalVersion)" />
+        </ItemGroup>
+        <WriteLinesToFile File="$(PublishDir)VERSION" Lines="@(_VersionFileLines)" Overwrite="true" />
+    </Target>
 
 
     <ItemGroup>
