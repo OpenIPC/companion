@@ -28,10 +28,10 @@ public class VersionHelperTests
     {
         // Arrange
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
-        var expectedVersion = "1.0.0-test";
+        var expectedVersion = "v1.0.0-test";
 
         _mockFileSystem.Setup(fs => fs.Exists(It.IsAny<string>())).Returns(true);
-        _mockFileSystem.Setup(fs => fs.ReadAllText(It.IsAny<string>())).Returns(expectedVersion);
+        _mockFileSystem.Setup(fs => fs.ReadAllText(It.IsAny<string>())).Returns("1.0.0-test");
 
         // Act
         var version = VersionHelper.GetAppVersion();
