@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -31,6 +32,16 @@ namespace Companion.ViewModels;
 /// </summary>
 public partial class FirmwareTabViewModel : ViewModelBase
 {
+    private enum SysupgradePhase
+    {
+        None,
+        UploadKernel,
+        UploadRootfs,
+        KernelFlash,
+        RootfsFlash,
+        OverlayErase
+    }
+
     #region Private Fields
 
     private readonly HttpClient _httpClient;
@@ -41,6 +52,30 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private bool _bInitializedCommands = false;
     private bool _bRecursionSelectGuard = false;
     private readonly IMessageBoxService _messageBoxService;
+    private SysupgradePhase _sysupgradePhase = SysupgradePhase.None;
+    private bool _sysupgradeInProgress = false;
+    private static readonly IBrush ProgressRunningBrush = Brushes.Green;
+    private static readonly IBrush ProgressErrorBrush = Brushes.Red;
+    private static readonly IBrush ProgressCompleteBrush = new SolidColorBrush(Color.Parse("#4C61D8"));
+
+    private const int UploadKernelStart = 20;
+    private const int UploadKernelEnd = 30;
+    private const int UploadRootfsStart = 30;
+    private const int UploadRootfsEnd = 40;
+    private const int KernelFlashStart = 40;
+    private const int KernelFlashEnd = 60;
+    private const int RootfsFlashStart = 60;
+    private const int RootfsFlashEnd = 90;
+    private const int OverlayEraseStart = 90;
+    private const int OverlayEraseEnd = 98;
+
+    private static readonly Regex AnsiEscapeRegex = new(@"\x1B\[[0-9;]*[mK]", RegexOptions.Compiled);
+    private static readonly Regex AnsiBracketRegex = new(@"\[[0-9;]*m", RegexOptions.Compiled);
+    private static readonly Regex FlashPercentRegex =
+        new(@"(?:Erasing block|Writing kb|Verifying kb):.*\((?<percent>\d{1,3})%\)", RegexOptions.Compiled);
+    private static readonly Regex OverlayPercentRegex =
+        new(@"Erasing 64 Kibyte @ .* -\s*(?<percent>\d{1,3})%\s*complete",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
     #endregion
 
     #region Observable Properties
@@ -58,6 +93,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     [ObservableProperty] private string _selectedManufacturer;
     [ObservableProperty] private string _manualLocalFirmwarePackageFile;
     [ObservableProperty] private int _progressValue;
+    [ObservableProperty] private IBrush _progressBarBrush = new SolidColorBrush(Color.Parse("#4C61D8"));
 
     #endregion
 
@@ -174,6 +210,17 @@ public partial class FirmwareTabViewModel : ViewModelBase
     #region Event Handlers
 
     private void OnAppMessage(AppMessage message)
+    {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => HandleAppMessage(message));
+            return;
+        }
+
+        HandleAppMessage(message);
+    }
+
+    private void HandleAppMessage(AppMessage message)
     {
         CanConnect = message.CanConnect;
         IsConnected = message.CanConnect;
@@ -323,29 +370,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
         try
         {
             Logger.Information("Loading firmware list...");
-            Manufacturers.Clear();
             var data = await FetchFirmwareListAsync();
-
-            if (data?.Manufacturers != null && data.Manufacturers.Any())
-            {
-                Manufacturers.Clear();
-                foreach (var manufacturer in data.Manufacturers)
-                {
-                    var hasValidFirmwareType = manufacturer.Devices.Any(device =>
-                        device.FirmwarePackages.Any(firmware =>
-                            DevicesFriendlyNames.FirmwareIsSupported(firmware.Name)));
-
-                    if (hasValidFirmwareType)
-                        Manufacturers.Add(manufacturer.FriendlyName);
-                }
-
-                if (!Manufacturers.Any())
-                    Logger.Warning("No manufacturers with valid firmware types found.");
-            }
-            else
-            {
-                Logger.Warning("No manufacturers found in the fetched firmware data.");
-            }
+            UpdateManufacturers(data);
         }
         catch (Exception ex)
         {
@@ -353,8 +379,45 @@ public partial class FirmwareTabViewModel : ViewModelBase
         }
     }
 
+    private void UpdateManufacturers(FirmwareData data)
+    {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => UpdateManufacturers(data));
+            return;
+        }
+
+        Manufacturers.Clear();
+
+        if (data?.Manufacturers != null && data.Manufacturers.Any())
+        {
+            foreach (var manufacturer in data.Manufacturers)
+            {
+                var hasValidFirmwareType = manufacturer.Devices.Any(device =>
+                    device.FirmwarePackages.Any(firmware =>
+                        DevicesFriendlyNames.FirmwareIsSupported(firmware.Name)));
+
+                if (hasValidFirmwareType)
+                    Manufacturers.Add(manufacturer.FriendlyName);
+            }
+
+            if (!Manufacturers.Any())
+                Logger.Warning("No manufacturers with valid firmware types found.");
+        }
+        else
+        {
+            Logger.Warning("No manufacturers found in the fetched firmware data.");
+        }
+    }
+
     public void LoadDevices(string manufacturer)
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => LoadDevices(manufacturer));
+            return;
+        }
+
         Devices.Clear();
 
         if (string.IsNullOrEmpty(manufacturer))
@@ -383,6 +446,12 @@ public partial class FirmwareTabViewModel : ViewModelBase
     
     public void LoadFirmwares(string device)
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => LoadFirmwares(device));
+            return;
+        }
+
         Firmwares.Clear();
 
         if (string.IsNullOrEmpty(device))
@@ -419,6 +488,12 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     private void ClearForm()
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(ClearForm);
+            return;
+        }
+
         SelectedManufacturer = string.Empty;
         SelectedDevice = string.Empty;
         SelectedFirmware = string.Empty;
@@ -444,6 +519,12 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     private void UpdateCanExecuteCommands()
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(UpdateCanExecuteCommands);
+            return;
+        }
+
         CanDownloadFirmware = CanExecuteDownloadFirmware();
 
         OnPropertyChanged(nameof(CanUseDropdowns));
@@ -486,6 +567,12 @@ public partial class FirmwareTabViewModel : ViewModelBase
     
     private void PopulateFirmwareBySoc(IEnumerable<string> filenames)
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => PopulateFirmwareBySoc(filenames));
+            return;
+        }
+
         FirmwareBySoc.Clear(); // Clear existing list
 
         var chipType = DeviceConfig.Instance.ChipType;
@@ -997,11 +1084,167 @@ public partial class FirmwareTabViewModel : ViewModelBase
         _cancellationTokenSource?.Cancel();
     }
 
+    private void UpdateSysupgradeProgressFromLine(string rawLine)
+    {
+        if (!_sysupgradeInProgress)
+            return;
+
+        var line = NormalizeSysupgradeLine(rawLine);
+        if (string.IsNullOrWhiteSpace(line))
+            return;
+
+        if (IsSysupgradeErrorLine(line))
+        {
+            SetProgressBarBrush(ProgressErrorBrush);
+            return;
+        }
+
+        if (line.StartsWith("Uploading kernel", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.UploadKernel;
+            SetProgressMinimum(UploadKernelStart);
+            return;
+        }
+
+        if (line.StartsWith("Kernel binary uploaded successfully", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.UploadKernel;
+            SetProgressMinimum(UploadKernelEnd);
+            return;
+        }
+
+        if (line.StartsWith("Uploading root filesystem", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.UploadRootfs;
+            SetProgressMinimum(UploadRootfsStart);
+            return;
+        }
+
+        if (line.StartsWith("Root filesystem binary uploaded successfully", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.UploadRootfs;
+            SetProgressMinimum(UploadRootfsEnd);
+            return;
+        }
+
+        if (line.Equals("Kernel", StringComparison.OrdinalIgnoreCase) ||
+            line.StartsWith("Update kernel from", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.KernelFlash;
+            SetProgressMinimum(KernelFlashStart);
+        }
+
+        if (line.StartsWith("Kernel updated", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.KernelFlash;
+            SetProgressMinimum(KernelFlashEnd);
+        }
+
+        if (line.Equals("RootFS", StringComparison.OrdinalIgnoreCase) ||
+            line.StartsWith("Update rootfs from", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.RootfsFlash;
+            SetProgressMinimum(RootfsFlashStart);
+        }
+
+        if (line.StartsWith("RootFS updated", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.RootfsFlash;
+            SetProgressMinimum(RootfsFlashEnd);
+        }
+
+        if (line.StartsWith("OverlayFS", StringComparison.OrdinalIgnoreCase) ||
+            line.Contains("Erase overlay partition", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.OverlayErase;
+            SetProgressMinimum(OverlayEraseStart);
+        }
+
+        if (TryParseSysupgradePercent(line, out var percent))
+            ApplySysupgradePercent(percent);
+    }
+
+    private static string NormalizeSysupgradeLine(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+            return string.Empty;
+
+        var normalized = AnsiEscapeRegex.Replace(line, string.Empty);
+        normalized = AnsiBracketRegex.Replace(normalized, string.Empty);
+        return normalized.Trim();
+    }
+
+    private static bool TryParseSysupgradePercent(string line, out int percent)
+    {
+        percent = 0;
+        var match = FlashPercentRegex.Match(line);
+        if (match.Success && int.TryParse(match.Groups["percent"].Value, out percent))
+            return true;
+
+        match = OverlayPercentRegex.Match(line);
+        if (match.Success && int.TryParse(match.Groups["percent"].Value, out percent))
+            return true;
+
+        return false;
+    }
+
+    private static bool IsSysupgradeErrorLine(string line)
+    {
+        return line.StartsWith("Error:", StringComparison.OrdinalIgnoreCase) ||
+               line.Contains("Command did not complete successfully", StringComparison.OrdinalIgnoreCase) ||
+               line.Contains("Command execution timed out", StringComparison.OrdinalIgnoreCase) ||
+               line.Contains("Unable to connect to the host", StringComparison.OrdinalIgnoreCase) ||
+               line.Contains("Connection lost", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void ApplySysupgradePercent(int percent)
+    {
+        percent = Math.Clamp(percent, 0, 100);
+        switch (_sysupgradePhase)
+        {
+            case SysupgradePhase.KernelFlash:
+                SetProgressMinimum(MapPercentToRange(KernelFlashStart, KernelFlashEnd, percent));
+                break;
+            case SysupgradePhase.RootfsFlash:
+                SetProgressMinimum(MapPercentToRange(RootfsFlashStart, RootfsFlashEnd, percent));
+                break;
+            case SysupgradePhase.OverlayErase:
+                SetProgressMinimum(MapPercentToRange(OverlayEraseStart, OverlayEraseEnd, percent));
+                break;
+        }
+    }
+
+    private static int MapPercentToRange(int rangeStart, int rangeEnd, int percent)
+    {
+        return rangeStart + (int)Math.Round((rangeEnd - rangeStart) * (percent / 100.0));
+    }
+
+    private void SetProgressMinimum(int value)
+    {
+        if (value <= ProgressValue)
+            return;
+
+        ProgressValue = value;
+        Logger.Debug("Sysupgrade ProgressValue: " + ProgressValue);
+    }
+
+    private void SetProgressBarBrush(IBrush brush)
+    {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => SetProgressBarBrush(brush));
+            return;
+        }
+
+        ProgressBarBrush = brush;
+    }
+
     private async Task UpgradeFirmwareFromFileAsync(string firmwareFilePath)
     {
         try
         {
             Logger.Information($"Upgrading firmware from file: {firmwareFilePath}");
+            SetProgressBarBrush(ProgressRunningBrush);
 
             ProgressValue = 5;
             Logger.Debug("UncompressFirmware ProgressValue: " + ProgressValue);
@@ -1024,6 +1267,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
             var sysupgradeService = new SysUpgradeService(SshClientService, Logger);
 
+            _sysupgradeInProgress = true;
+            _sysupgradePhase = SysupgradePhase.None;
             await Task.Run(async () =>
             {
                 await sysupgradeService.PerformSysupgradeAsync(DeviceConfig.Instance, kernelFile, rootfsFile,
@@ -1031,30 +1276,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
                     {
                         Dispatcher.UIThread.InvokeAsync(() =>
                         {
-                            switch (progress)
-                            {
-                                case var s when s.Contains("Update kernel from"):
-                                    ProgressValue = 30;
-                                    Logger.Debug("Update kernel from ProgressValue: " + ProgressValue);
-                                    break;
-                                case var s when s.Contains("Kernel updated to"):
-                                    ProgressValue = 50;
-                                    Logger.Debug("Kernel updated to ProgressValue: " + ProgressValue);
-                                    break;
-                                case var s when s.Contains("Update rootfs from"):
-                                    ProgressValue = 60;
-                                    Logger.Debug("Update rootfs from ProgressValue: " + ProgressValue);
-                                    break;
-                                case var s when s.Contains("Root filesystem uploaded successfully"):
-                                    ProgressValue = 70;
-                                    Logger.Debug(
-                                        "Root filesystem uploaded successfully ProgressValue: " + ProgressValue);
-                                    break;
-                                case var s when s.Contains("Erase overlay partition"):
-                                    ProgressValue = 90;
-                                    Logger.Debug("Erase overlay partition ProgressValue: " + ProgressValue);
-                                    break;
-                            }
+                            UpdateSysupgradeProgressFromLine(progress);
 
                             Logger.Debug(progress);
                         });
@@ -1068,13 +1290,19 @@ public partial class FirmwareTabViewModel : ViewModelBase
                 });
             });
 
+            _sysupgradeInProgress = false;
+            _sysupgradePhase = SysupgradePhase.None;
             ProgressValue = 100;
+            SetProgressBarBrush(ProgressCompleteBrush);
             await _messageBoxService.ShowCustomMessageBox("Upgrade Complete!!", "Device has been flashed!", ButtonEnum.Ok, Icon.Success);
             Logger.Information("Firmware upgrade completed successfully.");
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Error upgrading firmware from file");
+            SetProgressBarBrush(ProgressErrorBrush);
+            _sysupgradeInProgress = false;
+            _sysupgradePhase = SysupgradePhase.None;
         }
     }
 

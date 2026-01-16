@@ -163,6 +163,7 @@
 
             <ProgressBar Background="#F0F0F0"
                          Margin="10,0,10,0"
+                         Foreground="{Binding ProgressBarBrush}"
                          ShowProgressText="True"
                          Minimum="0" Maximum="100"
                          Height="18"

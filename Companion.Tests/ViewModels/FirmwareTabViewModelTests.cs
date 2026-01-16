@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
+using System;
 using Moq;
 using Companion.Services;
 using Companion.ViewModels;
 using Serilog;
+using System.Reflection;
 
 namespace OpenIPC.Companion.Tests.ViewModels;
 
@@ -139,5 +141,87 @@ public class FirmwareTabViewModelTests
 
         // Assert
         Assert.That(canExecute, Is.True);
+    }
+
+    [Test]
+    public void UpdateSysupgradeProgressFromLine_KernelWritingPercent_MapsToRange()
+    {
+        SetPrivateField(_viewModel, "_sysupgradeInProgress", true);
+        _viewModel.ProgressValue = 0;
+
+        InvokePrivateMethod(_viewModel, "UpdateSysupgradeProgressFromLine", "Kernel");
+        InvokePrivateMethod(_viewModel, "UpdateSysupgradeProgressFromLine", "Writing kb: 100/1000 (10%)");
+
+        var kernelStart = GetPrivateStaticInt(typeof(FirmwareTabViewModel), "KernelFlashStart");
+        var kernelEnd = GetPrivateStaticInt(typeof(FirmwareTabViewModel), "KernelFlashEnd");
+        var expected = kernelStart + (int)Math.Round((kernelEnd - kernelStart) * 0.1);
+
+        Assert.That(_viewModel.ProgressValue, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void UpdateSysupgradeProgressFromLine_RootfsVerifyPercent_MapsToRange()
+    {
+        SetPrivateField(_viewModel, "_sysupgradeInProgress", true);
+        _viewModel.ProgressValue = 0;
+
+        InvokePrivateMethod(_viewModel, "UpdateSysupgradeProgressFromLine", "RootFS");
+        InvokePrivateMethod(_viewModel, "UpdateSysupgradeProgressFromLine", "Verifying kb: 7952/7952 (100%)");
+
+        var rootfsEnd = GetPrivateStaticInt(typeof(FirmwareTabViewModel), "RootfsFlashEnd");
+        Assert.That(_viewModel.ProgressValue, Is.EqualTo(rootfsEnd));
+    }
+
+    [Test]
+    public void UpdateSysupgradeProgressFromLine_OverlayErasePercent_MapsToRange()
+    {
+        SetPrivateField(_viewModel, "_sysupgradeInProgress", true);
+        _viewModel.ProgressValue = 0;
+
+        InvokePrivateMethod(_viewModel, "UpdateSysupgradeProgressFromLine", "OverlayFS");
+        InvokePrivateMethod(_viewModel, "UpdateSysupgradeProgressFromLine",
+            "Erasing 64 Kibyte @ 2b0000 - 50% complete. Cleanmarker written at 2b0000.");
+
+        var overlayStart = GetPrivateStaticInt(typeof(FirmwareTabViewModel), "OverlayEraseStart");
+        var overlayEnd = GetPrivateStaticInt(typeof(FirmwareTabViewModel), "OverlayEraseEnd");
+        var expected = overlayStart + (int)Math.Round((overlayEnd - overlayStart) * 0.5);
+
+        Assert.That(_viewModel.ProgressValue, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void UpdateSysupgradeProgressFromLine_AnsiStripping_RecognizesKernelPhase()
+    {
+        SetPrivateField(_viewModel, "_sysupgradeInProgress", true);
+        _viewModel.ProgressValue = 0;
+
+        InvokePrivateMethod(_viewModel, "UpdateSysupgradeProgressFromLine", "[1;33mKernel[0m");
+
+        var kernelStart = GetPrivateStaticInt(typeof(FirmwareTabViewModel), "KernelFlashStart");
+        Assert.That(_viewModel.ProgressValue, Is.EqualTo(kernelStart));
+    }
+
+    private static void SetPrivateField(object target, string fieldName, object value)
+    {
+        var field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
+        if (field == null)
+            throw new InvalidOperationException($"Field '{fieldName}' not found.");
+        field.SetValue(target, value);
+    }
+
+    private static object InvokePrivateMethod(object target, string methodName, params object[] args)
+    {
+        var method = target.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance);
+        if (method == null)
+            throw new InvalidOperationException($"Method '{methodName}' not found.");
+        return method.Invoke(target, args);
+    }
+
+    private static int GetPrivateStaticInt(Type type, string fieldName)
+    {
+        var field = type.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Static);
+        if (field == null)
+            throw new InvalidOperationException($"Field '{fieldName}' not found.");
+        return (int)field.GetValue(null);
     }
 }
