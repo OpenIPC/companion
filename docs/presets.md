@@ -1,6 +1,6 @@
-# How Presets Work
+# Presets
 
----
+Presets are being redesigned. Expect changes to format and behavior.
 
 ## 1. Folder Structure
 
@@ -22,7 +22,7 @@ presets/
 
 ---
 
-## 2. Preset Definition (`preset-config.yaml`)
+## 2. Preset definition (`preset-config.yaml`)
 
 The `preset-config.yaml` file defines:
 
@@ -47,12 +47,9 @@ files:
 
 ---
 
-## 3. Preset Loading, two options
-1) Submit pull request https://github.com/OpenIPC/fpv-presets
-2) Local 
+## 3. Preset loading
+1) Submit a pull request: https://github.com/OpenIPC/fpv-presets
+2) Local:
    - The application scans the `presets/` directory.
    - It parses each `preset-config.yaml` to create a `Preset` object.
    - File modifications are transformed into a bindable `ObservableCollection<FileModification>` for the UI.
-
-
-
