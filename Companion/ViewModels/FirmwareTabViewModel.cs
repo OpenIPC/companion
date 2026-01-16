@@ -103,10 +103,10 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     #region Commands
 
-    public ICommand SelectLocalFirmwarePackageCommand { get; set; }
-    public ICommand PerformFirmwareUpgradeAsyncCommand { get; set; }
+    public IAsyncRelayCommand<Window> SelectLocalFirmwarePackageCommand { get; set; }
+    public IAsyncRelayCommand PerformFirmwareUpgradeAsyncCommand { get; set; }
     public ICommand ClearFormCommand { get; set; }
-    public IRelayCommand DownloadFirmwareAsyncCommand { get; set; }
+    public IAsyncRelayCommand DownloadFirmwareAsyncCommand { get; set; }
 
     #endregion
 
@@ -151,15 +151,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
         if (_bInitializedCommands)
             return;
         _bInitializedCommands = true;
-        DownloadFirmwareAsyncCommand = new RelayCommand(
-            async () => await DownloadAndPerformFirmwareUpgradeAsync(), 
+        DownloadFirmwareAsyncCommand = new AsyncRelayCommand(
+            DownloadAndPerformFirmwareUpgradeAsync,
             CanExecuteDownloadFirmware);
 
-        PerformFirmwareUpgradeAsyncCommand = new RelayCommand(
-            async () => await DownloadAndPerformFirmwareUpgradeAsync()); 
+        PerformFirmwareUpgradeAsyncCommand = new AsyncRelayCommand(
+            DownloadAndPerformFirmwareUpgradeAsync);
 
-        SelectLocalFirmwarePackageCommand = new RelayCommand<Window>(async window =>
-            await SelectLocalFirmwarePackage(window));
+        SelectLocalFirmwarePackageCommand = new AsyncRelayCommand<Window>(
+            SelectLocalFirmwarePackage);
 
         ClearFormCommand = new RelayCommand(ClearForm);
     }
@@ -178,7 +178,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         CanConnect = message.CanConnect;
         IsConnected = message.CanConnect;
 
-        LoadManufacturers();
+        _ = LoadManufacturersAsync();
 
         if (!IsConnected)
         {
@@ -318,7 +318,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     #region Public Methods
 
-    public async void LoadManufacturers()
+    public async Task LoadManufacturersAsync()
     {
         try
         {
@@ -435,10 +435,11 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private bool CanExecuteDownloadFirmware()
     {
         return CanConnect &&
-               (!string.IsNullOrEmpty(SelectedManufacturer) &&
-                !string.IsNullOrEmpty(SelectedDevice) &&
-                !string.IsNullOrEmpty(SelectedFirmware)) ||
-               !string.IsNullOrEmpty(ManualLocalFirmwarePackageFile);
+               ((!string.IsNullOrEmpty(SelectedManufacturer) &&
+                 !string.IsNullOrEmpty(SelectedDevice) &&
+                 !string.IsNullOrEmpty(SelectedFirmware)) ||
+                !string.IsNullOrEmpty(ManualLocalFirmwarePackageFile) ||
+                !string.IsNullOrEmpty(SelectedFirmwareBySoc));
     }
 
     private void UpdateCanExecuteCommands()
@@ -452,9 +453,9 @@ public partial class FirmwareTabViewModel : ViewModelBase
         if (IsConnected)
         {
             InitializeCommands();
-            (DownloadFirmwareAsyncCommand as RelayCommand)?.NotifyCanExecuteChanged();
-            (PerformFirmwareUpgradeAsyncCommand as RelayCommand)?.NotifyCanExecuteChanged();
-            (SelectLocalFirmwarePackageCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            DownloadFirmwareAsyncCommand?.NotifyCanExecuteChanged();
+            PerformFirmwareUpgradeAsyncCommand?.NotifyCanExecuteChanged();
+            SelectLocalFirmwarePackageCommand?.NotifyCanExecuteChanged();
         }
     }
 

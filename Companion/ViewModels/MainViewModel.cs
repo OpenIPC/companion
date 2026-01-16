@@ -87,7 +87,7 @@ public partial class MainViewModel : ViewModelBase
 
         EntryBoxBgColor = new SolidColorBrush(Colors.White);
 
-        ConnectCommand = new RelayCommand(() => Connect());
+        ConnectCommand = new AsyncRelayCommand(ConnectAsync);
 
         DeviceTypes = new ObservableCollection<DeviceType>(Enum.GetValues(typeof(DeviceType)).Cast<DeviceType>());
         
@@ -426,7 +426,7 @@ public partial class MainViewModel : ViewModelBase
             }
         }
     }
-    private async void Connect()
+    private async Task ConnectAsync()
     {
         // Add the current IP to the cache
         AddCurrentIpToCache();
@@ -490,13 +490,13 @@ public partial class MainViewModel : ViewModelBase
             if (_deviceConfig.DeviceType == DeviceType.Camera)
             {
                 UpdateUIMessage("Processing Camera...");
-                processCameraFiles();
+                await processCameraFiles();
                 UpdateUIMessage("Processing Camera...done");
             }
             else if (_deviceConfig.DeviceType == DeviceType.Radxa)
             {
                 UpdateUIMessage("Processing Radxa...");
-                processRadxaFiles();
+                await processRadxaFiles();
                 UpdateUIMessage("Processing Radxa...done");
             }
         }
@@ -674,7 +674,7 @@ public partial class MainViewModel : ViewModelBase
         cts.Dispose();
     }
 
-    private async void processCameraFiles()
+    private async Task processCameraFiles()
     {
         // read device to determine configurations
         await _globalSettingsService.ReadDevice();
@@ -824,7 +824,7 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    private async void processRadxaFiles()
+    private async Task processRadxaFiles()
     {
         try
         {

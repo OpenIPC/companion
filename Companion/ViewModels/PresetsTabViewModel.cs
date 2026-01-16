@@ -110,15 +110,15 @@ public partial class PresetsTabViewModel : ViewModelBase
         // AddRepositoryCommand = new RelayCommand(AddRepository, 
         //     () => !string.IsNullOrWhiteSpace(NewRepositoryUrl));
 
-        AddRepositoryCommand = new RelayCommand(async () => await AddRepository());
+        AddRepositoryCommand = new AsyncRelayCommand(AddRepository);
 
         RemoveRepositoryCommand = new RelayCommand<Repository>(RemoveRepository);
-        FetchPresetsCommand = new RelayCommand(async () => await FetchPresetsAsync());
-        ApplyPresetCommand = new RelayCommand<Preset>(ApplyPresetAsync, CanApplyPreset);
+        FetchPresetsCommand = new AsyncRelayCommand(FetchPresetsAsync);
+        ApplyPresetCommand = new AsyncRelayCommand<Preset>(ApplyPresetAsync, CanApplyPreset);
         FilterCommand = new RelayCommand(FilterPresets);
         ClearFiltersCommand = new RelayCommand(ClearFilters);
         ShowPresetDetailsCommand = new RelayCommand<Preset>(ShowPresetDetails);
-        SyncRepositoryCommand = new RelayCommand<Repository>(SyncRepository);
+        SyncRepositoryCommand = new AsyncRelayCommand<Repository>(SyncRepositoryAsync);
 
         // CreatePresetCommand = new RelayCommand(async () => await CreatePresetAsync());
 
@@ -510,7 +510,7 @@ public partial class PresetsTabViewModel : ViewModelBase
         UpdateUIMessage($"Removed repository: {repository.Name}");
     }
 
-    private async void SyncRepository(Repository? repository)
+    private async Task SyncRepositoryAsync(Repository? repository)
     {
         if (repository == null || !repository.IsActive)
             return;
@@ -590,7 +590,7 @@ public partial class PresetsTabViewModel : ViewModelBase
         return preset != null && !IsApplyingPreset && !IsLoading;
     }
 
-    public async void ApplyPresetAsync(Preset? preset)
+    public async Task ApplyPresetAsync(Preset? preset)
     {
         if (preset == null) return;
 

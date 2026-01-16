@@ -131,6 +131,7 @@ public class FirmwareTabViewModelTests
     public void CanExecuteDownloadFirmware_ReturnsTrue_IfValidState()
     {
         // Arrange
+        _viewModel.CanConnect = true;
         _viewModel.ManualLocalFirmwarePackageFile = "test.tgz";
 
         // Act

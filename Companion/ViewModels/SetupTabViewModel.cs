@@ -103,25 +103,25 @@ public partial class SetupTabViewModel : ViewModelBase
 
     #region Command Properties
     public ICommand ShowProgressBarCommand { get; private set; }
-    public ICommand SendGSKeyCommand => _sendGSKeyCommand ??= new RelayCommand(SendGSKey);
-    public ICommand RecvGSKeyCommand => _recvGSKeyCommand ??= new RelayCommand(RecvGSKey);
-    public ICommand ScriptFilesCommand => _scriptFilesCommand ??= new RelayCommand(ScriptFilesAction);
+    public ICommand SendGSKeyCommand => _sendGSKeyCommand ??= new AsyncRelayCommand(SendGSKeyAsync);
+    public ICommand RecvGSKeyCommand => _recvGSKeyCommand ??= new AsyncRelayCommand(RecvGSKeyAsync);
+    public ICommand ScriptFilesCommand => _scriptFilesCommand ??= new AsyncRelayCommand(ScriptFilesActionAsync);
     public ICommand EncryptionKeyActionCommand =>
-        _encryptionKeyActionCommand ??= new RelayCommand<string>(EncryptionKeyAction);
+        _encryptionKeyActionCommand ??= new AsyncRelayCommand<string>(EncryptionKeyActionAsync);
     public ICommand SensorFilesUpdateCommand =>
-        _sensorFilesUpdateCommand ??= new RelayCommand(SensorFilesUpdate);
+        _sensorFilesUpdateCommand ??= new AsyncRelayCommand(SensorFilesUpdateAsync);
     public ICommand FirmwareUpdateCommand =>
-        _firmwareUpdateCommand ??= new RelayCommand(SysUpgradeFirmwareUpdate);
+        _firmwareUpdateCommand ??= new AsyncRelayCommand(SysUpgradeFirmwareUpdateAsync);
     public ICommand SendDroneKeyCommand =>
-        _sendDroneKeyCommand ??= new RelayCommand(SendDroneKey);
+        _sendDroneKeyCommand ??= new AsyncRelayCommand(SendDroneKeyAsync);
     public ICommand RecvDroneKeyCommand =>
-        _recvDroneKeyCommand ??= new RelayCommand(RecvDroneKey);
+        _recvDroneKeyCommand ??= new AsyncRelayCommand(RecvDroneKeyAsync);
     public ICommand ResetCameraCommand =>
-        _resetCameraCommand ??= new RelayCommand(ResetCamera);
+        _resetCameraCommand ??= new AsyncRelayCommand(ResetCameraAsync);
     public ICommand OfflineUpdateCommand =>
-        _offlineUpdateCommand ??= new RelayCommand(OfflineUpdate);
+        _offlineUpdateCommand ??= new AsyncRelayCommand(OfflineUpdateAsync);
     public ICommand ScanCommand =>
-        _scanCommand ??= new RelayCommand(ScanNetwork);
+        _scanCommand ??= new AsyncRelayCommand(ScanNetworkAsync);
     #endregion
 
     #region Public Properties
@@ -273,28 +273,28 @@ public partial class SetupTabViewModel : ViewModelBase
     #endregion
 
     #region Command Handlers
-    private async void ScriptFilesAction()
+    private async Task ScriptFilesActionAsync()
     {
         var action = SelectedScriptFileAction;
     }
 
-    private async void EncryptionKeyAction(string comboBoxName)
+    private async Task EncryptionKeyActionAsync(string comboBoxName)
     {
         var action = SelectedDroneKeyAction;
         switch (action)
         {
             case "Send":
-                if (comboBoxName.Equals("CameraKeyComboBox")) SendDroneKey();
-                if (comboBoxName.Equals("RadxaKeyComboBox")) SendGSKey();
+                if (comboBoxName.Equals("CameraKeyComboBox")) await SendDroneKeyAsync();
+                if (comboBoxName.Equals("RadxaKeyComboBox")) await SendGSKeyAsync();
                 break;
             case "Receive":
-                if (comboBoxName.Equals("CameraKeyComboBox")) RecvDroneKey();
-                if (comboBoxName.Equals("RadxaKeyComboBox")) RecvGSKey();
+                if (comboBoxName.Equals("CameraKeyComboBox")) await RecvDroneKeyAsync();
+                if (comboBoxName.Equals("RadxaKeyComboBox")) await RecvGSKeyAsync();
                 break;
         }
     }
 
-    private async void ScriptFilesBackup()
+    private async Task ScriptFilesBackup()
     {
         Log.Debug("Backup script executed");
         await SshClientService.DownloadFileLocalAsync(DeviceConfig.Instance, "/usr/bin/channels.sh", "channels.sh");
@@ -856,7 +856,7 @@ private string CalculateChecksum(byte[] data)
         return sb.ToString();
     }
 }
-    private async void ScriptFilesRestore()
+    private async Task ScriptFilesRestore()
     {
         Log.Debug("Restore script executed...not implemented yet");
     }
@@ -875,7 +875,7 @@ private string CalculateChecksum(byte[] data)
         }
     }
 
-    private async void SensorDriverUpdate()
+    private async Task SensorDriverUpdate()
     {
         Log.Debug("SensorDriverUpdate executed");
         DownloadProgress = 0;
@@ -891,7 +891,7 @@ private string CalculateChecksum(byte[] data)
         Log.Debug("SensorDriverUpdate executed..done");
     }
 
-    public async void SensorFilesUpdate()
+    public async Task SensorFilesUpdateAsync()
     {
         DownloadProgress = 0;
         IsProgressBarVisible = true;
@@ -929,7 +929,7 @@ private string CalculateChecksum(byte[] data)
         DownloadProgress = 100;
     }
 
-    private async void OfflineUpdate()
+    private async Task OfflineUpdateAsync()
     {
         Log.Debug("OfflineUpdate executed");
         IsProgressBarVisible = true;
@@ -937,7 +937,7 @@ private string CalculateChecksum(byte[] data)
         //Log.Debug("OfflineUpdate executed..done");
     }
 
-    private async void ScanNetwork()
+    private async Task ScanNetworkAsync()
     {
         ScanMessages = "Starting scan...";
         //ScanIPResultTextBox = "Available IP Addresses on your network:";
@@ -1263,7 +1263,7 @@ private string CalculateChecksum(byte[] data)
         }
     }
 
-    private async void SysUpgradeFirmwareUpdate()
+    private async Task SysUpgradeFirmwareUpdateAsync()
     {
         Log.Debug("FirmwareUpdate executed");
         // if "%1" == "sysup" (
@@ -1274,7 +1274,7 @@ private string CalculateChecksum(byte[] data)
         Log.Debug("FirmwareUpdate executed..done");
     }
 
-    private async void RecvDroneKey()
+    private async Task RecvDroneKeyAsync()
     {
         Log.Debug("RecvDroneKeyCommand executed");
 
@@ -1301,7 +1301,7 @@ private string CalculateChecksum(byte[] data)
         Log.Debug("RecvDroneKeyCommand executed...done");
     }
 
-    private async void SendDroneKey()
+    private async Task SendDroneKeyAsync()
     {
         Log.Debug("SendDroneKey executed");
         // if "%1" == "keysulcam" (
@@ -1313,7 +1313,7 @@ private string CalculateChecksum(byte[] data)
         Log.Debug("SendDroneKey executed...done");
     }
 
-    private async void ResetCamera()
+    private async Task ResetCameraAsync()
     {
         Log.Debug("ResetCamera executed");
         // if "%1" == "resetcam" (
@@ -1341,7 +1341,7 @@ private string CalculateChecksum(byte[] data)
         Log.Debug("ResetCamera executed...done");
     }
 
-    private async void SensorFilesBackup()
+    private async Task SensorFilesBackup()
     {
         // if "%1" == "bindl" (
         //     echo y | mkdir backup
@@ -1353,7 +1353,7 @@ private string CalculateChecksum(byte[] data)
         Log.Debug("SensorFilesBackup executed...done");
     }
 
-    private async void GenerateKeys()
+    private async Task GenerateKeys()
     {
         // keysgen " + String.Format("{0}", txtIP.Text) + " " + txtPassword.Text
         // plink -ssh root@%2 -pw %3 wfb_keygen
@@ -1373,7 +1373,7 @@ private string CalculateChecksum(byte[] data)
         }
     }
 
-    private async void SendGSKey()
+    private async Task SendGSKeyAsync()
     {
         try
         {
@@ -1395,7 +1395,7 @@ private string CalculateChecksum(byte[] data)
         }
     }
 
-    private async void RecvGSKey()
+    private async Task RecvGSKeyAsync()
     {
         UpdateUIMessage("Receiving keys...");
 
