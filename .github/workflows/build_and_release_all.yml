@@ -52,6 +52,7 @@ jobs:
         with:
           # If manually triggered, use the input branch; otherwise use the tag ref
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target_branch || github.ref_name }}
+          fetch-depth: 0
 
       - name: Setup .NET (8.x)
         uses: actions/setup-dotnet@v3

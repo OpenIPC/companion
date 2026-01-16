@@ -1,5 +1,5 @@
 {
-  "version": "0.0.1",
+  "version": "0.7.14",
   "publicReleaseRefSpec": [
     "^refs/tags/release-v\\d+\\.\\d+\\.\\d+$",
     "^refs/tags/v\\d+\\.\\d+\\.\\d+$"
