@@ -209,7 +209,16 @@ public partial class FirmwareTabViewModel : ViewModelBase
     {
         if (_bRecursionSelectGuard)
             return;
+        
         _bRecursionSelectGuard = true;
+        // clear out any firmware by soc or manual selection
+        SelectedFirmwareBySoc = string.Empty;
+        IsFirmwareBySocSelected = false;
+        ManualLocalFirmwarePackageFile = string.Empty;
+        IsLocalFirmwarePackageSelected = false;
+        SelectedDevice = string.Empty;
+        SelectedFirmware = string.Empty;
+        IsManufacturerDeviceFirmwareComboSelected = false;
         LoadDevices(value);
         _bRecursionSelectGuard = false;
         UpdateCanExecuteCommands();
@@ -219,7 +228,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
     {
         if (_bRecursionSelectGuard)
             return;
+        
         _bRecursionSelectGuard = true;
+        // clear out any firmware by soc or manual selection
+        SelectedFirmwareBySoc = string.Empty;
+        IsFirmwareBySocSelected = false;
+        ManualLocalFirmwarePackageFile = string.Empty;
+        IsLocalFirmwarePackageSelected = false;
+        SelectedFirmware = string.Empty;
+        IsManufacturerDeviceFirmwareComboSelected = false;
         LoadFirmwares(value);
         _bRecursionSelectGuard = false;
         UpdateCanExecuteCommands();
@@ -229,7 +246,13 @@ public partial class FirmwareTabViewModel : ViewModelBase
     {
         if (_bRecursionSelectGuard)
             return;
+        
         _bRecursionSelectGuard = true;
+        SelectedFirmwareBySoc = string.Empty;
+        IsFirmwareBySocSelected = false;
+        ManualLocalFirmwarePackageFile = string.Empty;
+        IsLocalFirmwarePackageSelected = false;
+        
         var manufacturer = _firmwareData?.Manufacturers
                 .FirstOrDefault(m => ((m.Name == SelectedManufacturer) || (m.FriendlyName == SelectedManufacturer)));
 
@@ -272,6 +295,22 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     partial void OnManualLocalFirmwarePackageFileChanged(string value)
     {
+        if (_bRecursionSelectGuard)
+            return;
+
+        _bRecursionSelectGuard = true;
+        if (!string.IsNullOrEmpty(value))
+        {
+            SelectedManufacturer = string.Empty;
+            SelectedDevice = string.Empty;
+            SelectedFirmware = string.Empty;
+            SelectedFirmwareBySoc = string.Empty;
+            IsFirmwareBySocSelected = false;
+            IsManufacturerDeviceFirmwareComboSelected = false;
+        }
+
+        IsLocalFirmwarePackageSelected = !string.IsNullOrEmpty(value);
+        _bRecursionSelectGuard = false;
         UpdateCanExecuteCommands();
     }
 
