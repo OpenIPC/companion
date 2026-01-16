@@ -39,7 +39,16 @@ public static class VersionHelper
         try
         {
             var versionFilePath = Path.Combine(AppContext.BaseDirectory, "VERSION");
-            if (_fileSystem.Exists(versionFilePath)) return _fileSystem.ReadAllText(versionFilePath).Trim();
+            if (_fileSystem.Exists(versionFilePath))
+            {
+                var fileVersion = _fileSystem.ReadAllText(versionFilePath).Trim();
+                if (!string.IsNullOrWhiteSpace(fileVersion) &&
+                    !fileVersion.Equals("v0.0.0", StringComparison.OrdinalIgnoreCase) &&
+                    !fileVersion.Equals("0.0.0", StringComparison.OrdinalIgnoreCase))
+                {
+                    return EnsureVersionPrefix(fileVersion);
+                }
+            }
             var informationalVersion = Assembly.GetExecutingAssembly()
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
                 .InformationalVersion;

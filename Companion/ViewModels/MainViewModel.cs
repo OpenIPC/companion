@@ -209,9 +209,29 @@ public partial class MainViewModel : ViewModelBase
     {
         var fullVersion = VersionHelper.GetAppVersion();
 
-        // Extract the first part of the version (e.g., "1.0.0")
-        var truncatedVersion = fullVersion.Split('+')[0]; // Handles semantic versions like "1.0.0+buildinfo"
-        return truncatedVersion.Length > 10 ? truncatedVersion.Substring(0, 10) : truncatedVersion;
+        var parts = fullVersion.Split('+', 2);
+        var baseVersion = parts[0];
+        string shortHash = null;
+
+        var gitSuffixIndex = baseVersion.IndexOf("-g", StringComparison.OrdinalIgnoreCase);
+        if (gitSuffixIndex >= 0)
+        {
+            var gitSuffix = baseVersion.Substring(gitSuffixIndex + 2);
+            baseVersion = baseVersion.Substring(0, gitSuffixIndex);
+            if (!string.IsNullOrWhiteSpace(gitSuffix))
+                shortHash = gitSuffix.Length > 7 ? gitSuffix.Substring(0, 7) : gitSuffix;
+        }
+
+        if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1]))
+        {
+            var hash = parts[1].Trim();
+            shortHash = hash.Length > 7 ? hash.Substring(0, 7) : hash;
+        }
+
+        if (!string.IsNullOrWhiteSpace(shortHash))
+            return $"{baseVersion}+{shortHash}";
+
+        return baseVersion.Length > 10 ? baseVersion.Substring(0, 10) : baseVersion;
     }
 
     private void CheckIfCanConnect()

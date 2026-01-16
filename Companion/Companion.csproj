@@ -3,8 +3,6 @@
         <TargetFrameworks>net8.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
-        <Version Condition="'$(Version)' == ''">0.0.0</Version>
-        <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(Version)</InformationalVersion>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <ApplicationIcon>Assets/Icons/OpenIPC.ico</ApplicationIcon>
         <RootNamespace>Companion</RootNamespace>

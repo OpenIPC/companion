@@ -5,8 +5,6 @@
         One for Windows with net8.0-windows TFM, one for MacOS with net8.0-macos and one with net8.0 TFM for Linux.-->
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
-        <Version Condition="'$(Version)' == ''">0.0.0</Version>
-        <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(Version)</InformationalVersion>
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <RuntimeIdentifiers>osx-arm64;win-x64;win-arm64;linux-x64;linux-arm64</RuntimeIdentifiers>
         <SelfContained>true</SelfContained>
