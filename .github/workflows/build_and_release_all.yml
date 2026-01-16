@@ -95,15 +95,15 @@ jobs:
         run: |
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             dotnet publish Companion/Companion.csproj \
-              -c Release -r win-${{ matrix.arch }} --self-contained true \
+              -c Release -f net8.0 -r win-${{ matrix.arch }} --self-contained true \
               -p:PublishSingleFile=false -p:PublishReadyToRun=true -p:IncludeNativeLibrariesForSelfExtract=true
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
             dotnet publish Companion/Companion.csproj \
-              -c Release -r osx-${{ matrix.arch }} --self-contained true \
+              -c Release -f net8.0 -r osx-${{ matrix.arch }} --self-contained true \
               -p:PublishSingleFile=true -p:UseAppHost=true
           else
             dotnet publish Companion/Companion.csproj \
-              -c Release -r linux-${{ matrix.arch }} --self-contained true \
+              -c Release -f net8.0 -r linux-${{ matrix.arch }} --self-contained true \
               -p:PublishSingleFile=true
           fi
 
