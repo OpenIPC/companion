@@ -58,21 +58,6 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Read Version
-        id: get_version
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            VERSION="0.0.1"
-          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
-            VERSION=${GITHUB_REF#refs/tags/}
-            VERSION=${VERSION#release-v}
-          else
-            VERSION="0.0.0-dev"
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
       - name: Restore dependencies
         run: dotnet restore Companion.Desktop/Companion.Desktop.csproj
 
@@ -82,7 +67,7 @@ jobs:
           rm -rf ./Companion.Desktop/bin ./Companion.Desktop/obj || true
 
       - name: Build project
-        run: dotnet build Companion.Desktop/Companion.Desktop.csproj --configuration Release -p:Version=${{ env.VERSION }} -p:InformationalVersion=${{ env.VERSION }}
+        run: dotnet build Companion.Desktop/Companion.Desktop.csproj --configuration Release
 
       - name: Run Tests
         if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
@@ -94,17 +79,14 @@ jobs:
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             dotnet publish Companion.Desktop/Companion.Desktop.csproj \
               -c Release -f net8.0 -r win-${{ matrix.arch }} --self-contained true \
-              -p:Version=${{ env.VERSION }} -p:InformationalVersion=${{ env.VERSION }} \
               -p:PublishSingleFile=false -p:PublishReadyToRun=true -p:IncludeNativeLibrariesForSelfExtract=true
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
             dotnet publish Companion.Desktop/Companion.Desktop.csproj \
               -c Release -f net8.0 -r osx-${{ matrix.arch }} --self-contained true \
-              -p:Version=${{ env.VERSION }} -p:InformationalVersion=${{ env.VERSION }} \
               -p:PublishSingleFile=true -p:UseAppHost=true
           else
             dotnet publish Companion.Desktop/Companion.Desktop.csproj \
               -c Release -f net8.0 -r linux-${{ matrix.arch }} --self-contained true \
-              -p:Version=${{ env.VERSION }} -p:InformationalVersion=${{ env.VERSION }} \
               -p:PublishSingleFile=true
           fi
 
@@ -218,6 +200,10 @@ jobs:
             chmod +x "${APP_DIR}/Contents/MacOS/Companion.Desktop"
           fi
 
+          VERSION_RAW="$(cat "${PUBLISH_DIR}/VERSION" 2>/dev/null || true)"
+          VERSION_RAW="${VERSION_RAW:-v0.0.0}"
+          VERSION="${VERSION_RAW#v}"
+
           cat > "${APP_DIR}/Contents/Info.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -227,8 +213,8 @@ jobs:
             <key>CFBundleDisplayName</key><string>${APP_NAME}</string>
             <key>CFBundleExecutable</key><string>Companion.Desktop</string>
             <key>CFBundleIdentifier</key><string>org.openipc.Companion</string>
-            <key>CFBundleVersion</key><string>${{ env.VERSION }}</string>
-            <key>CFBundleShortVersionString</key><string>${{ env.VERSION }}</string>
+            <key>CFBundleVersion</key><string>${VERSION}</string>
+            <key>CFBundleShortVersionString</key><string>${VERSION}</string>
             <key>CFBundlePackageType</key><string>APPL</string>
             <key>LSMinimumSystemVersion</key><string>13.0</string>
             <key>CFBundleIconFile</key><string>${APP_NAME}.icns</string>

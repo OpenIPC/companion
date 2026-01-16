@@ -1,6 +1,5 @@
 <Project>
-    <PropertyGroup>
-        <Nullable>enable</Nullable>
-        <AvaloniaVersion>11.2.3</AvaloniaVersion>
-    </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Nerdbank.GitVersioning" Version="3.6.139" PrivateAssets="all" />
+  </ItemGroup>
 </Project>
