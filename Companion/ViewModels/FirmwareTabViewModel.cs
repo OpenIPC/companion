@@ -1098,15 +1098,16 @@ public partial class FirmwareTabViewModel : ViewModelBase
             var selectedFile = result[0];
             var fileName = Path.GetFileName(selectedFile);
             Console.WriteLine($"Selected File: {selectedFile}");
+            _bRecursionSelectGuard = true;
             ManualLocalFirmwarePackageFile = selectedFile;
-
             IsLocalFirmwarePackageSelected = true;
             IsManufacturerDeviceFirmwareComboSelected = false;
             SelectedManufacturer = string.Empty;
             SelectedDevice = string.Empty;
             SelectedFirmware = string.Empty;
             SelectedFirmwareBySoc = string.Empty;
-
+            IsFirmwareBySocSelected = false;
+            _bRecursionSelectGuard = false;
 
             UpdateCanExecuteCommands();
         }
