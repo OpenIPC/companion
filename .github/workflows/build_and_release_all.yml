@@ -73,18 +73,16 @@ jobs:
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-          echo "v$VERSION" > Companion/VERSION
-
       - name: Restore dependencies
-        run: dotnet restore Companion/Companion.csproj
+        run: dotnet restore Companion.Desktop/Companion.Desktop.csproj
 
       - name: Clean build directories
         shell: bash
         run: |
-          rm -rf ./Companion/bin ./Companion/obj || true
+          rm -rf ./Companion.Desktop/bin ./Companion.Desktop/obj || true
 
       - name: Build project
-        run: dotnet build Companion/Companion.csproj --configuration Release
+        run: dotnet build Companion.Desktop/Companion.Desktop.csproj --configuration Release -p:Version=${{ env.VERSION }} -p:InformationalVersion=${{ env.VERSION }}
 
       - name: Run Tests
         if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
@@ -94,16 +92,19 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-            dotnet publish Companion/Companion.csproj \
+            dotnet publish Companion.Desktop/Companion.Desktop.csproj \
               -c Release -f net8.0 -r win-${{ matrix.arch }} --self-contained true \
+              -p:Version=${{ env.VERSION }} -p:InformationalVersion=${{ env.VERSION }} \
               -p:PublishSingleFile=false -p:PublishReadyToRun=true -p:IncludeNativeLibrariesForSelfExtract=true
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
-            dotnet publish Companion/Companion.csproj \
+            dotnet publish Companion.Desktop/Companion.Desktop.csproj \
               -c Release -f net8.0 -r osx-${{ matrix.arch }} --self-contained true \
+              -p:Version=${{ env.VERSION }} -p:InformationalVersion=${{ env.VERSION }} \
               -p:PublishSingleFile=true -p:UseAppHost=true
           else
-            dotnet publish Companion/Companion.csproj \
+            dotnet publish Companion.Desktop/Companion.Desktop.csproj \
               -c Release -f net8.0 -r linux-${{ matrix.arch }} --self-contained true \
+              -p:Version=${{ env.VERSION }} -p:InformationalVersion=${{ env.VERSION }} \
               -p:PublishSingleFile=true
           fi
 
@@ -201,7 +202,7 @@ jobs:
 
           ICON_SRC="./Companion/Assets/Icons/OpenIPC.icns"
 
-          PUBLISH_DIR="./Companion/bin/Release/net8.0/osx-${{ matrix.arch }}/publish"
+          PUBLISH_DIR="./Companion.Desktop/bin/Release/net8.0/osx-${{ matrix.arch }}/publish"
           APP_DIR="${APP_NAME}.app"
           DMG_NAME="Companion-macos-${{ matrix.arch }}.dmg"
 
@@ -213,8 +214,8 @@ jobs:
           cp -R "${PUBLISH_DIR}/"* "${APP_DIR}/Contents/MacOS/"
           [[ -f "$ICON_SRC" ]] && cp "$ICON_SRC" "${APP_DIR}/Contents/Resources/${APP_NAME}.icns" || true
 
-          if [[ -f "${APP_DIR}/Contents/MacOS/Companion" ]]; then
-            chmod +x "${APP_DIR}/Contents/MacOS/Companion"
+          if [[ -f "${APP_DIR}/Contents/MacOS/Companion.Desktop" ]]; then
+            chmod +x "${APP_DIR}/Contents/MacOS/Companion.Desktop"
           fi
 
           cat > "${APP_DIR}/Contents/Info.plist" <<EOF
@@ -224,7 +225,7 @@ jobs:
           <dict>
             <key>CFBundleName</key><string>${APP_NAME}</string>
             <key>CFBundleDisplayName</key><string>${APP_NAME}</string>
-            <key>CFBundleExecutable</key><string>Companion</string>
+            <key>CFBundleExecutable</key><string>Companion.Desktop</string>
             <key>CFBundleIdentifier</key><string>org.openipc.Companion</string>
             <key>CFBundleVersion</key><string>${{ env.VERSION }}</string>
             <key>CFBundleShortVersionString</key><string>${{ env.VERSION }}</string>
@@ -258,7 +259,7 @@ jobs:
         shell: bash
         run: |
           OUTDIR="Companion-linux-${{ matrix.arch }}"
-          SRC="./Companion/bin/Release/net8.0/linux-${{ matrix.arch }}/publish"
+          SRC="./Companion.Desktop/bin/Release/net8.0/linux-${{ matrix.arch }}/publish"
           mkdir -p "$OUTDIR"
           cp -R "$SRC/"* "$OUTDIR/"
           zip -r "${OUTDIR}.zip" "$OUTDIR"
@@ -269,11 +270,11 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          $PublishDir = "./Companion/bin/Release/net8.0/win-${{ matrix.arch }}/publish"
+          $PublishDir = "./Companion.Desktop/bin/Release/net8.0/win-${{ matrix.arch }}/publish"
           $Icon = "./Companion/Assets/Icons/OpenIPC.ico"
           choco install rcedit -y
-          if (Test-Path "$PublishDir/Companion.exe") {
-            rcedit "$PublishDir/Companion.exe" --set-icon "$Icon"
+          if (Test-Path "$PublishDir/Companion.Desktop.exe") {
+            rcedit "$PublishDir/Companion.Desktop.exe" --set-icon "$Icon"
           }
 
       # ----- Upload artifacts -----
@@ -291,7 +292,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Companion-windows-${{ matrix.arch }}
-          path: ./Companion/bin/Release/net8.0/win-${{ matrix.arch }}/publish/**
+          path: ./Companion.Desktop/bin/Release/net8.0/win-${{ matrix.arch }}/publish/**
 
       - name: Upload Linux Artifact
         if: matrix.os == 'ubuntu-latest'
@@ -372,7 +373,7 @@ jobs:
             * **Linux**: `Companion-linux-x64.zip` / `Companion-linux-arm64.zip`
 
             ### Install
-            * **Windows**: unzip and run `Companion.exe`.
+            * **Windows**: unzip and run `Companion.Desktop.exe`.
             * **macOS**: open `.dmg` and drag **Companion.app** to Applications.
-            * **Linux**: unzip and run `./Companion` (chmod +x if needed).
+            * **Linux**: unzip and run `./Companion.Desktop` (chmod +x if needed).
           files: ./release_files/*
