@@ -1325,11 +1325,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
             BootloaderProgressText = "Erasing environment partition...";
             await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, "flash_eraseall /dev/mtd1");
 
+            BootloaderProgressValue = 95;
+            BootloaderProgressText = "Rebooting device...";
+            await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, "reboot");
+
             BootloaderProgressValue = 100;
             BootloaderProgressText = "Bootloader replaced.";
             await _messageBoxService.ShowCustomMessageBox(
                 "Bootloader replaced",
-                "Bootloader has been flashed. Reboot the device to apply changes.",
+                "Bootloader has been flashed. The device will reboot now.",
                 ButtonEnum.Ok,
                 Icon.Success);
         }
