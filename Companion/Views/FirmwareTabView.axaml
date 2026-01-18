@@ -46,7 +46,7 @@
 
                             <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Background="#E7E7E7" CornerRadius="8" Padding="5">
                                 <Panel>
-                                    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,Auto,Auto,*"
+                                    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*"
                                           ShowGridLines="False">
                                         <!-- Manufacturer -->
                                         <TextBlock Text="Manufacturer" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
@@ -82,18 +82,18 @@
 
                             <!-- Choice Section -->
                             <Border Grid.Row="4" Grid.Column="0"  Grid.ColumnSpan="2" Background="#E7E7E7" CornerRadius="8" Padding="5">
-                                <Grid ColumnDefinitions="Auto, Auto, *" RowDefinitions="Auto"
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto"
                                       ToolTip.Tip="{x:Static assets:Resources.FirmwareChoiceToolTip}">
                                     <TextBlock Text="Select Firmware" Grid.Row="0" Grid.Column="0"
                                                IsEnabled="{Binding CanUseDropdowns}"
                                                VerticalAlignment="Center" />
 
-                                <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
-                                          HorizontalAlignment="Stretch"
-                                          IsEnabled="{Binding CanUseDropdownsBySoc}"
-                                          SelectedItem="{Binding SelectedFirmwareBySoc, Mode=TwoWay}"
-                                          ItemsSource="{Binding FirmwareBySoc}"
-                                          Background="#E7E7E7" />
+                                    <ComboBox Grid.Row="0" Grid.Column="1"
+                                              HorizontalAlignment="Stretch"
+                                              IsEnabled="{Binding CanUseDropdownsBySoc}"
+                                              SelectedItem="{Binding SelectedFirmwareBySoc, Mode=TwoWay}"
+                                              ItemsSource="{Binding FirmwareBySoc}"
+                                              Background="#E7E7E7" />
                                 </Grid>
                             </Border>
 
