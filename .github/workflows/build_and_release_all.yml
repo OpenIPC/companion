@@ -54,6 +54,16 @@ jobs:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target_branch || github.ref_name }}
           fetch-depth: 0
 
+      - name: Ensure full git history
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git rev-parse --is-shallow-repository | grep -q true; then
+            git fetch --prune --unshallow --tags
+          else
+            git fetch --prune --tags
+          fi
+
       - name: Setup .NET (8.x)
         uses: actions/setup-dotnet@v3
         with:
