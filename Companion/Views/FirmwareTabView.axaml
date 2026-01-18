@@ -3,176 +3,221 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Companion.ViewModels"
+             xmlns:converters="clr-namespace:Companion.Converters"
              xmlns:assets="clr-namespace:Companion.Assets"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Companion.Views.FirmwareTabView"
              x:DataType="vm:FirmwareTabViewModel">
-    <StackPanel Orientation="Vertical">
+    <UserControl.Resources>
+        <converters:InvertedBooleanConverter x:Key="InvertedBooleanConverter" />
+    </UserControl.Resources>
 
-        <Border Background="#B0B0B0" CornerRadius="10" Padding="10" Margin="10">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Path Data="M10,20 A10,10 0 1,1 10,0 A10,10 0 1,1 10,20 Z M10,7 A1.5,1.5 0 1,0 10,4 A1.5,1.5 0 1,0 10,7 Z M9,8 L11,8 L11,14 L9,14 Z"
-                      Fill="White"
-                      Width="20"
-                      Height="20"
-                      VerticalAlignment="Center"
-                      HorizontalAlignment="Center"
-                      Margin="5" />
-                <TextBlock Grid.Column="1"
-                           Text="This tab is used to flash firmware to your camera. There are three ways of selecting firmware. We strongly recommend the first, automatic."
-                           Foreground="Black"
-                           FontSize="14"
-                           TextWrapping="Wrap"
-                           VerticalAlignment="Center"
-                           Margin="10,0,0,0" />
-            </Grid>
-        </Border>
-
-        <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*"
-                  ColumnDefinitions="Auto,Auto,Auto"
-                  ShowGridLines="False">
-
-                <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Background="#E7E7E7" CornerRadius="8" Padding="5">
-                    <Panel>
-                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,Auto,Auto,*"
-                              ShowGridLines="False">
-                            <!-- Manufacturer -->
-                            <TextBlock Text="Manufacturer" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
-                            <ComboBox Grid.Row="0" Grid.Column="1"
-                                      IsEnabled="{Binding CanUseDropdowns}"
-                                      SelectedItem="{Binding SelectedManufacturer, Mode=TwoWay}"
-                                      ItemsSource="{Binding Manufacturers}" />
-
-                            <!-- Device -->
-                            <TextBlock Text="Device" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
-                            <ComboBox Grid.Row="1" Grid.Column="1"
-                                      IsEnabled="{Binding CanUseDropdowns}"
-                                      SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
-                                      ItemsSource="{Binding Devices}" />
-
-                            <!-- WFB/Ruby -->
-                            <TextBlock Text="WFB/Ruby" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
-                            <ComboBox Grid.Row="2" Grid.Column="1"
-                                      IsEnabled="{Binding CanUseDropdowns}"
-                                      SelectedItem="{Binding SelectedFirmware, Mode=TwoWay}"
-                                      ItemsSource="{Binding Firmwares}" />
+    <ScrollViewer>
+        <StackPanel Orientation="Vertical">
+            <Expander Header="Firmware" IsExpanded="True" IsEnabled="{Binding BootloaderInProgress, Converter={StaticResource InvertedBooleanConverter}}">
+                <StackPanel Orientation="Vertical">
+                    <Border Background="#B0B0B0" CornerRadius="10" Padding="10" Margin="10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Path Data="M10,20 A10,10 0 1,1 10,0 A10,10 0 1,1 10,20 Z M10,7 A1.5,1.5 0 1,0 10,4 A1.5,1.5 0 1,0 10,7 Z M9,8 L11,8 L11,14 L9,14 Z"
+                                  Fill="White"
+                                  Width="20"
+                                  Height="20"
+                                  VerticalAlignment="Center"
+                                  HorizontalAlignment="Center"
+                                  Margin="5" />
+                            <TextBlock Grid.Column="1"
+                                       Text="This tab is used to flash firmware to your camera. There are three ways of selecting firmware. We strongly recommend the first, automatic."
+                                       Foreground="Black"
+                                       FontSize="14"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center"
+                                       Margin="10,0,0,0" />
                         </Grid>
-                    </Panel>
+                    </Border>
+
+                    <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
+                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*"
+                              ColumnDefinitions="Auto,Auto,Auto"
+                              ShowGridLines="False">
+
+                            <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Background="#E7E7E7" CornerRadius="8" Padding="5">
+                                <Panel>
+                                    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,Auto,Auto,*"
+                                          ShowGridLines="False">
+                                        <!-- Manufacturer -->
+                                        <TextBlock Text="Manufacturer" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
+                                        <ComboBox Grid.Row="0" Grid.Column="1"
+                                                  IsEnabled="{Binding CanUseDropdowns}"
+                                                  SelectedItem="{Binding SelectedManufacturer, Mode=TwoWay}"
+                                                  ItemsSource="{Binding Manufacturers}" />
+
+                                        <!-- Device -->
+                                        <TextBlock Text="Device" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                                        <ComboBox Grid.Row="1" Grid.Column="1"
+                                                  IsEnabled="{Binding CanUseDropdowns}"
+                                                  SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
+                                                  ItemsSource="{Binding Devices}" />
+
+                                        <!-- WFB/Ruby -->
+                                        <TextBlock Text="WFB/Ruby" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
+                                        <ComboBox Grid.Row="2" Grid.Column="1"
+                                                  IsEnabled="{Binding CanUseDropdowns}"
+                                                  SelectedItem="{Binding SelectedFirmware, Mode=TwoWay}"
+                                                  ItemsSource="{Binding Firmwares}" />
+                                    </Grid>
+                                </Panel>
+                            </Border>
+
+                            <TextBlock Text="OR" Grid.Row="1" Grid.Column="1" Padding="0,5,0,5" VerticalAlignment="Center" />
+
+                            <!-- Choice Section -->
+                            <Border Grid.Row="4" Grid.Column="0"  Grid.ColumnSpan="2" Background="#E7E7E7" CornerRadius="8" Padding="5">
+                                <Grid ColumnDefinitions="Auto, Auto, *" RowDefinitions="Auto"
+                                      ToolTip.Tip="{x:Static assets:Resources.FirmwareChoiceToolTip}">
+                                    <TextBlock Text="Select Firmware" Grid.Row="0" Grid.Column="0"
+                                               IsEnabled="{Binding CanUseDropdowns}"
+                                               VerticalAlignment="Center" />
+
+                                    <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
+                                              Width="350"
+                                              IsEnabled="{Binding CanUseDropdownsBySoc}"
+                                              SelectedItem="{Binding SelectedFirmwareBySoc, Mode=TwoWay}"
+                                              ItemsSource="{Binding FirmwareBySoc}" />
+                                </Grid>
+                            </Border>
+
+                            <TextBlock Text="OR" Grid.Row="5" Grid.Column="1" Padding="0,5,0,5" VerticalAlignment="Center" />
+
+                            <!-- Manual Section -->
+                            <Border Grid.Column="0" Grid.Row="6" Grid.ColumnSpan="2" Background="#E7E7E7"
+                                    CornerRadius="8" Padding="5">
+
+                                <Grid ColumnDefinitions="Auto, Auto, Auto"
+                                      RowDefinitions="Auto, Auto"
+                                      ShowGridLines="False"
+                                      ToolTip.Tip="{x:Static assets:Resources.FirmwareLocalToolTip}">
+
+                                    <!-- Manual upload -->
+                                    <TextBlock Text="Local" Grid.Row="0" Grid.Column="0"
+                                               VerticalAlignment="Center" />
+
+                                    <TextBlock Grid.Row="0" Grid.Column="1"
+                                               Margin="5,0,0,0"
+                                               Padding="5"
+                                               Background="#F0F0F0"
+                                               Width="400"
+                                               Height="25"
+                                               IsEnabled="{Binding CanUseSelectLocalFirmwarePackage}"
+                                               Text="{Binding Path=ManualLocalFirmwarePackageFile, Mode=TwoWay}" />
+
+                                    <Button Grid.Row="0" Grid.Column="2" Content="..."
+                                            Margin="5,5,0,0"
+                                            VerticalAlignment="Center"
+                                            Background="LightGray"
+                                            IsEnabled="{Binding CanUseSelectLocalFirmwarePackage}"
+                                            Command="{Binding SelectLocalFirmwarePackageCommand}"
+                                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" />
+
+                                </Grid>
+                            </Border>
+
+                            <!-- Clear Button -->
+                            <Button Content="Clear"
+                                    Grid.Row="7"
+                                    Grid.Column="0"
+                                    HorizontalAlignment="Left"
+                                    Background="LightGray"
+                                    IsDefault="False"
+                                    Width="100"
+                                    Command="{Binding ClearFormCommand}"
+                                    IsEnabled="{Binding CanConnect}"
+                                    Margin="5,10,0,0" />
+
+                            <!-- Update Button -->
+                            <Button Content="Update"
+                                    Grid.Row="7"
+                                    Grid.Column="1"
+                                    IsDefault="True"
+                                    HorizontalAlignment="Right"
+                                    Width="100"
+                                    Command="{Binding PerformFirmwareUpgradeAsyncCommand}"
+                                    IsEnabled="{Binding CanConnect}"
+                                    Margin="0,10,0,0" />
+
+                        </Grid>
+                    </Border>
+
+                    <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
+                        <StackPanel Orientation="Vertical">
+                        <TextBlock Margin="10,0,10,0"
+                                   Text="Firmware Upgrade Progress" FontWeight="Medium" />
+
+                        <ProgressBar Background="#F0F0F0"
+                                     Margin="10,0,10,0"
+                                     Foreground="{Binding ProgressBarBrush}"
+                                     ShowProgressText="True"
+                                     Minimum="0" Maximum="100"
+                                     Height="18"
+                                     Value="{Binding ProgressValue}"
+
+                        />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Expander>
+
+            <Expander Header="Bootloader" IsExpanded="False" IsEnabled="{Binding FirmwareUpgradeInProgress, Converter={StaticResource InvertedBooleanConverter}}">
+                <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
+                    <StackPanel Orientation="Vertical" Spacing="10">
+                        <TextBlock Text="Replace bootloader from Linux"
+                                   FontSize="16"
+                                   FontWeight="SemiBold" />
+
+                        <TextBlock Text="Select the correct bootloader for your SoC, confirm, then download, upload, and flash it on the device."
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding BootloaderStorageTypeLabel}"
+                                   FontWeight="Medium"
+                                   Opacity="0.85" />
+
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                       Text="Bootloader"
+                                       VerticalAlignment="Center" />
+                            <ComboBox Grid.Row="0" Grid.Column="1"
+                                      Width="350"
+                                      IsEnabled="{Binding CanConnect}"
+                                      SelectedItem="{Binding SelectedBootloader, Mode=TwoWay}"
+                                      ItemsSource="{Binding Bootloaders}" />
+
+                            <CheckBox Grid.Row="1" Grid.Column="1"
+                                      IsEnabled="{Binding CanConnect}"
+                                      IsChecked="{Binding BootloaderConfirmed, Mode=TwoWay}"
+                                      Content="I understand this will overwrite /dev/mtd0 and erase /dev/mtd1." />
+
+                            <Button Grid.Row="2" Grid.Column="1"
+                                    Width="220"
+                                    HorizontalAlignment="Left"
+                                    IsEnabled="{Binding CanReplaceBootloader}"
+                                    Content="Download and Replace Bootloader"
+                                    Command="{Binding ReplaceBootloaderAsyncCommand}" />
+                        </Grid>
+
+                        <TextBlock Text="{Binding BootloaderProgressText}"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.8" />
+
+                        <ProgressBar Background="#F0F0F0"
+                                     Foreground="{Binding ProgressBarBrush}"
+                                     Minimum="0" Maximum="100"
+                                     Height="16"
+                                     Value="{Binding BootloaderProgressValue}" />
+                    </StackPanel>
                 </Border>
-
-                <TextBlock Text="OR" Grid.Row="1" Grid.Column="1" Padding="0,5,0,5" VerticalAlignment="Center" />
-
-                <!-- Choice Section -->
-                <Border Grid.Row="4" Grid.Column="0"  Grid.ColumnSpan="2" Background="#E7E7E7" CornerRadius="8" Padding="5">
-                    <Grid ColumnDefinitions="Auto, Auto, *" RowDefinitions="Auto"
-                          ToolTip.Tip="{x:Static assets:Resources.FirmwareChoiceToolTip}">
-                        <TextBlock Text="Select Firmware" Grid.Row="0" Grid.Column="0"
-                                   IsEnabled="{Binding CanUseDropdowns}"
-                                   VerticalAlignment="Center" />
-
-                        <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
-                                  Width="350"
-                                  IsEnabled="{Binding CanUseDropdownsBySoc}"
-                                  SelectedItem="{Binding SelectedFirmwareBySoc, Mode=TwoWay}"
-                                  ItemsSource="{Binding FirmwareBySoc}" />
-                    </Grid>
-                </Border>
-
-                <TextBlock Text="OR" Grid.Row="5" Grid.Column="1" Padding="0,5,0,5" VerticalAlignment="Center" />
-
-                <!-- Manual Section -->
-                <Border Grid.Column="0" Grid.Row="6" Grid.ColumnSpan="2" Background="#E7E7E7" 
-                        CornerRadius="8" Padding="5">
-                    
-                    <Grid ColumnDefinitions="Auto, Auto, Auto" 
-                          RowDefinitions="Auto, Auto" 
-                          ShowGridLines="False"
-                          ToolTip.Tip="{x:Static assets:Resources.FirmwareLocalToolTip}">
-                        
-                        <!-- Manual upload -->
-                        <TextBlock Text="Local" Grid.Row="0" Grid.Column="0"
-                                   VerticalAlignment="Center" />
-
-                        <TextBlock Grid.Row="0" Grid.Column="1" 
-                                 Margin="5,0,0,0"
-                                 Padding="5"
-                                 Background="#F0F0F0"
-                                 Width="400"
-                                 Height="25"
-                                 IsEnabled="{Binding CanUseSelectLocalFirmwarePackage}"
-                                 Text="{Binding Path=ManualLocalFirmwarePackageFile, Mode=TwoWay}" />
-                        
-                        <Button Grid.Row="0" Grid.Column="2" Content="..."
-                                Margin="5,5,0,0"
-                                VerticalAlignment="Center"
-                                Background="LightGray"
-                                IsEnabled="{Binding CanUseSelectLocalFirmwarePackage}"
-                                Command="{Binding SelectLocalFirmwarePackageCommand}"
-                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" />
-
-                    </Grid>
-                </Border>
-
-                <!-- Clear Button -->
-                <Button Content="Clear"
-                        Grid.Row="7"
-                        Grid.Column="0"
-                        HorizontalAlignment="Left"
-                        Background="LightGray"
-                        IsDefault="False"
-                        Width="100"
-                        Command="{Binding ClearFormCommand}"
-                        IsEnabled="{Binding CanConnect}"
-                        Margin="5,10,0,0" />
-
-                <!-- Update Button -->
-                <Button Content="Update"
-                        Grid.Row="7"
-                        Grid.Column="1"
-                        IsDefault="True"
-                        HorizontalAlignment="Right"
-                        Width="100"
-                        Command="{Binding PerformFirmwareUpgradeAsyncCommand}"
-                        IsEnabled="{Binding CanConnect}"
-                        Margin="0,10,0,0" />
-
-
-                
-                <!-- <ProgressBar Grid.Column="0" Grid.Row="9"  -->
-                <!--              Grid.ColumnSpan="2" -->
-                <!--              Background="#F0F0F0" -->
-                <!--              ShowProgressText="True" -->
-                <!--              Minimum="0" Maximum="100" -->
-                <!--              Height="18" -->
-                <!--              Value="{Binding ProgressValue}" -->
-                <!--               -->
-                <!-- /> -->
-
-            </Grid>
-        </Border>
-        
-        <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
-            <StackPanel Orientation="Vertical">
-            <TextBlock Margin="10,0,10,0"
-                       Text="Firmware Upgrade Progress" FontWeight="Medium" />
-
-            <ProgressBar Background="#F0F0F0"
-                         Margin="10,0,10,0"
-                         Foreground="{Binding ProgressBarBrush}"
-                         ShowProgressText="True"
-                         Minimum="0" Maximum="100"
-                         Height="18"
-                         Value="{Binding ProgressValue}"
-                                 
-            />
-            </StackPanel>
-        </Border>
-    </StackPanel>
-
-
+            </Expander>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

@@ -76,6 +76,9 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private static readonly Regex OverlayPercentRegex =
         new(@"Erasing 64 Kibyte @ .* -\s*(?<percent>\d{1,3})%\s*complete",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex MtdLineRegex =
+        new(@"^(?<dev>mtd\d+):\s+(?<size>[0-9a-fA-F]+)\s+(?<erasesize>[0-9a-fA-F]+)\s+""(?<name>[^""]+)""",
+            RegexOptions.Compiled);
     #endregion
 
     #region Observable Properties
@@ -94,6 +97,13 @@ public partial class FirmwareTabViewModel : ViewModelBase
     [ObservableProperty] private string _manualLocalFirmwarePackageFile;
     [ObservableProperty] private int _progressValue;
     [ObservableProperty] private IBrush _progressBarBrush = new SolidColorBrush(Color.Parse("#4C61D8"));
+    [ObservableProperty] private string _selectedBootloader;
+    [ObservableProperty] private bool _bootloaderConfirmed;
+    [ObservableProperty] private int _bootloaderProgressValue;
+    [ObservableProperty] private string _bootloaderProgressText;
+    [ObservableProperty] private bool _bootloaderInProgress;
+    [ObservableProperty] private string _bootloaderStorageTypeLabel = "Detected storage: Unknown";
+    [ObservableProperty] private bool _firmwareUpgradeInProgress;
 
     #endregion
 
@@ -134,6 +144,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     /// Collection of available firmware versions
     /// </summary>
     public ObservableCollection<string> FirmwareBySoc { get; set; } = new();
+    public ObservableCollection<string> Bootloaders { get; set; } = new();
 
     #endregion
 
@@ -141,6 +152,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     public IAsyncRelayCommand<Window> SelectLocalFirmwarePackageCommand { get; set; }
     public IAsyncRelayCommand PerformFirmwareUpgradeAsyncCommand { get; set; }
+    public IAsyncRelayCommand ReplaceBootloaderAsyncCommand { get; set; }
     public ICommand ClearFormCommand { get; set; }
     public IAsyncRelayCommand DownloadFirmwareAsyncCommand { get; set; }
 
@@ -180,6 +192,11 @@ public partial class FirmwareTabViewModel : ViewModelBase
         IsConnected = false;
         IsLocalFirmwarePackageSelected = false;
         IsManufacturerDeviceFirmwareComboSelected = false;
+        BootloaderConfirmed = false;
+        BootloaderProgressValue = 0;
+        BootloaderProgressText = string.Empty;
+        BootloaderInProgress = false;
+        FirmwareUpgradeInProgress = false;
     }
 
     private void InitializeCommands()
@@ -193,6 +210,10 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
         PerformFirmwareUpgradeAsyncCommand = new AsyncRelayCommand(
             DownloadAndPerformFirmwareUpgradeAsync);
+
+        ReplaceBootloaderAsyncCommand = new AsyncRelayCommand(
+            ReplaceBootloaderAsync,
+            CanExecuteReplaceBootloader);
 
         SelectLocalFirmwarePackageCommand = new AsyncRelayCommand<Window>(
             SelectLocalFirmwarePackage);
@@ -226,11 +247,18 @@ public partial class FirmwareTabViewModel : ViewModelBase
         IsConnected = message.CanConnect;
 
         _ = LoadManufacturersAsync();
+        _ = LoadBootloadersAsync();
 
         if (!IsConnected)
         {
             IsLocalFirmwarePackageSelected = false;
             IsManufacturerDeviceFirmwareComboSelected = false;
+            SelectedBootloader = string.Empty;
+            BootloaderConfirmed = false;
+            BootloaderProgressValue = 0;
+            BootloaderProgressText = string.Empty;
+            BootloaderInProgress = false;
+            FirmwareUpgradeInProgress = false;
         }
 
         UpdateCanExecuteCommands();
@@ -361,6 +389,27 @@ public partial class FirmwareTabViewModel : ViewModelBase
         UpdateCanExecuteCommands();
     }
 
+    partial void OnSelectedBootloaderChanged(string value)
+    {
+        BootloaderConfirmed = false;
+        UpdateCanExecuteCommands();
+    }
+
+    partial void OnBootloaderConfirmedChanged(bool value)
+    {
+        UpdateCanExecuteCommands();
+    }
+
+    partial void OnBootloaderInProgressChanged(bool value)
+    {
+        UpdateCanExecuteCommands();
+    }
+
+    partial void OnFirmwareUpgradeInProgressChanged(bool value)
+    {
+        UpdateCanExecuteCommands();
+    }
+
     #endregion
 
     #region Public Methods
@@ -376,6 +425,23 @@ public partial class FirmwareTabViewModel : ViewModelBase
         catch (Exception ex)
         {
             Logger.Error(ex, "Error loading manufacturers.");
+        }
+    }
+
+    public async Task LoadBootloadersAsync()
+    {
+        try
+        {
+            Logger.Information("Loading bootloader list...");
+            var filenames = await GetBootloaderFilenamesAsync();
+            var storageType = await GetDeviceStorageTypeAsync();
+            UpdateBootloaderStorageTypeLabel(storageType);
+            var filtered = FilterBootloadersByStorage(filenames, storageType);
+            UpdateBootloaders(filtered);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error loading bootloader list.");
         }
     }
 
@@ -510,6 +576,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private bool CanExecuteDownloadFirmware()
     {
         return CanConnect &&
+               !BootloaderInProgress &&
                ((!string.IsNullOrEmpty(SelectedManufacturer) &&
                  !string.IsNullOrEmpty(SelectedDevice) &&
                  !string.IsNullOrEmpty(SelectedFirmware)) ||
@@ -530,15 +597,24 @@ public partial class FirmwareTabViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanUseDropdowns));
         OnPropertyChanged(nameof(CanUseDropdownsBySoc));
         OnPropertyChanged(nameof(CanUseSelectLocalFirmwarePackage));
+        OnPropertyChanged(nameof(CanReplaceBootloader));
 
         if (IsConnected)
         {
             InitializeCommands();
             DownloadFirmwareAsyncCommand?.NotifyCanExecuteChanged();
             PerformFirmwareUpgradeAsyncCommand?.NotifyCanExecuteChanged();
+            ReplaceBootloaderAsyncCommand?.NotifyCanExecuteChanged();
             SelectLocalFirmwarePackageCommand?.NotifyCanExecuteChanged();
         }
     }
+
+    public bool CanReplaceBootloader =>
+        IsConnected &&
+        !BootloaderInProgress &&
+        !FirmwareUpgradeInProgress &&
+        !string.IsNullOrWhiteSpace(SelectedBootloader) &&
+        BootloaderConfirmed;
 
     private async Task<FirmwareData> FetchFirmwareListAsync()
     {
@@ -605,6 +681,129 @@ public partial class FirmwareTabViewModel : ViewModelBase
         var assets = releaseData["assets"];
         return assets?.Select(asset => asset["name"]?.ToString()).Where(name => !string.IsNullOrEmpty(name)) ??
                Enumerable.Empty<string>();
+    }
+
+    private async Task<IEnumerable<string>> GetBootloaderFilenamesAsync()
+    {
+        var response = await _gitHubService.GetGitHubDataAsync(OpenIPC.OpenIPCFirmwareGitHubApiUrl);
+        if (string.IsNullOrEmpty(response))
+            return Enumerable.Empty<string>();
+
+        var releaseData = JObject.Parse(response.ToString());
+        var assets = releaseData["assets"];
+        return assets?.Select(asset => asset["name"]?.ToString()).Where(name => !string.IsNullOrEmpty(name)) ??
+               Enumerable.Empty<string>();
+    }
+
+    private static IEnumerable<string> FilterBootloadersByStorage(IEnumerable<string> filenames, string storageType)
+    {
+        var bootloaderFiles = filenames
+            .Where(name => name.Contains("u-boot", StringComparison.OrdinalIgnoreCase) &&
+                           name.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (!bootloaderFiles.Any())
+            return bootloaderFiles;
+
+        if (string.IsNullOrEmpty(storageType))
+            return bootloaderFiles;
+
+        var filtered = bootloaderFiles
+            .Where(name => IsBootloaderForStorage(name, storageType))
+            .ToList();
+
+        return filtered.Any() ? filtered : bootloaderFiles;
+    }
+
+    private static bool IsBootloaderForStorage(string filename, string storageType)
+    {
+        if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(storageType))
+            return false;
+
+        var lower = filename.ToLowerInvariant();
+        return storageType == "nor"
+            ? (lower.Contains("-nor") || lower.Contains("_nor"))
+            : (lower.Contains("-nand") || lower.Contains("_nand"));
+    }
+
+    private async Task<string> GetDeviceStorageTypeAsync()
+    {
+        if (!IsConnected)
+            return null;
+
+        try
+        {
+            var response = await SshClientService.ExecuteCommandWithResponseAsync(
+                DeviceConfig.Instance,
+                "cat /proc/cmdline",
+                CancellationToken.None);
+            var cmdline = response?.Result ?? string.Empty;
+
+            if (cmdline.Contains("mtdparts=NOR_FLASH", StringComparison.OrdinalIgnoreCase) ||
+                cmdline.Contains("NOR_FLASH", StringComparison.OrdinalIgnoreCase))
+                return "nor";
+
+            if (cmdline.Contains("mtdparts=NAND", StringComparison.OrdinalIgnoreCase) ||
+                cmdline.Contains("NAND", StringComparison.OrdinalIgnoreCase))
+                return "nand";
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to determine storage type from /proc/cmdline.");
+        }
+
+        return null;
+    }
+
+    private void UpdateBootloaderStorageTypeLabel(string storageType)
+    {
+        var label = "Detected storage: Unknown";
+        if (string.Equals(storageType, "nor", StringComparison.OrdinalIgnoreCase))
+            label = "Detected storage: NOR";
+        else if (string.Equals(storageType, "nand", StringComparison.OrdinalIgnoreCase))
+            label = "Detected storage: NAND";
+
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => BootloaderStorageTypeLabel = label);
+            return;
+        }
+
+        BootloaderStorageTypeLabel = label;
+    }
+
+    private async Task<long?> GetBootPartitionSizeAsync()
+    {
+        try
+        {
+            var response = await SshClientService.ExecuteCommandWithResponseAsync(
+                DeviceConfig.Instance,
+                "cat /proc/mtd",
+                CancellationToken.None);
+            var output = response?.Result ?? string.Empty;
+            var lines = output.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var line in lines)
+            {
+                var match = MtdLineRegex.Match(line.Trim());
+                if (!match.Success)
+                    continue;
+
+                var name = match.Groups["name"].Value.Trim().Trim('"');
+                if (!name.Equals("boot", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var sizeHex = match.Groups["size"].Value;
+                if (long.TryParse(sizeHex, System.Globalization.NumberStyles.HexNumber, null, out var size))
+                    return size;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to read boot partition size from /proc/mtd.");
+        }
+
+        return null;
     }
 
     private FirmwareData ProcessFilenames(IEnumerable<string> filenames)
@@ -809,6 +1008,74 @@ public partial class FirmwareTabViewModel : ViewModelBase
         }
     }
 
+    private async Task<string> DownloadBootloaderAsync(string filename)
+    {
+        try
+        {
+            var filePath = Path.Combine(OpenIPC.LocalTempFolder, filename);
+            Directory.CreateDirectory(OpenIPC.LocalTempFolder);
+            var url = $"https://github.com/OpenIPC/firmware/releases/download/latest/{filename}";
+
+            Logger.Information($"Downloading bootloader from {url} to {filePath}");
+
+            var response = await _httpClient.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                await using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+                await response.Content.CopyToAsync(fs);
+
+                Logger.Information($"Bootloader successfully downloaded to: {filePath}");
+                return filePath;
+            }
+
+            Logger.Warning($"Failed to download bootloader. Status code: {response.StatusCode}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error downloading bootloader");
+            return null;
+        }
+    }
+
+    private void UpdateBootloaders(IEnumerable<string> filenames)
+    {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => UpdateBootloaders(filenames));
+            return;
+        }
+
+        Bootloaders.Clear();
+
+        var bootloaderFiles = filenames.ToList();
+
+        if (!bootloaderFiles.Any())
+        {
+            Logger.Warning("No bootloader files found in firmware release assets.");
+            return;
+        }
+
+        var chipType = DeviceConfig.Instance.ChipType;
+        if (!string.IsNullOrEmpty(chipType))
+        {
+            var chipMatches = bootloaderFiles
+                .Where(name => name.Contains(chipType, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (chipMatches.Any())
+                bootloaderFiles = chipMatches;
+        }
+
+        foreach (var bootloader in bootloaderFiles)
+            Bootloaders.Add(bootloader);
+
+        if (Bootloaders.Any() && string.IsNullOrEmpty(SelectedBootloader))
+            SelectedBootloader = Bootloaders.FirstOrDefault();
+
+        Logger.Information($"Loaded {Bootloaders.Count} bootloader entries.");
+    }
+
     private string DecompressTgzToTar(string tgzFilePath)
     {
         try
@@ -949,6 +1216,10 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     private async Task DownloadAndPerformFirmwareUpgradeAsync()
     {
+        if (BootloaderInProgress)
+            return;
+
+        FirmwareUpgradeInProgress = true;
         try
         {
             ProgressValue = 0;
@@ -980,6 +1251,97 @@ public partial class FirmwareTabViewModel : ViewModelBase
         catch (Exception ex)
         {
             Logger.Error(ex, "Error performing firmware upgrade");
+        }
+        finally
+        {
+            FirmwareUpgradeInProgress = false;
+        }
+    }
+
+    private bool CanExecuteReplaceBootloader()
+    {
+        return CanReplaceBootloader;
+    }
+
+    private async Task ReplaceBootloaderAsync()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedBootloader))
+            return;
+
+        if (!BootloaderConfirmed)
+            return;
+
+        var confirm = await _messageBoxService.ShowCustomMessageBox(
+            "Replace bootloader?",
+            $"This will flash '{SelectedBootloader}' to /dev/mtd0 and erase /dev/mtd1. Continue?",
+            ButtonEnum.YesNo,
+            Icon.Warning);
+
+        if (confirm != ButtonResult.Yes)
+            return;
+
+        try
+        {
+            BootloaderInProgress = true;
+            BootloaderProgressValue = 5;
+            BootloaderProgressText = "Downloading bootloader...";
+            UpdateCanExecuteCommands();
+
+            var localPath = await DownloadBootloaderAsync(SelectedBootloader);
+            if (string.IsNullOrEmpty(localPath))
+            {
+                BootloaderProgressText = "Download failed.";
+                BootloaderProgressValue = 0;
+                return;
+            }
+
+            var bootPartitionSize = await GetBootPartitionSizeAsync();
+            if (bootPartitionSize.HasValue)
+            {
+                var localSize = new FileInfo(localPath).Length;
+                if (localSize > bootPartitionSize.Value)
+                {
+                    BootloaderProgressText = "Bootloader too large for boot partition.";
+                    BootloaderProgressValue = 0;
+                    await _messageBoxService.ShowCustomMessageBox(
+                        "Bootloader too large",
+                        $"Selected bootloader is {localSize} bytes, but boot partition is {bootPartitionSize.Value} bytes. Choose the correct NOR/NAND bootloader.",
+                        ButtonEnum.Ok,
+                        Icon.Error);
+                    return;
+                }
+            }
+
+            BootloaderProgressValue = 30;
+            BootloaderProgressText = "Uploading bootloader to device...";
+            var remotePath = $"{OpenIPC.RemoteTempFolder}/{SelectedBootloader}";
+            await SshClientService.UploadFileAsync(DeviceConfig.Instance, localPath, remotePath);
+
+            BootloaderProgressValue = 60;
+            BootloaderProgressText = "Flashing bootloader...";
+            await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, $"flashcp -v {remotePath} /dev/mtd0");
+
+            BootloaderProgressValue = 85;
+            BootloaderProgressText = "Erasing environment partition...";
+            await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, "flash_eraseall /dev/mtd1");
+
+            BootloaderProgressValue = 100;
+            BootloaderProgressText = "Bootloader replaced.";
+            await _messageBoxService.ShowCustomMessageBox(
+                "Bootloader replaced",
+                "Bootloader has been flashed. Reboot the device to apply changes.",
+                ButtonEnum.Ok,
+                Icon.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error replacing bootloader");
+            BootloaderProgressText = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            BootloaderInProgress = false;
+            UpdateCanExecuteCommands();
         }
     }
 
