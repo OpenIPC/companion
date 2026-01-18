@@ -182,6 +182,10 @@
                         <TextBlock Text="{Binding BootloaderStorageTypeLabel}"
                                    FontWeight="Medium"
                                    Opacity="0.85" />
+                        <TextBlock Text="Warning: Replacing the bootloader can permanently brick the device. Proceed only if you accept the risk."
+                                   TextWrapping="Wrap"
+                                   Foreground="#B00020"
+                                   FontWeight="SemiBold" />
 
                         <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
                             <TextBlock Grid.Row="0" Grid.Column="0"
@@ -196,7 +200,7 @@
                             <CheckBox Grid.Row="1" Grid.Column="1"
                                       IsEnabled="{Binding CanConnect}"
                                       IsChecked="{Binding BootloaderConfirmed, Mode=TwoWay}"
-                                      Content="I understand this will overwrite /dev/mtd0 and erase /dev/mtd1." />
+                                      Content="I accept the risk of bricking this device. This will overwrite /dev/mtd0 and erase /dev/mtd1." />
 
                             <Button Grid.Row="2" Grid.Column="1"
                                     Width="220"
