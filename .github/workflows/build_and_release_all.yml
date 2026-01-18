@@ -69,24 +69,6 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Read Version
-        id: get_version
-        shell: bash
-        run: |
-          set -euo pipefail
-      
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            VERSION="0.0.1"
-          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
-            VERSION="${GITHUB_REF#refs/tags/}"
-            VERSION="${VERSION#release-v}"
-          else
-            VERSION="0.0.0-dev"
-          fi
-      
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          echo "v$VERSION" > Companion.Desktop/VERSION
-
       - name: Restore dependencies
         run: dotnet restore Companion.Desktop/Companion.Desktop.csproj
 
@@ -119,19 +101,6 @@ jobs:
               -p:PublishSingleFile=true
           fi
 
-      - name: Write VERSION into publish output
-        shell: bash
-        run: |
-          set -euo pipefail
-          case "${{ runner.os }}" in
-            Windows) PUBLISH_DIR="Companion.Desktop/bin/Release/net8.0/win-${{ matrix.arch }}/publish" ;;
-            macOS)   PUBLISH_DIR="Companion.Desktop/bin/Release/net8.0/osx-${{ matrix.arch }}/publish" ;;
-            Linux)   PUBLISH_DIR="Companion.Desktop/bin/Release/net8.0/linux-${{ matrix.arch }}/publish" ;;
-          esac
-          echo "v${{ env.VERSION }}" > "$PUBLISH_DIR/VERSION"
-          echo "Wrote VERSION to $PUBLISH_DIR/VERSION:"
-          cat "$PUBLISH_DIR/VERSION"
-      
       # ----- macOS: bundle .app + sign + dmg -----
       - name: Decode signing certificate
         if: matrix.os == 'macos-latest'
