@@ -50,24 +50,30 @@
                                           ShowGridLines="False">
                                         <!-- Manufacturer -->
                                         <TextBlock Text="Manufacturer" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Row="0" Grid.Column="1"
-                                                  IsEnabled="{Binding CanUseDropdowns}"
-                                                  SelectedItem="{Binding SelectedManufacturer, Mode=TwoWay}"
-                                                  ItemsSource="{Binding Manufacturers}" />
+                                    <ComboBox Grid.Row="0" Grid.Column="1"
+                                              IsEnabled="{Binding CanUseDropdowns}"
+                                              SelectedItem="{Binding SelectedManufacturer, Mode=TwoWay}"
+                                              ItemsSource="{Binding Manufacturers}"
+                                              HorizontalAlignment="Stretch"
+                                              Background="#E7E7E7" />
 
                                         <!-- Device -->
                                         <TextBlock Text="Device" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Row="1" Grid.Column="1"
-                                                  IsEnabled="{Binding CanUseDropdowns}"
-                                                  SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
-                                                  ItemsSource="{Binding Devices}" />
+                                    <ComboBox Grid.Row="1" Grid.Column="1"
+                                              IsEnabled="{Binding CanUseDropdowns}"
+                                              SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
+                                              ItemsSource="{Binding Devices}"
+                                              HorizontalAlignment="Stretch"
+                                              Background="#E7E7E7" />
 
                                         <!-- WFB/Ruby -->
                                         <TextBlock Text="WFB/Ruby" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Row="2" Grid.Column="1"
-                                                  IsEnabled="{Binding CanUseDropdowns}"
-                                                  SelectedItem="{Binding SelectedFirmware, Mode=TwoWay}"
-                                                  ItemsSource="{Binding Firmwares}" />
+                                    <ComboBox Grid.Row="2" Grid.Column="1"
+                                              IsEnabled="{Binding CanUseDropdowns}"
+                                              SelectedItem="{Binding SelectedFirmware, Mode=TwoWay}"
+                                              ItemsSource="{Binding Firmwares}"
+                                              HorizontalAlignment="Stretch"
+                                              Background="#E7E7E7" />
                                     </Grid>
                                 </Panel>
                             </Border>
@@ -82,11 +88,12 @@
                                                IsEnabled="{Binding CanUseDropdowns}"
                                                VerticalAlignment="Center" />
 
-                                    <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
-                                              Width="350"
-                                              IsEnabled="{Binding CanUseDropdownsBySoc}"
-                                              SelectedItem="{Binding SelectedFirmwareBySoc, Mode=TwoWay}"
-                                              ItemsSource="{Binding FirmwareBySoc}" />
+                                <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
+                                          HorizontalAlignment="Stretch"
+                                          IsEnabled="{Binding CanUseDropdownsBySoc}"
+                                          SelectedItem="{Binding SelectedFirmwareBySoc, Mode=TwoWay}"
+                                          ItemsSource="{Binding FirmwareBySoc}"
+                                          Background="#E7E7E7" />
                                 </Grid>
                             </Border>
 
@@ -192,10 +199,11 @@
                                        Text="Bootloader"
                                        VerticalAlignment="Center" />
                             <ComboBox Grid.Row="0" Grid.Column="1"
-                                      Width="350"
+                                      HorizontalAlignment="Stretch"
                                       IsEnabled="{Binding CanConnect}"
                                       SelectedItem="{Binding SelectedBootloader, Mode=TwoWay}"
-                                      ItemsSource="{Binding Bootloaders}" />
+                                      ItemsSource="{Binding Bootloaders}"
+                                      Background="#E7E7E7" />
 
                             <CheckBox Grid.Row="1" Grid.Column="1"
                                       IsEnabled="{Binding CanConnect}"
