@@ -206,7 +206,8 @@
                                     Width="220"
                                     HorizontalAlignment="Left"
                                     IsEnabled="{Binding CanReplaceBootloader}"
-                                    Content="Download and Replace Bootloader"
+                                    Content="Replace Bootloader"
+                                    ToolTip.Tip="Download and Replace Bootloader"
                                     Command="{Binding ReplaceBootloaderAsyncCommand}" />
                         </Grid>
 
