@@ -2,8 +2,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:Companion.ViewModels"
              xmlns:assets="clr-namespace:Companion.Assets"
+             xmlns:converters="clr-namespace:Companion.Converters"
              x:Class="Companion.Views.NetworkIPScannerView"
              x:DataType="vm:SetupTabViewModel">
+
+    <UserControl.Resources>
+        <converters:InvertedBooleanConverter x:Key="InvertedBooleanConverter" />
+    </UserControl.Resources>
 
 
     <!-- Scan IP -->
@@ -41,8 +46,13 @@ Do not touch anything until finished</TextBlock>
             <!-- <TextBlock Grid.Row="1" Grid.Column="0" Text="Text IP" DataContext="{Binding ScanIPDescription}" /> -->
 
             <Button Grid.Row="2" Grid.Column="1" Content="SCAN"
+                    IsEnabled="{Binding IsScanning, Converter={StaticResource InvertedBooleanConverter}}"
                     Command="{Binding ScanCommand}"
                     ToolTip.Tip="{x:Static assets:Resources.ScanIpToolTip}" />
+
+            <Button Grid.Row="2" Grid.Column="2" Content="CANCEL"
+                    IsEnabled="{Binding IsScanning}"
+                    Command="{Binding CancelScanCommand}" />
 
 
             <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" 
