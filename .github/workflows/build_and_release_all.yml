@@ -304,7 +304,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Companion-linux-${{ matrix.arch }}
-          path: Companion-linux-${{ matrix.arch }}.zip
+          path: ./Companion.Desktop/bin/Release/net8.0/linux-${{ matrix.arch }}/publish/**
           compression-level: 0
 
   release:
@@ -343,8 +343,12 @@ jobs:
             fi
           done
 
-          # Copy Linux zips (they are inside artifact folders)
-          find ./artifacts -type f -name "Companion-linux-*.zip" -exec cp {} ./release_files/ \;
+          # Re-zip Linux folders to a single file per arch
+          for arch in x64 arm64; do
+            if [ -d "./artifacts/Companion-linux-${arch}" ]; then
+              (cd "./artifacts/Companion-linux-${arch}" && zip -r "../../release_files/Companion-linux-${arch}.zip" .)
+            fi
+          done
 
           # Copy macOS DMGs (also inside artifact folders)
           find ./artifacts -type f -name "Companion-macos-*.dmg" -exec cp {} ./release_files/ \;
