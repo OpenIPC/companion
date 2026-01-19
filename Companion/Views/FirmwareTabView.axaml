@@ -12,9 +12,37 @@
         <converters:InvertedBooleanConverter x:Key="InvertedBooleanConverter" />
     </UserControl.Resources>
 
+    <UserControl.Styles>
+        <Style Selector="Expander Border.expander-header">
+            <Setter Property="Background" Value="#F0F0F0" />
+        </Style>
+        <Style Selector="Expander TextBlock.expander-header-text">
+            <Setter Property="Foreground" Value="Black" />
+        </Style>
+        <Style Selector="Expander[IsExpanded=true] Border.expander-header">
+            <Setter Property="Background" Value="{StaticResource OpenIPCBlueBrush}" />
+        </Style>
+        <Style Selector="Expander[IsExpanded=true] TextBlock.expander-header-text">
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+    </UserControl.Styles>
+
     <ScrollViewer>
         <StackPanel Orientation="Vertical">
-            <Expander Header="Firmware" IsExpanded="True" IsEnabled="{Binding BootloaderInProgress, Converter={StaticResource InvertedBooleanConverter}}">
+            <Expander IsExpanded="True"
+                      HorizontalAlignment="Stretch"
+                      Margin="8,0,8,4"
+                      IsEnabled="{Binding BootloaderInProgress, Converter={StaticResource InvertedBooleanConverter}}">
+                <Expander.Header>
+                    <Border CornerRadius="8"
+                            Padding="10"
+                            HorizontalAlignment="Stretch"
+                            Classes="expander-header">
+                        <TextBlock Text="Firmware"
+                                   FontWeight="SemiBold"
+                                   Classes="expander-header-text" />
+                    </Border>
+                </Expander.Header>
                 <StackPanel Orientation="Vertical">
                     <Border Background="#B0B0B0" CornerRadius="10" Padding="10" Margin="10">
                         <Grid>
@@ -177,7 +205,20 @@
                 </StackPanel>
             </Expander>
 
-            <Expander Header="Bootloader" IsExpanded="False" IsEnabled="{Binding FirmwareUpgradeInProgress, Converter={StaticResource InvertedBooleanConverter}}">
+            <Expander IsExpanded="False"
+                      HorizontalAlignment="Stretch"
+                      Margin="8,0,8,4"
+                      IsEnabled="{Binding FirmwareUpgradeInProgress, Converter={StaticResource InvertedBooleanConverter}}">
+                <Expander.Header>
+                    <Border CornerRadius="8"
+                            Padding="10"
+                            HorizontalAlignment="Stretch"
+                            Classes="expander-header">
+                        <TextBlock Text="Bootloader"
+                                   FontWeight="SemiBold"
+                                   Classes="expander-header-text" />
+                    </Border>
+                </Expander.Header>
                 <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
                     <StackPanel Orientation="Vertical" Spacing="10">
                         <TextBlock Text="Replace bootloader from Linux"
