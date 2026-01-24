@@ -25,7 +25,7 @@ public class PowerThresholdColorConverter : IValueConverter
     /// </summary>
     public ISolidColorBrush WarningColor { get; set; } = new SolidColorBrush(Colors.Red);
 
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is double doubleValue)
         {
@@ -40,7 +40,7 @@ public class PowerThresholdColorConverter : IValueConverter
         return NormalColor;
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }

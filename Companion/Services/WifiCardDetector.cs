@@ -8,7 +8,7 @@ namespace Companion.Services;
 
  public class WifiCardDetector
 {
-    public static string DetectWifiCard(string lsusbOutput)
+    public static string? DetectWifiCard(string lsusbOutput)
     {
         // Parse the lsusb output to extract device IDs.  This is more robust than cutting by spaces.
         // Assumes each line in lsusbOutput contains "ID <vendorID>:<productID>"
@@ -23,10 +23,11 @@ namespace Companion.Services;
                 return null;
             })
             .Where(id => !string.IsNullOrEmpty(id)) //Remove nulls
+            .Select(id => id!)
             .Distinct() // Mimic the "sort | uniq"
             .ToList();
 
-        string driver = null;  // Initialize driver to null
+        string? driver = null;  // Initialize driver to null
 
         foreach (string card in deviceIds)
         {

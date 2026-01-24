@@ -27,9 +27,9 @@ namespace Companion;
 
 public class App : Application
 {
-    public static IServiceProvider ServiceProvider { get; private set; }
+    public static IServiceProvider ServiceProvider { get; private set; } = null!;
 
-    public static string OSType { get; private set; }
+    public static string OSType { get; private set; } = "Unknown";
 
 #if DEBUG
     private bool _ShouldCheckForUpdates = false;
@@ -253,7 +253,7 @@ public class App : Application
 
         // check for updates
         if (_ShouldCheckForUpdates)
-            CheckForUpdatesAsync();
+            _ = CheckForUpdatesAsync();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -335,8 +335,9 @@ public class App : Application
         // Set up the necessary dependencies
         var httpClient = new HttpClient();
 
+        var appName = Assembly.GetExecutingAssembly().GetName().Name ?? "Companion";
         var configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            Assembly.GetExecutingAssembly().GetName().Name, "appsettings.json");
+            appName, "appsettings.json");
 
         Console.WriteLine($"Loading configuration from: {configPath}");
 

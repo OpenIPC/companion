@@ -19,6 +19,7 @@ using Companion.Events;
 using Companion.Models;
 using Companion.Services;
 using Serilog;
+using DeviceConfigModel = Companion.Models.DeviceConfig;
 
 namespace Companion.ViewModels;
 
@@ -28,12 +29,12 @@ public partial class MainViewModel : ViewModelBase
     // With this singleton service
     private readonly PingService _pingService;
     
-    private DispatcherTimer _pingTimer;
+    private DispatcherTimer? _pingTimer;
     private readonly TimeSpan _pingInterval = TimeSpan.FromSeconds(1);
     private readonly TimeSpan _pingTimeout = TimeSpan.FromMilliseconds(500);
     private readonly IMessageBoxService _messageBoxService;
     
-    [ObservableProperty] private string _svgPath;
+    [ObservableProperty] private string _svgPath = string.Empty;
     private bool _isTabsCollapsed;
 
     [ObservableProperty] private bool _isMobile;
@@ -51,7 +52,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private bool _isConnected;
     
     [ObservableProperty] private ObservableCollection<string> _cachedIpAddresses = new();
-    [ObservableProperty] private string _selectedCachedIpAddress;
+    [ObservableProperty] private string _selectedCachedIpAddress = string.Empty;
 
 
     public MainViewModel(ILogger logger,
@@ -166,15 +167,15 @@ public partial class MainViewModel : ViewModelBase
     
     public ICommand OpenLogFolderCommand { get; }
 
-    public WfbTabViewModel WfbTabViewModel { get; }
-    public WfbGSTabViewModel WfbGSTabViewModel { get; }
-    public TelemetryTabViewModel TelemetryTabViewModel { get; }
-    public CameraSettingsTabViewModel CameraSettingsTabViewModel { get; }
-    public VRXTabViewModel VRXTabViewModel { get; }
-    public SetupTabViewModel SetupTabViewModel { get; }
-    public ConnectControlsViewModel ConnectControlsViewModel { get; }
-    public LogViewerViewModel LogViewerViewModel { get; }
-    public StatusBarViewModel StatusBarViewModel { get; }
+    public WfbTabViewModel? WfbTabViewModel { get; }
+    public WfbGSTabViewModel? WfbGSTabViewModel { get; }
+    public TelemetryTabViewModel? TelemetryTabViewModel { get; }
+    public CameraSettingsTabViewModel? CameraSettingsTabViewModel { get; }
+    public VRXTabViewModel? VRXTabViewModel { get; }
+    public SetupTabViewModel? SetupTabViewModel { get; }
+    public ConnectControlsViewModel? ConnectControlsViewModel { get; }
+    public LogViewerViewModel? LogViewerViewModel { get; }
+    public StatusBarViewModel? StatusBarViewModel { get; }
 
     private void UpdateSvgPath()
     {
@@ -211,7 +212,7 @@ public partial class MainViewModel : ViewModelBase
 
         var parts = fullVersion.Split('+', 2);
         var baseVersion = parts[0];
-        string shortHash = null;
+        var shortHash = string.Empty;
 
         var gitSuffixIndex = baseVersion.IndexOf("-g", StringComparison.OrdinalIgnoreCase);
         if (gitSuffixIndex >= 0)
@@ -439,7 +440,7 @@ public partial class MainViewModel : ViewModelBase
                 }
             
                 // Update the cached IPs in DeviceConfig
-                _deviceConfig.CachedIpAddresses = CachedIpAddresses.ToList();
+                DeviceConfig.CachedIpAddresses = CachedIpAddresses.ToList();
             
                 // Log the update
                 _logger.Debug($"Added IP {IpAddress} to cache. Cache now contains {CachedIpAddresses.Count} IPs.");
@@ -453,26 +454,26 @@ public partial class MainViewModel : ViewModelBase
         
         var appMessage = new AppMessage();
         //DeviceConfig deviceConfig = new DeviceConfig();
-        _deviceConfig.Username = "root";
-        _deviceConfig.IpAddress = IpAddress;
-        _deviceConfig.Password = Password;
-        _deviceConfig.Port = Port;
-        _deviceConfig.DeviceType = SelectedDeviceType;
+        DeviceConfig.Username = "root";
+        DeviceConfig.IpAddress = IpAddress;
+        DeviceConfig.Password = Password;
+        DeviceConfig.Port = Port;
+        DeviceConfig.DeviceType = SelectedDeviceType;
 
         UpdateUIMessage("Getting hostname");
-        await getHostname(_deviceConfig);
-        if (_deviceConfig.Hostname == string.Empty)
+        await getHostname(DeviceConfig);
+        if (DeviceConfig.Hostname == string.Empty)
         {
             _logger.Error("Failed to get hostname, stopping");
             return;
         }
 
         var validator = App.ServiceProvider.GetRequiredService<DeviceConfigValidator>();
-        if (!validator.IsDeviceConfigValid(_deviceConfig))
+        if (!validator.IsDeviceConfigValid(DeviceConfig))
         {
             UpdateUIMessage("Hostname Error!");
             var msBox = MessageBoxManager.GetMessageBoxStandard("Hostname Error!",
-                $"Hostname does not match device type! \nHostname: {_deviceConfig.Hostname} Device Type: {_selectedDeviceType}.\nPlease check device..\nOk to continue anyway\nCancel to quit",
+                $"Hostname does not match device type! \nHostname: {DeviceConfig.Hostname} Device Type: {_selectedDeviceType}.\nPlease check device..\nOk to continue anyway\nCancel to quit",
                 ButtonEnum.OkCancel);
 
             var result = await msBox.ShowAsync();
@@ -483,37 +484,37 @@ public partial class MainViewModel : ViewModelBase
             }
         }
 
-        await getSensorType(_deviceConfig);
-        Sensor = _deviceConfig.SensorType;
+        await getSensorType(DeviceConfig);
+        Sensor = DeviceConfig.SensorType;
 
-        await getNetworkCardType(_deviceConfig);
-        NetworkCardType = _deviceConfig.NetworkCardType;
+        await getNetworkCardType(DeviceConfig);
+        NetworkCardType = DeviceConfig.NetworkCardType;
 
-        await getChipType(_deviceConfig);
-        Soc = _deviceConfig.ChipType;
+        await getChipType(DeviceConfig);
+        Soc = DeviceConfig.ChipType;
         // Save the config to app settings
         SaveConfig();
 
         // Publish the event
-        EventSubscriptionService.Publish<AppMessageEvent, AppMessage>(new AppMessage { DeviceConfig = _deviceConfig });
+        EventSubscriptionService.Publish<AppMessageEvent, AppMessage>(new AppMessage { DeviceConfig = DeviceConfig });
 
         // set the background to gray
         EntryBoxBgColor = new SolidColorBrush(Colors.Gray);
 
-        appMessage.DeviceConfig = _deviceConfig;
+        appMessage.DeviceConfig = DeviceConfig;
 
-        if (_deviceConfig != null)
+        if (DeviceConfig != null)
         {
             // used to update the ui for the different views
-            EventSubscriptionService.Publish<DeviceTypeChangeEvent, DeviceType>(_deviceConfig.DeviceType);
+            EventSubscriptionService.Publish<DeviceTypeChangeEvent, DeviceType>(DeviceConfig.DeviceType);
             
-            if (_deviceConfig.DeviceType == DeviceType.Camera)
+            if (DeviceConfig.DeviceType == DeviceType.Camera)
             {
                 UpdateUIMessage("Processing Camera...");
                 await processCameraFiles();
                 UpdateUIMessage("Processing Camera...done");
             }
-            else if (_deviceConfig.DeviceType == DeviceType.Radxa)
+            else if (DeviceConfig.DeviceType == DeviceType.Radxa)
             {
                 UpdateUIMessage("Processing Radxa...");
                 await processRadxaFiles();
@@ -528,16 +529,16 @@ public partial class MainViewModel : ViewModelBase
     
     private void SaveConfig()
     {
-        _deviceConfig.DeviceType = SelectedDeviceType;
-        _deviceConfig.IpAddress = IpAddress;
-        _deviceConfig.Port = Port;
-        _deviceConfig.Password = Password;
+        DeviceConfig.DeviceType = SelectedDeviceType;
+        DeviceConfig.IpAddress = IpAddress;
+        DeviceConfig.Port = Port;
+        DeviceConfig.Password = Password;
 
         // Save the cached IPs
-        _deviceConfig.CachedIpAddresses = CachedIpAddresses.ToList();
+        DeviceConfig.CachedIpAddresses = CachedIpAddresses.ToList();
         
         // save config to file
-        SettingsManager.SaveSettings(_deviceConfig);
+        SettingsManager.SaveSettings(DeviceConfig);
     }
 
     /// <summary>
@@ -572,7 +573,7 @@ public partial class MainViewModel : ViewModelBase
 
         var hostName = Utilities.RemoveSpecialCharacters(cmdResult.Result);
         deviceConfig.Hostname = hostName;
-        //_deviceConfig.Hostname = hostName;
+        //DeviceConfig.Hostname = hostName;
         //Hostname = hostName;
 
         // Cleanup
@@ -687,7 +688,7 @@ public partial class MainViewModel : ViewModelBase
 
         var lsusbResults = Utilities.RemoveLastChar(cmdResult.Result);
         var networkCardType = WifiCardDetector.DetectWifiCard(lsusbResults);
-        deviceConfig.NetworkCardType = networkCardType;
+        deviceConfig.NetworkCardType = networkCardType ?? string.Empty;
 
 
         // Cleanup
@@ -710,7 +711,7 @@ public partial class MainViewModel : ViewModelBase
                 // download file wfb.yaml
                 _logger.Debug($"Reading wfb.yaml");
 
-                var wfbContent = await SshClientService.DownloadFileAsync(_deviceConfig, OpenIPC.WfbYamlFileLoc);
+                var wfbContent = await SshClientService.DownloadFileAsync(DeviceConfig, OpenIPC.WfbYamlFileLoc);
 
                 if (wfbContent != null)
                 {
@@ -726,7 +727,7 @@ public partial class MainViewModel : ViewModelBase
             try
             {
                 var majesticContent =
-                    await SshClientService.DownloadFileAsync(_deviceConfig, OpenIPC.MajesticFileLoc);
+                    await SshClientService.DownloadFileAsync(DeviceConfig, OpenIPC.MajesticFileLoc);
                 // Publish a message to WfbSettingsTabViewModel
                 EventSubscriptionService.Publish<MajesticContentUpdatedEvent,
                     MajesticContentUpdatedMessage>(new MajesticContentUpdatedMessage(majesticContent));
@@ -740,7 +741,7 @@ public partial class MainViewModel : ViewModelBase
         {
             _logger.Debug($"Reading legacy settings");
             // download file wfb.conf
-            var wfbConfContent = await SshClientService.DownloadFileAsync(_deviceConfig, OpenIPC.WfbConfFileLoc);
+            var wfbConfContent = await SshClientService.DownloadFileAsync(DeviceConfig, OpenIPC.WfbConfFileLoc);
 
 
             if (wfbConfContent != null)
@@ -750,7 +751,7 @@ public partial class MainViewModel : ViewModelBase
             try
             {
                 var majesticContent =
-                    await SshClientService.DownloadFileAsync(_deviceConfig, OpenIPC.MajesticFileLoc);
+                    await SshClientService.DownloadFileAsync(DeviceConfig, OpenIPC.MajesticFileLoc);
                 // Publish a message to WfbSettingsTabViewModel
                 EventSubscriptionService.Publish<MajesticContentUpdatedEvent,
                     MajesticContentUpdatedMessage>(new MajesticContentUpdatedMessage(majesticContent));
@@ -763,7 +764,7 @@ public partial class MainViewModel : ViewModelBase
             try
             {
                 var telemetryContent =
-                    await SshClientService.DownloadFileAsync(_deviceConfig, OpenIPC.TelemetryConfFileLoc);
+                    await SshClientService.DownloadFileAsync(DeviceConfig, OpenIPC.TelemetryConfFileLoc);
                 // Publish a message to WfbSettingsTabViewModel
 
                 EventSubscriptionService.Publish<TelemetryContentUpdatedEvent,
@@ -785,7 +786,7 @@ public partial class MainViewModel : ViewModelBase
         {
             
             var alinkDroneStatus = await SshClientService.ExecuteCommandWithResponseAsync(
-                DeviceConfig.Instance, DeviceCommands.IsAlinkDroneEnabled, cts.Token);
+                DeviceConfigModel.Instance, DeviceCommands.IsAlinkDroneEnabled, cts.Token);
 
             if (alinkDroneStatus != null)
             {
@@ -805,11 +806,11 @@ public partial class MainViewModel : ViewModelBase
         }
         
         EventSubscriptionService.Publish<AppMessageEvent,
-            AppMessage>(new AppMessage { CanConnect = DeviceConfig.Instance.CanConnect, DeviceConfig = _deviceConfig });
+            AppMessage>(new AppMessage { CanConnect = DeviceConfigModel.Instance.CanConnect, DeviceConfig = DeviceConfig });
 
         _logger.Information("Done reading files from device.");
 
-        _messageBoxService.ShowMessageBox("Read Device", "Done reading from device!");
+        await _messageBoxService.ShowMessageBox("Read Device", "Done reading from device!");
 
     }
 
@@ -819,7 +820,7 @@ public partial class MainViewModel : ViewModelBase
         {
             // get /home/radxa/scripts/screen-mode
             var droneKeyContent =
-                await SshClientService.DownloadFileBytesAsync(_deviceConfig, OpenIPC.RemoteDroneKeyPath);
+                await SshClientService.DownloadFileBytesAsync(DeviceConfig, OpenIPC.RemoteDroneKeyPath);
 
 
             if (droneKeyContent != null)
@@ -829,9 +830,9 @@ public partial class MainViewModel : ViewModelBase
                 var droneKey = Utilities.ComputeMd5Hash(droneKeyContent);
 
                 var deviceContentUpdatedMessage = new DeviceContentUpdatedMessage();
-                _deviceConfig = DeviceConfig.Instance;
-                _deviceConfig.KeyChksum = droneKey;
-                deviceContentUpdatedMessage.DeviceConfig = _deviceConfig;
+                DeviceConfig = DeviceConfigModel.Instance;
+                DeviceConfig.KeyChksum = droneKey;
+                deviceContentUpdatedMessage.DeviceConfig = DeviceConfig;
 
                 EventSubscriptionService.Publish<DeviceContentUpdateEvent,
                     DeviceContentUpdatedMessage>(deviceContentUpdatedMessage);
@@ -852,7 +853,7 @@ public partial class MainViewModel : ViewModelBase
 
             // get /etc/wifibroadcast.cfg
             var wifibroadcastContent =
-                await SshClientService.DownloadFileAsync(_deviceConfig, OpenIPC.WifiBroadcastFileLoc);
+                await SshClientService.DownloadFileAsync(DeviceConfig, OpenIPC.WifiBroadcastFileLoc);
 
             if (!string.IsNullOrEmpty(wifibroadcastContent))
             {
@@ -881,7 +882,7 @@ public partial class MainViewModel : ViewModelBase
             UpdateUIMessage("Downloading modprod.d/wfb.conf");
             // get /etc/modprobe.d/wfb.conf
             var wfbModProbeContent =
-                await SshClientService.DownloadFileAsync(_deviceConfig, OpenIPC.WifiBroadcastModProbeFileLoc);
+                await SshClientService.DownloadFileAsync(DeviceConfig, OpenIPC.WifiBroadcastModProbeFileLoc);
 
             if (wfbModProbeContent != null)
             {
@@ -904,7 +905,7 @@ public partial class MainViewModel : ViewModelBase
             UpdateUIMessage("Downloading screen-mode");
             // get /home/radxa/scripts/screen-mode
             var screenModeContent =
-                await SshClientService.DownloadFileAsync(_deviceConfig, OpenIPC.ScreenModeFileLoc);
+                await SshClientService.DownloadFileAsync(DeviceConfig, OpenIPC.ScreenModeFileLoc);
 
             if (screenModeContent != null)
             {
@@ -927,7 +928,7 @@ public partial class MainViewModel : ViewModelBase
             UpdateUIMessage("Downloading gskey");
 
             var gsKeyContent =
-                await SshClientService.DownloadFileBytesAsync(_deviceConfig, OpenIPC.RemoteGsKeyPath);
+                await SshClientService.DownloadFileBytesAsync(DeviceConfig, OpenIPC.RemoteGsKeyPath);
 
             if (gsKeyContent != null)
             {
@@ -951,7 +952,7 @@ public partial class MainViewModel : ViewModelBase
         }
 
         EventSubscriptionService.Publish<AppMessageEvent, AppMessage>(new AppMessage
-            { CanConnect = DeviceConfig.Instance.CanConnect, DeviceConfig = _deviceConfig });
+            { CanConnect = DeviceConfigModel.Instance.CanConnect, DeviceConfig = DeviceConfig });
 
         _logger.Information("Done reading files from device.");
     }
@@ -961,7 +962,7 @@ public partial class MainViewModel : ViewModelBase
         IsWaiting = true;
         // Load settings via the SettingsManager
         var settings = SettingsManager.LoadSettings();
-        _deviceConfig = DeviceConfig.Instance;
+        DeviceConfig = DeviceConfigModel.Instance;
         IpAddress = settings.IpAddress;
         Password = settings.Password;
         Port = settings.Port == 0 ? 22 : settings.Port;
@@ -1084,14 +1085,14 @@ public partial class MainViewModel : ViewModelBase
     #region Observable Properties
 
     [ObservableProperty] private bool _canConnect;
-    [ObservableProperty] private string _appVersionText;
-    [ObservableProperty] private string _ipAddress;
+    [ObservableProperty] private string _appVersionText = string.Empty;
+    [ObservableProperty] private string _ipAddress = string.Empty;
     [ObservableProperty] private int _port;
-    [ObservableProperty] private string _password;
-    [ObservableProperty] private string _device;
+    [ObservableProperty] private string _password = string.Empty;
+    [ObservableProperty] private string _device = string.Empty;
     [ObservableProperty] private bool isVRXEnabled;
-    [ObservableProperty] private DeviceConfig _deviceConfig;
-    [ObservableProperty] private TabItemViewModel _selectedTab;
+    [ObservableProperty] private DeviceConfig _deviceConfig = DeviceConfig.Instance;
+    [ObservableProperty] private TabItemViewModel _selectedTab = null!;
 
     #endregion
 }

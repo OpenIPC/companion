@@ -25,27 +25,27 @@ public partial class CameraSettingsTabViewModel : ViewModelBase
     #endregion
 
     #region Observable Collections
-    [ObservableProperty] private ObservableCollection<string> _resolution;
-    [ObservableProperty] private ObservableCollection<string> _fps;
-    [ObservableProperty] private ObservableCollection<string> _codec;
-    [ObservableProperty] private ObservableCollection<string> _bitrate;
-    [ObservableProperty] private ObservableCollection<string> _exposure;
-    [ObservableProperty] private ObservableCollection<string> _contrast;
-    [ObservableProperty] private ObservableCollection<string> _hue;
-    [ObservableProperty] private ObservableCollection<string> _saturation;
-    [ObservableProperty] private ObservableCollection<string> _luminance;
-    [ObservableProperty] private ObservableCollection<string> _flip;
-    [ObservableProperty] private ObservableCollection<string> _mirror;
+    [ObservableProperty] private ObservableCollection<string> _resolution = new();
+    [ObservableProperty] private ObservableCollection<string> _fps = new();
+    [ObservableProperty] private ObservableCollection<string> _codec = new();
+    [ObservableProperty] private ObservableCollection<string> _bitrate = new();
+    [ObservableProperty] private ObservableCollection<string> _exposure = new();
+    [ObservableProperty] private ObservableCollection<string> _contrast = new();
+    [ObservableProperty] private ObservableCollection<string> _hue = new();
+    [ObservableProperty] private ObservableCollection<string> _saturation = new();
+    [ObservableProperty] private ObservableCollection<string> _luminance = new();
+    [ObservableProperty] private ObservableCollection<string> _flip = new();
+    [ObservableProperty] private ObservableCollection<string> _mirror = new();
     #endregion
 
     #region FPV Settings Collections
-    [ObservableProperty] private ObservableCollection<string> _fpvEnabled;
-    [ObservableProperty] private ObservableCollection<string> _fpvNoiseLevel;
-    [ObservableProperty] private ObservableCollection<string> _fpvRoiQp;
-    [ObservableProperty] private ObservableCollection<string> _fpvRefEnhance;
-    [ObservableProperty] private ObservableCollection<string> _fpvRefPred;
-    [ObservableProperty] private ObservableCollection<string> _fpvIntraLine;
-    [ObservableProperty] private ObservableCollection<string> _fpvIntraQp;
+    [ObservableProperty] private ObservableCollection<string> _fpvEnabled = new();
+    [ObservableProperty] private ObservableCollection<string> _fpvNoiseLevel = new();
+    [ObservableProperty] private ObservableCollection<string> _fpvRoiQp = new();
+    [ObservableProperty] private ObservableCollection<string> _fpvRefEnhance = new();
+    [ObservableProperty] private ObservableCollection<string> _fpvRefPred = new();
+    [ObservableProperty] private ObservableCollection<string> _fpvIntraLine = new();
+    [ObservableProperty] private ObservableCollection<string> _fpvIntraQp = new();
     [ObservableProperty] private ObservableCollection<string> _fpvRoiRectLeft = new() { "" };
     [ObservableProperty] private ObservableCollection<string> _fpvRoiRectTop = new() { "" };
     [ObservableProperty] private ObservableCollection<string> _fpvRoiRectHeight = new() { "" };
@@ -53,28 +53,28 @@ public partial class CameraSettingsTabViewModel : ViewModelBase
     #endregion
 
     #region Selected Values
-    [ObservableProperty] private string _selectedResolution;
-    [ObservableProperty] private string _selectedFps;
-    [ObservableProperty] private string _selectedCodec;
-    [ObservableProperty] private string _selectedBitrate;
-    [ObservableProperty] private string _selectedExposure;
-    [ObservableProperty] private string _selectedContrast;
-    [ObservableProperty] private string _selectedHue;
-    [ObservableProperty] private string _selectedSaturation;
-    [ObservableProperty] private string _selectedLuminance;
-    [ObservableProperty] private string _selectedFlip;
-    [ObservableProperty] private string _selectedMirror;
+    [ObservableProperty] private string _selectedResolution = string.Empty;
+    [ObservableProperty] private string _selectedFps = string.Empty;
+    [ObservableProperty] private string _selectedCodec = string.Empty;
+    [ObservableProperty] private string _selectedBitrate = string.Empty;
+    [ObservableProperty] private string _selectedExposure = string.Empty;
+    [ObservableProperty] private string _selectedContrast = string.Empty;
+    [ObservableProperty] private string _selectedHue = string.Empty;
+    [ObservableProperty] private string _selectedSaturation = string.Empty;
+    [ObservableProperty] private string _selectedLuminance = string.Empty;
+    [ObservableProperty] private string _selectedFlip = string.Empty;
+    [ObservableProperty] private string _selectedMirror = string.Empty;
     #endregion
 
     #region FPV Selected Values
-    [ObservableProperty] private string _selectedFpvEnabled;
-    [ObservableProperty] private string _selectedFpvNoiseLevel;
-    [ObservableProperty] private string _selectedFpvRoiQp;
-    [ObservableProperty] private string _selectedFpvRefEnhance;
-    [ObservableProperty] private string _selectedFpvRefPred;
-    [ObservableProperty] private string _selectedFpvIntraLine;
-    [ObservableProperty] private string _selectedFpvIntraQp;
-    [ObservableProperty] private string _combinedFpvRoiRectValue;
+    [ObservableProperty] private string _selectedFpvEnabled = string.Empty;
+    [ObservableProperty] private string _selectedFpvNoiseLevel = string.Empty;
+    [ObservableProperty] private string _selectedFpvRoiQp = string.Empty;
+    [ObservableProperty] private string _selectedFpvRefEnhance = string.Empty;
+    [ObservableProperty] private string _selectedFpvRefPred = string.Empty;
+    [ObservableProperty] private string _selectedFpvIntraLine = string.Empty;
+    [ObservableProperty] private string _selectedFpvIntraQp = string.Empty;
+    [ObservableProperty] private string _combinedFpvRoiRectValue = string.Empty;
     #endregion
 
     #region Other Properties
@@ -437,7 +437,7 @@ public partial class CameraSettingsTabViewModel : ViewModelBase
                 OpenIPC.MajesticFileLoc,
                 updatedYamlContent);
 
-            SshClientService.ExecuteCommandAsync(
+            await SshClientService.ExecuteCommandAsync(
                 DeviceConfig.Instance,
                 DeviceCommands.MajesticRestartCommand);
 

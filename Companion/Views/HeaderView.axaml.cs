@@ -24,14 +24,14 @@ public partial class HeaderView : UserControl
 
     private void TelegramButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        var launcher = TopLevel.GetTopLevel(this).Launcher;
-        launcher.LaunchUriAsync(new Uri(TelegramLink));
+        var launcher = TopLevel.GetTopLevel(this)?.Launcher;
+        _ = launcher?.LaunchUriAsync(new Uri(TelegramLink));
     }
 
     private void GithubButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        var launcher = TopLevel.GetTopLevel(this).Launcher;
-        launcher.LaunchUriAsync(new Uri(GithubLink));
+        var launcher = TopLevel.GetTopLevel(this)?.Launcher;
+        _ = launcher?.LaunchUriAsync(new Uri(GithubLink));
     }
 
     // private void DiscordButton_OnClick(object? sender, RoutedEventArgs e)

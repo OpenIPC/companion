@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -58,9 +59,13 @@ public class Preset
 
         var yamlContent = File.ReadAllText(configPath);
         var preset = deserializer.Deserialize<Preset>(yamlContent);
+        if (preset == null)
+        {
+            throw new InvalidOperationException("Failed to deserialize preset configuration.");
+        }
     
         // Set the folder path to the directory containing the config file
-        preset.FolderPath = System.IO.Path.GetDirectoryName(configPath);
+        preset.FolderPath = System.IO.Path.GetDirectoryName(configPath) ?? string.Empty;
     
         // Initialize FileModifications from Files dictionary
         preset.InitializeFileModifications();
@@ -139,7 +144,7 @@ public class Preset
         File.WriteAllText(filePath, yaml);
         
         // Update the folder path
-        FolderPath = System.IO.Path.GetDirectoryName(filePath);
+        FolderPath = System.IO.Path.GetDirectoryName(filePath) ?? string.Empty;
     }
     
     /// <summary>

@@ -8,11 +8,11 @@ public class RadxaContentUpdateChangeEvent : PubSubEvent<RadxaContentUpdatedMess
 
 public class RadxaContentUpdatedMessage
 {
-    public string WifiBroadcastContent { get; set; }
-    public string ScreenModeContent { get; set; }
-    public string WfbConfContent { get; set; }
+    public string WifiBroadcastContent { get; set; } = string.Empty;
+    public string ScreenModeContent { get; set; } = string.Empty;
+    public string WfbConfContent { get; set; } = string.Empty;
 
-    public string DroneKeyContent { get; set; }
+    public string DroneKeyContent { get; set; } = string.Empty;
 
 
     public override string ToString()

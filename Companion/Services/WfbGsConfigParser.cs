@@ -8,10 +8,10 @@ namespace Companion.Services;
 public class WfbGsConfigParser : IWfbGsConfigParser
 {
     // Store the original configuration content
-    private string _originalConfigContent;
+    private string _originalConfigContent = string.Empty;
 
     // Properties to store parsed values
-    public string TxPower { get; set; }
+    public string TxPower { get; set; } = string.Empty;
 
     // Method to generate the updated configuration string while preserving comments
     public string GetUpdatedConfigString()

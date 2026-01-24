@@ -8,6 +8,10 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -340,51 +344,8 @@ public partial class AdvancedTabViewModel : ViewModelBase
             // Let the user know the report was generated
             UpdateUIMessage("System report generated. Select a location to save it...");
 
-            // Now prompt the user for a save location
-            // Use Avalonia's SaveFileDialog to let the user pick a location
-            var saveFileDialog = new Avalonia.Controls.SaveFileDialog
-            {
-                Title = "Save System Report",
-                DefaultExtension = "txt",
-                InitialFileName = $"system_report_{DateTime.Now:yyyyMMdd_HHmmss}.txt",
-                Filters = new List<Avalonia.Controls.FileDialogFilter>
-                {
-                    new Avalonia.Controls.FileDialogFilter
-                    {
-                        Name = "Text Files",
-                        Extensions = new List<string> { "txt" }
-                    },
-                    new Avalonia.Controls.FileDialogFilter
-                    {
-                        Name = "All Files",
-                        Extensions = new List<string> { "*" }
-                    }
-                }
-            };
-
-            // Get the main window to show the dialog
-            var mainWindow =
-                Avalonia.Application.Current.ApplicationLifetime is
-                    Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                    ? desktop.MainWindow
-                    : null;
-
-            if (mainWindow == null)
-            {
-                UpdateUIMessage("Could not show save dialog. Using default location.");
-                // Save to a default location if we can't show the dialog
-                string defaultPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                    $"system_report_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
-
-                File.WriteAllText(defaultPath, reportContent);
-                UpdateUIMessage($"System report saved to: {defaultPath}");
-                return;
-            }
-
-            // Show the save dialog and get the selected path
-            string filePath = await saveFileDialog.ShowAsync(mainWindow);
-
+            var suggestedFileName = $"system_report_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+            var filePath = await PickSavePathAsync("Save System Report", suggestedFileName);
             if (string.IsNullOrEmpty(filePath))
             {
                 // User canceled the save operation
@@ -440,50 +401,8 @@ public partial class AdvancedTabViewModel : ViewModelBase
             // Let the user know the logs were retrieved
             UpdateUIMessage("System logs retrieved. Select a location to save them...");
 
-            // Prompt the user for a save location using SaveFileDialog
-            var saveFileDialog = new Avalonia.Controls.SaveFileDialog
-            {
-                Title = "Save System Logs",
-                DefaultExtension = "txt",
-                InitialFileName = $"system_logs_{DateTime.Now:yyyyMMdd_HHmmss}.txt",
-                Filters = new List<Avalonia.Controls.FileDialogFilter>
-                {
-                    new Avalonia.Controls.FileDialogFilter
-                    {
-                        Name = "Text Files",
-                        Extensions = new List<string> { "txt" }
-                    },
-                    new Avalonia.Controls.FileDialogFilter
-                    {
-                        Name = "All Files",
-                        Extensions = new List<string> { "*" }
-                    }
-                }
-            };
-
-            // Get the main window to show the dialog
-            var mainWindow =
-                Avalonia.Application.Current.ApplicationLifetime is
-                    Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                    ? desktop.MainWindow
-                    : null;
-
-            if (mainWindow == null)
-            {
-                UpdateUIMessage("Could not show save dialog. Using default location.");
-                // Save to a default location if we can't show the dialog
-                string defaultPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                    $"system_logs_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
-
-                File.WriteAllText(defaultPath, logContent);
-                UpdateUIMessage($"System logs saved to: {defaultPath}");
-                return;
-            }
-
-            // Show the save dialog and get the selected path
-            string filePath = await saveFileDialog.ShowAsync(mainWindow);
-
+            var suggestedFileName = $"system_logs_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+            var filePath = await PickSavePathAsync("Save System Logs", suggestedFileName);
             if (string.IsNullOrEmpty(filePath))
             {
                 // User canceled the save operation
@@ -548,50 +467,8 @@ public partial class AdvancedTabViewModel : ViewModelBase
             // Let the user know the diagnostics were completed
             UpdateUIMessage("Network diagnostics completed. Select a location to save the results...");
 
-            // Prompt the user for a save location using SaveFileDialog
-            var saveFileDialog = new Avalonia.Controls.SaveFileDialog
-            {
-                Title = "Save Network Diagnostics",
-                DefaultExtension = "txt",
-                InitialFileName = $"network_diagnostics_{DateTime.Now:yyyyMMdd_HHmmss}.txt",
-                Filters = new List<Avalonia.Controls.FileDialogFilter>
-                {
-                    new Avalonia.Controls.FileDialogFilter
-                    {
-                        Name = "Text Files",
-                        Extensions = new List<string> { "txt" }
-                    },
-                    new Avalonia.Controls.FileDialogFilter
-                    {
-                        Name = "All Files",
-                        Extensions = new List<string> { "*" }
-                    }
-                }
-            };
-
-            // Get the main window to show the dialog
-            var mainWindow =
-                Avalonia.Application.Current.ApplicationLifetime is
-                    Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                    ? desktop.MainWindow
-                    : null;
-
-            if (mainWindow == null)
-            {
-                UpdateUIMessage("Could not show save dialog. Using default location.");
-                // Save to a default location if we can't show the dialog
-                string defaultPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                    $"network_diagnostics_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
-
-                File.WriteAllText(defaultPath, diagnosticsContent);
-                UpdateUIMessage($"Network diagnostics saved to: {defaultPath}");
-                return;
-            }
-
-            // Show the save dialog and get the selected path
-            string filePath = await saveFileDialog.ShowAsync(mainWindow);
-
+            var suggestedFileName = $"network_diagnostics_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+            var filePath = await PickSavePathAsync("Save Network Diagnostics", suggestedFileName);
             if (string.IsNullOrEmpty(filePath))
             {
                 // User canceled the save operation
@@ -612,6 +489,44 @@ public partial class AdvancedTabViewModel : ViewModelBase
     }
 
     #endregion
+
+    private static Window? GetMainWindow()
+    {
+        return (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    }
+
+    private async Task<string?> PickSavePathAsync(string title, string suggestedFileName)
+    {
+        var mainWindow = GetMainWindow();
+        if (mainWindow?.StorageProvider == null)
+        {
+            UpdateUIMessage("Could not show save dialog. Using default location.");
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                suggestedFileName);
+        }
+
+        var options = new FilePickerSaveOptions
+        {
+            Title = title,
+            SuggestedFileName = suggestedFileName,
+            DefaultExtension = "txt",
+            FileTypeChoices = new List<FilePickerFileType>
+            {
+                new("Text Files")
+                {
+                    Patterns = new List<string> { "*.txt" }
+                },
+                new("All Files")
+                {
+                    Patterns = new List<string> { "*" }
+                }
+            }
+        };
+
+        var file = await mainWindow.StorageProvider.SaveFilePickerAsync(options);
+        return file?.TryGetLocalPath();
+    }
 
     #region Event Handlers
 

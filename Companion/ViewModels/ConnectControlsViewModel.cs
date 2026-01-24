@@ -27,8 +27,7 @@ namespace Companion.ViewModels;
 public partial class ConnectControlsViewModel : ViewModelBase
 {
     #region Private Fields
-    private readonly CancellationTokenSource? _cancellationTokenSourc;
-    private readonly DispatcherTimer _dispatcherTimer;
+    private readonly DispatcherTimer _dispatcherTimer = new();
     private readonly IEventSubscriptionService _eventSubscriptionService;
     private readonly SolidColorBrush _offlineColorBrush = new(Colors.Red);
     private readonly SolidColorBrush _onlineColorBrush = new(Colors.Green);
@@ -36,20 +35,20 @@ public partial class ConnectControlsViewModel : ViewModelBase
     private readonly TimeSpan _pingInterval = TimeSpan.FromSeconds(1);
     private readonly TimeSpan _pingTimeout = TimeSpan.FromMilliseconds(500);
     private bool _canConnect;
-    private DeviceConfig _deviceConfig;
+    private DeviceConfig _deviceConfig = DeviceConfig.Instance;
     private SolidColorBrush _pingStatusColor = new(Colors.Red);
-    private DispatcherTimer _pingTimer;
+    private DispatcherTimer _pingTimer = new();
     private DeviceType _selectedDeviceType;
     #endregion
 
     #region Observable Properties
-    [ObservableProperty] private string _ipAddress;
-    [ObservableProperty] private string _password;
+    [ObservableProperty] private string _ipAddress = string.Empty;
+    [ObservableProperty] private string _password = string.Empty;
     [ObservableProperty] private int _port = 22;
     
     // Add these properties to your ConnectControlsViewModel class
     [ObservableProperty] private ObservableCollection<string> _cachedIpAddresses = new();
-    [ObservableProperty] private string _selectedIpAddress;
+    [ObservableProperty] private string _selectedIpAddress = string.Empty;
 
     #endregion
 
@@ -111,7 +110,7 @@ public partial class ConnectControlsViewModel : ViewModelBase
     #endregion
 
     #region Commands
-    public ICommand ConnectCommand { get; private set; }
+    public ICommand ConnectCommand { get; private set; } = new RelayCommand(() => { });
     #endregion
 
     #region Constructor
@@ -252,7 +251,7 @@ public partial class ConnectControlsViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            Logger.Error( "Error occurred during ping");
+            Logger.Error(ex, "Error occurred during ping");
             PingStatusColor = _offlineColorBrush;
         }
     }

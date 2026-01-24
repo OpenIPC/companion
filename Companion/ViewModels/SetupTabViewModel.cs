@@ -13,6 +13,10 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -48,57 +52,50 @@ public partial class SetupTabViewModel : ViewModelBase
 
     #region Observable Properties
     [ObservableProperty] private bool _canConnect;
-    [ObservableProperty] private string _chkSumStatusColor;
+    [ObservableProperty] private string _chkSumStatusColor = string.Empty;
     [ObservableProperty] private int _downloadProgress;
-    [ObservableProperty] private ObservableCollection<string> _droneKeyActionItems;
-    [ObservableProperty] private ObservableCollection<string> _firmwareVersions;
+    [ObservableProperty] private ObservableCollection<string> _droneKeyActionItems = new();
+    [ObservableProperty] private ObservableCollection<string> _firmwareVersions = new();
     [ObservableProperty] private bool _isCamera;
     [ObservableProperty] private bool _isGS;
     [ObservableProperty] private bool _isRadxa;
     [ObservableProperty] private bool _isProgressBarVisible;
-    [ObservableProperty] private string _keyChecksum;
-    [ObservableProperty] private string _localIp;
-    [ObservableProperty] private ObservableCollection<string> _localSensors;
-    [ObservableProperty] private string _progressText;
-    [ObservableProperty] private string _scanIpLabel;
-    [ObservableProperty] private string _scanIPResultTextBox;
-    [ObservableProperty] private string _scanMessages;
+    [ObservableProperty] private string _keyChecksum = string.Empty;
+    [ObservableProperty] private string _localIp = string.Empty;
+    [ObservableProperty] private ObservableCollection<string> _localSensors = new();
+    [ObservableProperty] private string _progressText = string.Empty;
+    [ObservableProperty] private string _scanIpLabel = string.Empty;
+    [ObservableProperty] private string _scanIPResultTextBox = string.Empty;
+    [ObservableProperty] private string _scanMessages = string.Empty;
     [ObservableProperty] private bool _isScanning;
-    [ObservableProperty] private ObservableCollection<string> _scriptFileActionItems;
-    [ObservableProperty] private string _selectedDroneKeyAction;
-    [ObservableProperty] private string _selectedFwVersion;
-    [ObservableProperty] private string _selectedScriptFileAction;
-    [ObservableProperty] private string _selectedSensor;
-    [ObservableProperty] private ObservableCollectionExtended<string> _keyManagementActionItems;
-    [ObservableProperty] private string _selectedKeyManagementAction;
-    [ObservableProperty] private IBrush _keyValidationColor;
-    [ObservableProperty] private string _keyValidationMessage;
+    [ObservableProperty] private ObservableCollection<string> _scriptFileActionItems = new();
+    [ObservableProperty] private string _selectedDroneKeyAction = string.Empty;
+    [ObservableProperty] private string _selectedFwVersion = string.Empty;
+    [ObservableProperty] private string _selectedScriptFileAction = string.Empty;
+    [ObservableProperty] private string _selectedSensor = string.Empty;
+    [ObservableProperty] private ObservableCollectionExtended<string> _keyManagementActionItems = new();
+    [ObservableProperty] private string _selectedKeyManagementAction = string.Empty;
+    [ObservableProperty] private IBrush _keyValidationColor = Brushes.Transparent;
+    [ObservableProperty] private string _keyValidationMessage = string.Empty;
 
-    private string _localKeyPath;
-    private string _localDefaultKeyPath;
-    private bool _isGeneratingKey;
-    
-    IMessageBoxService _messageBoxService;
+    private string _localKeyPath = string.Empty;
+    private string _localDefaultKeyPath = string.Empty;
+    private readonly IMessageBoxService _messageBoxService;
     #endregion
 
     #region Commands
-    private ICommand _encryptionKeyActionCommand;
-    private ICommand _firmwareUpdateCommand;
-    private ICommand _generateKeysCommand;
-    private ICommand _offlineUpdateCommand;
-    private ICommand _recvDroneKeyCommand;
-    private ICommand _recvGSKeyCommand;
-    private ICommand _resetCameraCommand;
-    private ICommand _scanCommand;
-    private ICommand _cancelScanCommand;
-    private ICommand _scriptFilesCommand;
-    private ICommand _scriptFilesBackupCommand;
-    private ICommand _scriptFilesRestoreCommand;
-    private ICommand _sendDroneKeyCommand;
-    private ICommand _sendGSKeyCommand;
-    private ICommand _sensorDriverUpdateCommand;
-    private ICommand _sensorFilesBackupCommand;
-    private ICommand _sensorFilesUpdateCommand;
+    private ICommand _encryptionKeyActionCommand = new AsyncRelayCommand<string?>(_ => Task.CompletedTask);
+    private ICommand _firmwareUpdateCommand = new AsyncRelayCommand(() => Task.CompletedTask);
+    private ICommand _offlineUpdateCommand = new AsyncRelayCommand(() => Task.CompletedTask);
+    private ICommand _recvDroneKeyCommand = new AsyncRelayCommand(() => Task.CompletedTask);
+    private ICommand _recvGSKeyCommand = new AsyncRelayCommand(() => Task.CompletedTask);
+    private ICommand _resetCameraCommand = new AsyncRelayCommand(() => Task.CompletedTask);
+    private ICommand _scanCommand = new AsyncRelayCommand(() => Task.CompletedTask);
+    private ICommand _cancelScanCommand = new RelayCommand(() => { });
+    private ICommand _scriptFilesCommand = new AsyncRelayCommand(() => Task.CompletedTask);
+    private ICommand _sendDroneKeyCommand = new AsyncRelayCommand(() => Task.CompletedTask);
+    private ICommand _sendGSKeyCommand = new AsyncRelayCommand(() => Task.CompletedTask);
+    private ICommand _sensorFilesUpdateCommand = new AsyncRelayCommand(() => Task.CompletedTask);
     public ICommand KeyManagementCommand => 
         _keyManagementCommand ??= new AsyncRelayCommand(ExecuteKeyManagementActionAsync);
     #endregion
@@ -106,7 +103,7 @@ public partial class SetupTabViewModel : ViewModelBase
     // Command Properties
 
     #region Command Properties
-    public ICommand ShowProgressBarCommand { get; private set; }
+    public ICommand ShowProgressBarCommand { get; private set; } = new RelayCommand(() => { });
     public ICommand SendGSKeyCommand => _sendGSKeyCommand ??= new AsyncRelayCommand(SendGSKeyAsync);
     public ICommand RecvGSKeyCommand => _recvGSKeyCommand ??= new AsyncRelayCommand(RecvGSKeyAsync);
     public ICommand ScriptFilesCommand => _scriptFilesCommand ??= new AsyncRelayCommand(ScriptFilesActionAsync);
@@ -147,7 +144,6 @@ public partial class SetupTabViewModel : ViewModelBase
         : base(logger, sshClientService, eventSubscriptionService)
     {
         _messageBoxService = messageBoxService;
-        ;
         InitializeKeyManagement();
         InitializeCollections();
         InitializeProperties();
@@ -249,18 +245,17 @@ public partial class SetupTabViewModel : ViewModelBase
     #region Event Handlers
     private void OnDeviceTypeChange(DeviceType deviceType)
     {
-        if (deviceType != null)
-            switch (deviceType)
-            {
-                case DeviceType.Camera:
-                    IsCamera = true;
-                    IsRadxa = false;
-                    break;
-                case DeviceType.Radxa:
-                    IsCamera = false;
-                    IsRadxa = true;
-                    break;
-            }
+        switch (deviceType)
+        {
+            case DeviceType.Camera:
+                IsCamera = true;
+                IsRadxa = false;
+                break;
+            case DeviceType.Radxa:
+                IsCamera = false;
+                IsRadxa = true;
+                break;
+        }
     }
 
     private void OnDeviceContentUpdate(DeviceContentUpdatedMessage message)
@@ -279,13 +274,16 @@ public partial class SetupTabViewModel : ViewModelBase
     #endregion
 
     #region Command Handlers
-    private async Task ScriptFilesActionAsync()
+    private Task ScriptFilesActionAsync()
     {
-        var action = SelectedScriptFileAction;
+        return Task.CompletedTask;
     }
 
-    private async Task EncryptionKeyActionAsync(string comboBoxName)
+    private async Task EncryptionKeyActionAsync(string? comboBoxName)
     {
+        if (string.IsNullOrWhiteSpace(comboBoxName))
+            return;
+
         var action = SelectedDroneKeyAction;
         switch (action)
         {
@@ -331,7 +329,7 @@ public partial class SetupTabViewModel : ViewModelBase
 
     // Key Management Methods to add to your SetupTabViewModel.cs file
 
-private ICommand _keyManagementCommand;
+private ICommand _keyManagementCommand = new AsyncRelayCommand(() => Task.CompletedTask);
 
 private async Task ExecuteKeyManagementActionAsync()
 {
@@ -389,7 +387,6 @@ private async Task GenerateNewKeyAsync()
 {
     try
     {
-        _isGeneratingKey = true;
         IsProgressBarVisible = true;
         ProgressText = "Generating secure key...";
         DownloadProgress = 0;
@@ -464,11 +461,10 @@ private async Task GenerateNewKeyAsync()
     }
     finally
     {
-        _isGeneratingKey = false;
         IsProgressBarVisible = false;
     }
 }
-private async Task UploadKeyAsync(string specificKeyPath = null)
+private async Task UploadKeyAsync(string? specificKeyPath = null)
 {
     try
     {
@@ -476,31 +472,14 @@ private async Task UploadKeyAsync(string specificKeyPath = null)
         ProgressText = "Preparing to upload key...";
         DownloadProgress = 0;
         
-        string keyPath = specificKeyPath;
+        string? keyPath = specificKeyPath;
         
         // If no specific key path was provided, ask the user to select a key file
         if (string.IsNullOrEmpty(keyPath))
         {
-            var openFileDialog = new Avalonia.Controls.OpenFileDialog
-            {
-                Title = "Select Key File",
-                Filters = new List<Avalonia.Controls.FileDialogFilter>
-                {
-                    new Avalonia.Controls.FileDialogFilter { Name = "Key Files", Extensions = new List<string> { "key" } }
-                },
-                Directory = Path.Combine(OpenIPC.AppDataConfigDirectory, "keys")
-            };
-            
-            var window = Avalonia.Application.Current.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime;
-            var result = await openFileDialog.ShowAsync(window?.MainWindow);
-            
-            if (result == null || result.Length == 0)
-            {
-                IsProgressBarVisible = false;
+            keyPath = await PickKeyFileAsync();
+            if (string.IsNullOrEmpty(keyPath))
                 return;
-            }
-            
-            keyPath = result[0];
         }
         
         ProgressText = "Reading key file...";
@@ -530,13 +509,13 @@ private async Task UploadKeyAsync(string specificKeyPath = null)
         
         // Get the checksum from the device
         ProgressText = "Verifying key upload...";
-        string remoteChecksum = await GetDeviceKeyChecksumAsync();
+        var remoteChecksum = await GetDeviceKeyChecksumAsync();
         
         DownloadProgress = 100;
         ProgressText = "Key upload complete";
         
         // Verify the checksums match
-        if (localChecksum == remoteChecksum)
+        if (!string.IsNullOrEmpty(remoteChecksum) && localChecksum == remoteChecksum)
         {
             KeyChecksum = remoteChecksum;
             ChkSumStatusColor = "Green";
@@ -551,7 +530,7 @@ private async Task UploadKeyAsync(string specificKeyPath = null)
         }
         else
         {
-            KeyChecksum = $"Local: {localChecksum}, Device: {remoteChecksum}";
+            KeyChecksum = $"Local: {localChecksum}, Device: {remoteChecksum ?? "Unavailable"}";
             ChkSumStatusColor = "Red";
             KeyValidationColor = Brushes.Red;
             KeyValidationMessage = "Key upload failed verification";
@@ -691,7 +670,7 @@ private async Task VerifyKeyAsync()
         // Get the device key checksum
         DownloadProgress = 30;
         ProgressText = "Getting device key checksum...";
-        string deviceChecksum = await GetDeviceKeyChecksumAsync();
+        var deviceChecksum = await GetDeviceKeyChecksumAsync();
         
         if (string.IsNullOrEmpty(deviceChecksum))
         {
@@ -787,7 +766,7 @@ private async Task GetKeyChecksumAsync()
         DownloadProgress = 50;
         
         // Get the checksum from the device
-        string deviceChecksum = await GetDeviceKeyChecksumAsync();
+        var deviceChecksum = await GetDeviceKeyChecksumAsync();
         
         DownloadProgress = 100;
         ProgressText = "Checksum retrieved";
@@ -818,7 +797,7 @@ private async Task GetKeyChecksumAsync()
     }
 }
 
-private async Task<string> GetDeviceKeyChecksumAsync()
+private async Task<string?> GetDeviceKeyChecksumAsync()
 {
     try
     {
@@ -862,9 +841,10 @@ private string CalculateChecksum(byte[] data)
         return sb.ToString();
     }
 }
-    private async Task ScriptFilesRestore()
+    private Task ScriptFilesRestore()
     {
         Log.Debug("Restore script executed...not implemented yet");
+        return Task.CompletedTask;
     }
 
     private void PopulateSensorFileNames(string directoryPath)
@@ -881,7 +861,7 @@ private string CalculateChecksum(byte[] data)
         }
     }
 
-    private async Task SensorDriverUpdate()
+    private Task SensorDriverUpdate()
     {
         Log.Debug("SensorDriverUpdate executed");
         DownloadProgress = 0;
@@ -895,6 +875,7 @@ private string CalculateChecksum(byte[] data)
         ProgressText = "Sensor driver updated!";
 
         Log.Debug("SensorDriverUpdate executed..done");
+        return Task.CompletedTask;
     }
 
     public async Task SensorFilesUpdateAsync()
@@ -939,7 +920,7 @@ private string CalculateChecksum(byte[] data)
     {
         Log.Debug("OfflineUpdate executed");
         IsProgressBarVisible = true;
-        DownloadStart();
+        await DownloadStart();
         //Log.Debug("OfflineUpdate executed..done");
     }
 
@@ -1042,7 +1023,7 @@ private string CalculateChecksum(byte[] data)
         IsScanning = false;
     }
 
-    private CancellationTokenSource _scanCancellationTokenSource;
+    private CancellationTokenSource? _scanCancellationTokenSource;
 
     private void CancelScan()
     {
@@ -1197,7 +1178,7 @@ private string CalculateChecksum(byte[] data)
     /// <param name="input">The string to extract the value from.</param>
     /// <param name="pattern">The regular expression pattern to use for extraction.</param>
     /// <returns>The extracted value, or null if the pattern does not match.</returns>
-    public static string ExtractValue(string input, string pattern)
+    public static string? ExtractValue(string input, string pattern)
     {
         var match = Regex.Match(input, pattern);
         if (match.Success)
@@ -1268,7 +1249,7 @@ private string CalculateChecksum(byte[] data)
             sensorType = ExtractValue($"{SelectedFwVersion}", openipcPattern);
         }
 
-        if (SelectedFwVersion != string.Empty && sensorType != string.Empty)
+        if (!string.IsNullOrEmpty(SelectedFwVersion) && !string.IsNullOrEmpty(sensorType))
         {
             var firmwarePath = Path.Combine(OpenIPC.AppDataConfigDirectory, "firmware",
                 $"{SelectedFwVersion}.tgz");
@@ -1365,7 +1346,7 @@ private string CalculateChecksum(byte[] data)
             // Provide a way for the user to cancel (e.g., a button)
             var cancelToken = cts.Token;
 
-            PerformSystemUpgradeAsync(kernelPath, rootfsPath, cancelToken);
+            await PerformSystemUpgradeAsync(kernelPath, rootfsPath, cancelToken);
         }
     }
 
@@ -1538,7 +1519,7 @@ private string CalculateChecksum(byte[] data)
         var result = await box.ShowAsync();
         if (result == ButtonResult.Ok)
         {
-            SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.ResetCameraCommand);
+            await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.ResetCameraCommand);
             await Task.Delay(1000); // Non-blocking pause
         }
         else
@@ -1549,8 +1530,6 @@ private string CalculateChecksum(byte[] data)
             await confirmBox.ShowAsync();
             return;
         }
-
-        return;
         Log.Debug("ResetCamera executed...done");
     }
 
@@ -1612,10 +1591,37 @@ private string CalculateChecksum(byte[] data)
     {
         UpdateUIMessage("Receiving keys...");
 
-        SshClientService.DownloadFileLocalAsync(DeviceConfig.Instance, OpenIPC.RemoteGsKeyPath,
+        await SshClientService.DownloadFileLocalAsync(DeviceConfig.Instance, OpenIPC.RemoteGsKeyPath,
             $"{OpenIPC.LocalTempFolder}/gs.key");
         await Task.Delay(1000); // Non-blocking pause
 
         UpdateUIMessage("Receiving keys...done");
+    }
+
+    private static Window? GetMainWindow()
+    {
+        return (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    }
+
+    private async Task<string?> PickKeyFileAsync()
+    {
+        var mainWindow = GetMainWindow();
+        if (mainWindow?.StorageProvider == null)
+            return null;
+
+        var options = new FilePickerOpenOptions
+        {
+            Title = "Select Key File",
+            FileTypeFilter = new List<FilePickerFileType>
+            {
+                new("Key Files")
+                {
+                    Patterns = new List<string> { "*.key" }
+                }
+            }
+        };
+
+        var files = await mainWindow.StorageProvider.OpenFilePickerAsync(options);
+        return files.FirstOrDefault()?.TryGetLocalPath();
     }
 }

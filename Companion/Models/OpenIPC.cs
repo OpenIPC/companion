@@ -43,11 +43,11 @@ public class OpenIPC
     public const string RemoteTempFolder = "/tmp";
     public const string RemoteWifiBroadcastBinFileLoc = "/usr/bin/wifibroadcast";
 
-    public static string DroneKeyPath;
-    public static string GsKeyPath;
+    public static string DroneKeyPath = string.Empty;
+    public static string GsKeyPath = string.Empty;
 
-    public static string LocalFirmwareFolder;
-    public static string LocalBackUpFolder;
+    public static string LocalFirmwareFolder = string.Empty;
+    public static string LocalBackUpFolder = string.Empty;
 
     public static string DeviceUsername = "root";
 
@@ -57,12 +57,12 @@ public class OpenIPC
     }
 
     // Expose configPath and configDirectory as public static properties
-    public static string AppDataConfigDirectory { get; private set; }
+    public static string AppDataConfigDirectory { get; private set; } = string.Empty;
 
-    public static string LocalTempFolder { get; private set; }
-    public static string AppDataConfigPath { get; private set; }
+    public static string LocalTempFolder { get; private set; } = string.Empty;
+    public static string AppDataConfigPath { get; private set; } = string.Empty;
 
-    public static string DeviceSettingsConfigPath { get; private set; }
+    public static string DeviceSettingsConfigPath { get; private set; } = string.Empty;
 
     public static string GetBinariesPath()
     {

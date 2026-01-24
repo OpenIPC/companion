@@ -4,5 +4,5 @@ namespace Companion.Services;
 
 public interface IGitHubService
 {
-    Task<string> GetGitHubDataAsync(string url);
+    Task<string?> GetGitHubDataAsync(string url);
 }

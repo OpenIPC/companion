@@ -6,7 +6,7 @@ namespace Companion.Services;
 
 public class NetworkHelper
 {
-    public static string GetLocalIPAddress()
+    public static string? GetLocalIPAddress()
     {
         try
         {

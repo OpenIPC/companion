@@ -9,7 +9,7 @@ namespace Companion.Services;
 
 public class PingService
 {
-    private static PingService _instance;
+    private static PingService? _instance;
     private static readonly object _lock = new object();
     
     private readonly SemaphoreSlim _pingSemaphore = new SemaphoreSlim(1, 1);
@@ -35,7 +35,7 @@ public class PingService
                 }
             }
         }
-        return _instance;
+        return _instance!;
     }
 
     // Ping method with default timeout

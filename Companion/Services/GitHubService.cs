@@ -21,10 +21,10 @@ namespace Companion.Services
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
-        public async Task<string> GetGitHubDataAsync(string url)
+        public async Task<string?> GetGitHubDataAsync(string url)
         {
             var cacheKey = $"GitHubData::{url}";
-            if (_cache.TryGetValue(cacheKey, out string cachedData))
+            if (_cache.TryGetValue(cacheKey, out string? cachedData) && !string.IsNullOrEmpty(cachedData))
             {
                 _logger.Information("GitHub API data retrieved from cache.");
                 return cachedData;
@@ -50,7 +50,7 @@ namespace Companion.Services
             {
                 // Handle API errors gracefully (log, throw, etc.)
                 _logger.Error($"Error calling GitHub API: {ex.Message}");
-                return null; // Or throw the exception, depending on your needs
+                return null;
             }
         }
     }

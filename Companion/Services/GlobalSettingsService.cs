@@ -48,7 +48,8 @@ public class GlobalSettingsService : IGlobalSettingsService
             {
                 var cmdResult = await GetIsWfbYamlSupported(cancellationToken);
                 
-                IsWfbYamlEnabled = bool.TryParse(Utilities.RemoveLastChar(cmdResult?.Result), out var result) && result;
+                var rawResult = cmdResult?.Result ?? string.Empty;
+                IsWfbYamlEnabled = bool.TryParse(Utilities.RemoveLastChar(rawResult), out var result) && result;
 
                 _logger.Debug($"WFB YAML support status: {IsWfbYamlEnabled}");
             }

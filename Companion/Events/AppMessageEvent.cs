@@ -18,7 +18,7 @@ public class AppMessage
     public string? Status
     {
         get => _status;
-        set => _status = value;
+        set => _status = value ?? string.Empty;
     }
 
     public DeviceConfig DeviceConfig { get; set; } = DeviceConfig.Instance;

@@ -11,13 +11,13 @@ public class WifiConfigParser
     private readonly Dictionary<string, string> _configDict = new();
 
     // Store the original configuration content
-    private string _originalConfigContent;
+    private string _originalConfigContent = string.Empty;
 
     // Properties to store parsed values
     public int WifiChannel { get; set; }
-    public string WifiRegion { get; set; }
-    public string GsMavlinkPeer { get; set; }
-    public string GsVideoPeer { get; set; }
+    public string WifiRegion { get; set; } = string.Empty;
+    public string GsMavlinkPeer { get; set; } = string.Empty;
+    public string GsVideoPeer { get; set; } = string.Empty;
 
     // Method to parse configuration from a string
     public void ParseConfigString(string configContent)
@@ -35,7 +35,7 @@ public class WifiConfigParser
         var keyValueRegex = new Regex(@"^\s*(\w+)\s*=\s*['""]?(.*?)['""]?\s*(?:#.*)?$");
         var sectionRegex = new Regex(@"^\s*\[.*\]\s*$");
 
-        string currentSection = null;
+        string? currentSection = null;
 
         foreach (var line in lines)
         {
@@ -97,7 +97,7 @@ public class WifiConfigParser
         var updatedConfig = new StringBuilder();
         var keyValueRegex = new Regex(@"^\s*(\w+)\s*=\s*['""]?(.*?)['""]?\s*(#.*)?$");
         var sectionRegex = new Regex(@"^\s*\[.*\]\s*$");
-        string currentSection = null;
+        string? currentSection = null;
 
         foreach (var line in lines)
         {

@@ -11,17 +11,17 @@ namespace Companion.Models;
 public class DeviceConfig : INotifyPropertyChanged
 {
     #region Private Fields
-    private static DeviceConfig _instance;
-    private string _hostname;
-    private string _ipAddress;
-    private string _keyChksum;
-    private string _password;
-    private string _chipType;
-    private string _sensorType;
-    private string _networkCardType;
+    private static DeviceConfig? _instance;
+    private string _hostname = string.Empty;
+    private string _ipAddress = string.Empty;
+    private string _keyChksum = string.Empty;
+    private string _password = string.Empty;
+    private string _chipType = string.Empty;
+    private string _sensorType = string.Empty;
+    private string _networkCardType = string.Empty;
     
     private int _port;
-    private string _username;
+    private string _username = "root";
     
     
     #endregion
@@ -37,7 +37,7 @@ public class DeviceConfig : INotifyPropertyChanged
     /// <summary>
     /// Gets or sets the event aggregator for device events
     /// </summary>
-    public IEventAggregator EventAggregator { get; set; }
+    public IEventAggregator? EventAggregator { get; set; }
 
     /// <summary>
     /// Gets the singleton instance of DeviceConfig

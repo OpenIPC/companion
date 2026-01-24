@@ -44,14 +44,14 @@ public partial class TelemetryTabViewModel : ViewModelBase
     #region Observable Properties
     [ObservableProperty] private bool _canConnect;
     
-    [ObservableProperty] private string _selectedAggregate;
-    [ObservableProperty] private string _selectedBaudRate;
-    [ObservableProperty] private string _selectedMcsIndex;
-    [ObservableProperty] private string _selectedRcChannel;
-    [ObservableProperty] private string _selectedRouter;
-    [ObservableProperty] private string _selectedMSPFps;
-    [ObservableProperty] private string _selectedSerialPort;
-    [ObservableProperty] private string _telemetryContent;
+    [ObservableProperty] private string _selectedAggregate = string.Empty;
+    [ObservableProperty] private string _selectedBaudRate = string.Empty;
+    [ObservableProperty] private string _selectedMcsIndex = string.Empty;
+    [ObservableProperty] private string _selectedRcChannel = string.Empty;
+    [ObservableProperty] private string _selectedRouter = string.Empty;
+    [ObservableProperty] private string _selectedMSPFps = string.Empty;
+    [ObservableProperty] private string _selectedSerialPort = string.Empty;
+    [ObservableProperty] private string _telemetryContent = string.Empty;
     
     
 
@@ -89,49 +89,49 @@ public partial class TelemetryTabViewModel : ViewModelBase
     /// <summary>
     /// Available serial ports for telemetry
     /// </summary>
-    public ObservableCollection<string> SerialPorts { get; private set; }
+    public ObservableCollection<string> SerialPorts { get; private set; } = new();
 
     /// <summary>
     /// Available baud rates for serial communication
     /// </summary>
-    public ObservableCollection<string> BaudRates { get; private set; }
+    public ObservableCollection<string> BaudRates { get; private set; } = new();
 
     /// <summary>
     /// Available MCS index values
     /// </summary>
-    public ObservableCollection<string> McsIndex { get; private set; }
+    public ObservableCollection<string> McsIndex { get; private set; } = new();
 
     /// <summary>
     /// Available aggregate values
     /// </summary>
-    public ObservableCollection<string> Aggregate { get; private set; }
+    public ObservableCollection<string> Aggregate { get; private set; } = new();
 
     /// <summary>
     /// Available RC channel options
     /// </summary>
-    public ObservableCollection<string> RC_Channel { get; private set; }
+    public ObservableCollection<string> RC_Channel { get; private set; } = new();
 
     /// <summary>
     /// Available router options
     /// </summary>
-    public ObservableCollection<string> Router { get; private set; }
+    public ObservableCollection<string> Router { get; private set; } = new();
     /// <summary>
     /// Available msposd fps options
     /// </summary>
-    public ObservableCollection<string> MSPFps { get; private set; }
+    public ObservableCollection<string> MSPFps { get; private set; } = new();
 
     #endregion
 
     #region Commands
-    public ICommand EnableUART0Command { get; private set; }
-    public ICommand DisableUART0Command { get; private set; }
-    public ICommand AddMavlinkCommand { get; private set; }
-    public ICommand UploadLatestVtxMenuCommand { get; private set; }
-    public ICommand Enable40MhzCommand { get; private set; }
-    public ICommand MSPOSDExtraCameraCommand { get; private set; }
-    public ICommand MSPOSDExtraGSCommand { get; private set; }
-    public ICommand RemoveMSPOSDExtraCommand { get; private set; }
-    public ICommand SaveAndRestartTelemetryCommand { get; private set; }
+    public ICommand EnableUART0Command { get; private set; } = new RelayCommand(() => { });
+    public ICommand DisableUART0Command { get; private set; } = new RelayCommand(() => { });
+    public ICommand AddMavlinkCommand { get; private set; } = new RelayCommand(() => { });
+    public ICommand UploadLatestVtxMenuCommand { get; private set; } = new RelayCommand(() => { });
+    public ICommand Enable40MhzCommand { get; private set; } = new RelayCommand(() => { });
+    public ICommand MSPOSDExtraCameraCommand { get; private set; } = new RelayCommand(() => { });
+    public ICommand MSPOSDExtraGSCommand { get; private set; } = new RelayCommand(() => { });
+    public ICommand RemoveMSPOSDExtraCommand { get; private set; } = new RelayCommand(() => { });
+    public ICommand SaveAndRestartTelemetryCommand { get; private set; } = new RelayCommand(() => { });
     
     
     
@@ -302,7 +302,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
                 $"sed -i 's/sleep 5/#sleep 5/' {remoteTelemetryFile}");
             await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.DataLinkRestart);
 
-            _messageBoxService.ShowMessageBox("Done!", "Please wait for datalink to restart!");
+            await _messageBoxService.ShowMessageBox("Done!", "Please wait for datalink to restart!");
         }
     }
 
@@ -325,7 +325,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
             await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.DataLinkRestart);
 
 
-            _messageBoxService.ShowMessageBox("Done!", "Please wait for datalink to restart!");
+            await _messageBoxService.ShowMessageBox("Done!", "Please wait for datalink to restart!");
         }
         
     }
@@ -347,7 +347,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
             await SshClientService.UploadFileAsync(DeviceConfig.Instance, telemetryFile, remoteTelemetryFile);
             await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.DataLinkRestart);
 
-            _messageBoxService.ShowMessageBox("Done!", "Please wait for datalink to restart!");
+            await _messageBoxService.ShowMessageBox("Done!", "Please wait for datalink to restart!");
         }
     }
 
@@ -393,7 +393,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
     {
         await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.RebootCommand);
 
-        _messageBoxService.ShowMessageBox("Rebooting Device!", "Rebooting device, please wait for device to be ready and reconnect, then validate settings.");
+        await _messageBoxService.ShowMessageBox("Rebooting Device!", "Rebooting device, please wait for device to be ready and reconnect, then validate settings.");
     }
 
     #endregion
@@ -460,7 +460,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
     {
         if (_yamlConfig.TryGetValue(WfbYaml.TelemetrySerialPort, out var serialPort))
         {
-            if (SerialPorts?.Contains(serialPort) ?? false)
+            if (SerialPorts.Contains(serialPort))
             {
                 SelectedSerialPort = serialPort;
             }
@@ -473,7 +473,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
         
         if (_yamlConfig.TryGetValue(WfbYaml.TelemetryRouter, out var router))
         {
-            if (Router?.Contains(router) ?? false)
+            if (Router.Contains(router))
             {
                 SelectedRouter = router;
             }
@@ -487,7 +487,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
         
         if (_yamlConfig.TryGetValue(WfbYaml.TelemetryOsdFps, out var osd_fps))
         {
-            if (MSPFps?.Contains(osd_fps) ?? false)
+            if (MSPFps.Contains(osd_fps))
             {
                 SelectedMSPFps = osd_fps;
             }
@@ -516,7 +516,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
                     serialPortBaseName = value.Substring("/dev/".Length);
                 }
 
-                if (SerialPorts?.Contains(serialPortBaseName) ?? false)
+                if (SerialPorts.Contains(serialPortBaseName))
                 {
                     SelectedSerialPort = serialPortBaseName;
                 }
@@ -528,7 +528,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
                 break;
 
             case Telemetry.Baud:
-                if (BaudRates?.Contains(value) ?? false)
+                if (BaudRates.Contains(value))
                 {
                     SelectedBaudRate = value;
                 }
@@ -547,7 +547,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
                     routerName = mappedRouter;
                 }
             
-                if (Router?.Contains(routerName) ?? false)
+                if (Router.Contains(routerName))
                 {
                     SelectedRouter = routerName;
                 }
@@ -559,7 +559,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
                 break;
 
             case Telemetry.McsIndex:
-                if (McsIndex?.Contains(value) ?? false)
+                if (McsIndex.Contains(value))
                 {
                     SelectedMcsIndex = value;
                 }
@@ -571,7 +571,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
                 break;
 
             case Telemetry.Aggregate:
-                if (Aggregate?.Contains(value) ?? false)
+                if (Aggregate.Contains(value))
                 {
                     SelectedAggregate = value;
                 }
@@ -583,7 +583,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
                 break;
 
             case Telemetry.RcChannel:
-                if (RC_Channel?.Contains(value) ?? false)
+                if (RC_Channel.Contains(value))
                 {
                     SelectedRcChannel = value;
                 }

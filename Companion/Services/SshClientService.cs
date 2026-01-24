@@ -26,7 +26,7 @@ public class SshClientService : ISshClientService
         _eventSubscriptionService = eventSubscriptionService;
     }
 
-    public async Task<SshCommand> ExecuteCommandWithResponseAsync(DeviceConfig deviceConfig, string command,
+    public async Task<SshCommand?> ExecuteCommandWithResponseAsync(DeviceConfig deviceConfig, string command,
         CancellationToken cancellationToken = default)
     {
         _logger.Debug($"Executing command: '{command}' on {deviceConfig.IpAddress}.");
@@ -56,7 +56,7 @@ public class SshClientService : ISshClientService
         }
     }
 
-    public async Task ExecuteCommandAsync(DeviceConfig deviceConfig, string command)
+    public Task ExecuteCommandAsync(DeviceConfig deviceConfig, string command)
     {
         _logger.Debug($"Executing command: '{command}' on {deviceConfig.IpAddress}.");
 
@@ -80,6 +80,8 @@ public class SshClientService : ISshClientService
                 client.Disconnect();
             }
         }
+
+        return Task.CompletedTask;
     }
 
 
@@ -327,7 +329,7 @@ public class SshClientService : ISshClientService
         else
         {
             var msgBox = MessageBoxManager.GetMessageBoxStandard("Error", $"File {fileName} not found.");
-            msgBox.ShowAsync();
+            await msgBox.ShowAsync();
         }
     }
 
@@ -393,7 +395,7 @@ public class SshClientService : ISshClientService
         Action<string> updateProgress,
         CancellationToken cancellationToken = default,
         TimeSpan? timeout = null,
-        Func<string, bool> isCommandComplete = null)
+        Func<string, bool>? isCommandComplete = null)
     {
         timeout ??= TimeSpan.FromMinutes(2); // Default timeout
         isCommandComplete ??= output => output.Contains("Unconditional reboot") || output.Contains("Arguments written");

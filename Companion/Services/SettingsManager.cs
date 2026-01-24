@@ -8,7 +8,6 @@ namespace Companion.Services;
 
 public static class SettingsManager
 {
-    private static readonly string AppSettingsName = "openipc_settings.json";
 
     public static string AppSettingFilename
     {
@@ -26,9 +25,9 @@ public static class SettingsManager
     ///     If the settings file does not exist, returns a <see cref="DeviceConfig" />
     ///     with default values.
     /// </returns>
-    public static DeviceConfig? LoadSettings()
+    public static DeviceConfig LoadSettings()
     {
-        DeviceConfig deviceConfig;
+        DeviceConfig? deviceConfig;
 
         if (File.Exists(AppSettingFilename))
             try

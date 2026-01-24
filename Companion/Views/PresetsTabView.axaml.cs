@@ -58,7 +58,7 @@ public partial class PresetsTabView : UserControl
         }
     }
 
-    private void OnApplyPresetClicked(object? sender, RoutedEventArgs e)
+    private async void OnApplyPresetClicked(object? sender, RoutedEventArgs e)
     {
         // Get the Preset from the clicked button's DataContext
         var preset = (sender as Button)?.DataContext as Preset;
@@ -67,7 +67,7 @@ public partial class PresetsTabView : UserControl
         if (DataContext is PresetsTabViewModel viewModel)
         {
             // Call the method to apply preset
-            viewModel.ApplyPresetAsync(preset);
+            await viewModel.ApplyPresetAsync(preset);
         }
     }
 

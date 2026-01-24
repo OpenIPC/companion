@@ -66,15 +66,15 @@ public partial class WfbGSTabViewModel : ViewModelBase
 
     [ObservableProperty] private bool _canConnect;
 
-    [ObservableProperty] private ObservableCollection<string> _frequencies;
-    [ObservableProperty] private string _gsMavlink;
-    [ObservableProperty] private string _gsVideo;
-    [ObservableProperty] private ObservableCollection<int> _power;
+    [ObservableProperty] private ObservableCollection<string> _frequencies = new();
+    [ObservableProperty] private string _gsMavlink = string.Empty;
+    [ObservableProperty] private string _gsVideo = string.Empty;
+    [ObservableProperty] private ObservableCollection<int> _power = new();
 
-    [ObservableProperty] private string _selectedFrequencyString;
+    [ObservableProperty] private string _selectedFrequencyString = string.Empty;
     [ObservableProperty] private int _selectedPower;
 
-    [ObservableProperty] private string _wifiRegion;
+    [ObservableProperty] private string _wifiRegion = string.Empty;
 
     public WfbGSTabViewModel(ILogger logger,
         ISshClientService sshClientService,
@@ -143,7 +143,7 @@ public partial class WfbGSTabViewModel : ViewModelBase
             }
 
             // Upload the updated configuration file
-            SshClientService.UploadFileStringAsync(DeviceConfig.Instance, OpenIPC.WifiBroadcastModProbeFileLoc,
+            await SshClientService.UploadFileStringAsync(DeviceConfig.Instance, OpenIPC.WifiBroadcastModProbeFileLoc,
                 updatedConfigString);
             Log.Information("Configuration file updated and uploaded successfully.");
         }
@@ -177,7 +177,7 @@ public partial class WfbGSTabViewModel : ViewModelBase
             }
 
             // Upload the updated configuration file
-            SshClientService.UploadFileStringAsync(DeviceConfig.Instance, OpenIPC.WifiBroadcastFileLoc,
+            await SshClientService.UploadFileStringAsync(DeviceConfig.Instance, OpenIPC.WifiBroadcastFileLoc,
                 updatedConfigContent);
             Log.Information("Configuration file updated and uploaded successfully.");
         }
@@ -205,8 +205,8 @@ public partial class WfbGSTabViewModel : ViewModelBase
 
             var channel = _wifiConfigParser.WifiChannel;
 
-            string frequencyString;
-            if (_frequencyMapping.TryGetValue(channel, out frequencyString)) SelectedFrequencyString = frequencyString;
+            if (_frequencyMapping.TryGetValue(channel, out var frequencyString))
+                SelectedFrequencyString = frequencyString;
 
             var wifiRegion = _wifiConfigParser.WifiRegion;
             if (!string.IsNullOrEmpty(wifiRegion)) WifiRegion = _wifiConfigParser.WifiRegion;

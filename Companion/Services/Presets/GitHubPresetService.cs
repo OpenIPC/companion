@@ -220,7 +220,7 @@ public class GitHubPresetService : IGitHubPresetService
     /// <param name="localPresetDir">Local directory to save the file</param>
     /// <param name="customUrl">Optional custom URL for the file</param>
     private async Task DownloadAdditionalFileAsync(string fileName, string baseRepoUrl, string localPresetDir,
-        string customUrl = null)
+        string? customUrl = null)
     {
         try
         {
@@ -242,6 +242,7 @@ public class GitHubPresetService : IGitHubPresetService
             }
             catch (HttpRequestException ex)
             {
+                _logger.Warning(ex, "Error downloading file {FileName}, trying binary download if applicable.", fileName);
                 // Handle binary files differently
                 if (IsBinaryFile(fileName))
                 {

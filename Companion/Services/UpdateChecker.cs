@@ -15,7 +15,7 @@ public class UpdateChecker
     public UpdateChecker(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _latestJsonUrl = configuration["UpdateChecker:LatestJsonUrl"];
+        _latestJsonUrl = configuration["UpdateChecker:LatestJsonUrl"] ?? string.Empty;
     }
 
 
@@ -69,10 +69,10 @@ public class UpdateChecker
 
     public class UpdateInfo
     {
-        public string Version { get; set; }
+        public string Version { get; set; } = string.Empty;
 
-        [JsonProperty("release_notes")] public string ReleaseNotes { get; set; }
+        [JsonProperty("release_notes")] public string ReleaseNotes { get; set; } = string.Empty;
 
-        [JsonProperty("download_url")] public string DownloadUrl { get; set; }
+        [JsonProperty("download_url")] public string DownloadUrl { get; set; } = string.Empty;
     }
 }

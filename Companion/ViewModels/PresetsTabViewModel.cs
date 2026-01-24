@@ -119,8 +119,7 @@ public partial class PresetsTabViewModel : ViewModelBase
         ClearFiltersCommand = new RelayCommand(ClearFilters);
         ShowPresetDetailsCommand = new RelayCommand<Preset>(ShowPresetDetails);
         SyncRepositoryCommand = new AsyncRelayCommand<Repository>(SyncRepositoryAsync);
-
-        // CreatePresetCommand = new RelayCommand(async () => await CreatePresetAsync());
+        CreatePresetCommand = new AsyncRelayCommand(CreatePresetAsync);
 
         LoadInitialRepositories();
 
@@ -315,10 +314,11 @@ public partial class PresetsTabViewModel : ViewModelBase
             {
                 _logger.Information($"Processing repository: {repository.Name}");
 
-                // Don't create any directory here, just pass null to let the service handle it
+                var localPresetsDirectory = GetTempPresetsDirectory(SanitizeRepositoryName(repository));
+
                 var downloadedPresets = await _gitHubPresetService.SyncRepositoryPresetsAsync(
                     repository,
-                    null // Pass null to let GitHubPresetService handle directory creation
+                    localPresetsDirectory
                 );
 
                 // Process downloaded presets as before
@@ -452,7 +452,7 @@ public partial class PresetsTabViewModel : ViewModelBase
 
     #region Repository Management Methods
 
-    private async Task AddRepository()
+    private Task AddRepository()
     {
         // Show a dialog to get preset details
 
@@ -470,6 +470,11 @@ public partial class PresetsTabViewModel : ViewModelBase
 
         if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            if (desktop.MainWindow is null)
+            {
+                return Task.CompletedTask;
+            }
+
             var window = new Window
             {
                 Title = "Add Repo",
@@ -482,7 +487,7 @@ public partial class PresetsTabViewModel : ViewModelBase
         }
 
         if (string.IsNullOrWhiteSpace(NewRepositoryUrl))
-            return;
+            return Task.CompletedTask;
 
         try
         {
@@ -498,6 +503,8 @@ public partial class PresetsTabViewModel : ViewModelBase
             _logger.Warning($"Error adding repository: {ex.Message}");
             UpdateUIMessage($"Failed to add repository: {ex.Message}");
         }
+
+        return Task.CompletedTask;
     }
 
     private void RemoveRepository(Repository? repository)
@@ -659,6 +666,11 @@ public partial class PresetsTabViewModel : ViewModelBase
             var dialog = new PresetDetailsDialog();
             if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
+                if (desktop.MainWindow is null)
+                {
+                    return;
+                }
+
                 var result = await dialog.ShowDialog<PresetDetailsResult>(desktop.MainWindow);
 
                 if (result != null && !string.IsNullOrEmpty(result.Name))
@@ -728,6 +740,11 @@ public partial class PresetsTabViewModel : ViewModelBase
 
         if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            if (desktop.MainWindow is null)
+            {
+                return;
+            }
+
             var window = new Window
             {
                 Title = "Preset Details",
@@ -815,8 +832,9 @@ public partial class PresetsTabViewModel : ViewModelBase
 
     #region Utility Methods
 
-    private void UpdateUIMessage(string message)
+    public override void UpdateUIMessage(string message)
     {
+        base.UpdateUIMessage(message);
         LogMessage = message;
     }
 
@@ -874,9 +892,9 @@ public class PresetDetailsDialog : Window
         };
         saveButton.Click += (s, e) => Close(new PresetDetailsResult
         {
-            Name = _nameTextBox.Text,
-            Category = _categoryTextBox.Text,
-            Description = _descriptionTextBox.Text
+            Name = _nameTextBox.Text ?? string.Empty,
+            Category = _categoryTextBox.Text ?? string.Empty,
+            Description = _descriptionTextBox.Text ?? string.Empty
         });
 
         var cancelButton = new Button
@@ -899,7 +917,7 @@ public class PresetDetailsDialog : Window
 /// </summary>
 public class PresetDetailsResult
 {
-    public string Name { get; set; }
-    public string Category { get; set; }
-    public string Description { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
 }

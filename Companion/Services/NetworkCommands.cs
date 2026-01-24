@@ -21,8 +21,10 @@ public class NetworkCommands : INetworkCommands
         throw new NotImplementedException();
     }
 
-    public Task<bool> Ping(string ipAddress)
+    public Task<bool> Ping(DeviceConfig deviceConfig)
     {
+        var ipAddress = deviceConfig.IpAddress;
+
         // Send a ping request
         var reply = ping.Send(ipAddress);
 

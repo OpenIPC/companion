@@ -7,13 +7,13 @@ namespace Companion.ViewModels;
 
 public partial class StatusBarViewModel : ViewModelBase
 {
-    [ObservableProperty] private string _appVersionText;
+    [ObservableProperty] private string _appVersionText = string.Empty;
 
-    [ObservableProperty] private string _hostNameText;
+    [ObservableProperty] private string _hostNameText = string.Empty;
 
-    [ObservableProperty] private string _messageText;
+    [ObservableProperty] private string _messageText = string.Empty;
 
-    [ObservableProperty] private string _statusText;
+    [ObservableProperty] private string _statusText = string.Empty;
 
     public StatusBarViewModel(ILogger logger,
         ISshClientService sshClientService,

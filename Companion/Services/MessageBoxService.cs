@@ -51,7 +51,12 @@ namespace Companion.Services;
                 try
                 {
                     // Get the directory path from the file path
-                    string folderPath = Path.GetDirectoryName(filePath);
+                    var folderPath = Path.GetDirectoryName(filePath);
+                    if (string.IsNullOrWhiteSpace(folderPath))
+                    {
+                        await ShowMessageBox("Error", "Could not determine the containing folder.");
+                        return result;
+                    }
                     
                     // Open the folder in the default file explorer
                     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

@@ -9,7 +9,7 @@ namespace Companion.Converters;
 
 public class CanConnectConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         // Try to get the DataContext from the current view model
         if (Avalonia.Application.Current?.DataContext is PresetsTabViewModel viewModel)
@@ -58,7 +58,7 @@ public class CanConnectConverter : IValueConverter
         return null;
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }

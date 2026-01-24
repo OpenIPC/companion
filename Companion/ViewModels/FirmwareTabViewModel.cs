@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Controls;
+using Avalonia.Platform.Storage;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -46,8 +47,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     private readonly HttpClient _httpClient;
     private readonly SysUpgradeService _sysupgradeService;
-    private CancellationTokenSource _cancellationTokenSource;
-    private FirmwareData _firmwareData;
+    private CancellationTokenSource? _cancellationTokenSource;
+    private FirmwareData _firmwareData = new() { Manufacturers = new ObservableCollection<Manufacturer>() };
     private readonly IGitHubService _gitHubService;
     private bool _bInitializedCommands = false;
     private bool _bRecursionSelectGuard = false;
@@ -90,17 +91,17 @@ public partial class FirmwareTabViewModel : ViewModelBase
     [ObservableProperty] private bool _isManufacturerDeviceFirmwareComboSelected;
     [ObservableProperty] private bool _canDownloadFirmware;
     [ObservableProperty] private bool _isManualUpdateEnabled;
-    [ObservableProperty] private string _selectedDevice;
-    [ObservableProperty] private string _selectedFirmware;
-    [ObservableProperty] private string _selectedFirmwareBySoc;
-    [ObservableProperty] private string _selectedManufacturer;
-    [ObservableProperty] private string _manualLocalFirmwarePackageFile;
+    [ObservableProperty] private string _selectedDevice = string.Empty;
+    [ObservableProperty] private string _selectedFirmware = string.Empty;
+    [ObservableProperty] private string _selectedFirmwareBySoc = string.Empty;
+    [ObservableProperty] private string _selectedManufacturer = string.Empty;
+    [ObservableProperty] private string _manualLocalFirmwarePackageFile = string.Empty;
     [ObservableProperty] private int _progressValue;
     [ObservableProperty] private IBrush _progressBarBrush = new SolidColorBrush(Color.Parse("#4C61D8"));
-    [ObservableProperty] private string _selectedBootloader;
+    [ObservableProperty] private string _selectedBootloader = string.Empty;
     [ObservableProperty] private bool _bootloaderConfirmed;
     [ObservableProperty] private int _bootloaderProgressValue;
-    [ObservableProperty] private string _bootloaderProgressText;
+    [ObservableProperty] private string _bootloaderProgressText = string.Empty;
     [ObservableProperty] private bool _bootloaderInProgress;
     [ObservableProperty] private string _bootloaderStorageTypeLabel = "Detected storage: Unknown";
     [ObservableProperty] private bool _firmwareUpgradeInProgress;
@@ -150,11 +151,11 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     #region Commands
 
-    public IAsyncRelayCommand<Window> SelectLocalFirmwarePackageCommand { get; set; }
-    public IAsyncRelayCommand PerformFirmwareUpgradeAsyncCommand { get; set; }
-    public IAsyncRelayCommand ReplaceBootloaderAsyncCommand { get; set; }
-    public ICommand ClearFormCommand { get; set; }
-    public IAsyncRelayCommand DownloadFirmwareAsyncCommand { get; set; }
+    public IAsyncRelayCommand<Window> SelectLocalFirmwarePackageCommand { get; set; } = new AsyncRelayCommand<Window>(_ => Task.CompletedTask);
+    public IAsyncRelayCommand PerformFirmwareUpgradeAsyncCommand { get; set; } = new AsyncRelayCommand(() => Task.CompletedTask);
+    public IAsyncRelayCommand ReplaceBootloaderAsyncCommand { get; set; } = new AsyncRelayCommand(() => Task.CompletedTask);
+    public ICommand ClearFormCommand { get; set; } = new RelayCommand(() => { });
+    public IAsyncRelayCommand DownloadFirmwareAsyncCommand { get; set; } = new AsyncRelayCommand(() => Task.CompletedTask);
 
     #endregion
 
@@ -175,6 +176,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         _messageBoxService = messageBoxService;
         _httpClient = new HttpClient();
         _sysupgradeService = new SysUpgradeService(sshClientService, logger);
+        _cancellationTokenSource = new CancellationTokenSource();
         _bInitializedCommands = false;
         _bRecursionSelectGuard = false;
         InitializeProperties();
@@ -637,7 +639,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         catch (Exception ex)
         {
             Logger.Error(ex, "Error fetching firmware list.");
-            return null;
+            return new FirmwareData();
         }
     }
     
@@ -677,9 +679,14 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private async Task<IEnumerable<string>> GetFilenamesAsync()
     {
         var response = await _gitHubService.GetGitHubDataAsync(OpenIPC.OpenIPCBuilderGitHubApiUrl);
-        var releaseData = JObject.Parse(response.ToString());
+        if (string.IsNullOrEmpty(response))
+            return Enumerable.Empty<string>();
+
+        var releaseData = JObject.Parse(response);
         var assets = releaseData["assets"];
-        return assets?.Select(asset => asset["name"]?.ToString()).Where(name => !string.IsNullOrEmpty(name)) ??
+        return assets?.Select(asset => asset["name"]?.ToString())
+                   .Where(name => !string.IsNullOrEmpty(name))
+                   .Select(name => name!) ??
                Enumerable.Empty<string>();
     }
 
@@ -689,13 +696,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
         if (string.IsNullOrEmpty(response))
             return Enumerable.Empty<string>();
 
-        var releaseData = JObject.Parse(response.ToString());
+        var releaseData = JObject.Parse(response);
         var assets = releaseData["assets"];
-        return assets?.Select(asset => asset["name"]?.ToString()).Where(name => !string.IsNullOrEmpty(name)) ??
+        return assets?.Select(asset => asset["name"]?.ToString())
+                   .Where(name => !string.IsNullOrEmpty(name))
+                   .Select(name => name!) ??
                Enumerable.Empty<string>();
     }
 
-    private static IEnumerable<string> FilterBootloadersByStorage(IEnumerable<string> filenames, string storageType)
+    private static IEnumerable<string> FilterBootloadersByStorage(IEnumerable<string> filenames, string? storageType)
     {
         var bootloaderFiles = filenames
             .Where(name => name.Contains("u-boot", StringComparison.OrdinalIgnoreCase) &&
@@ -726,7 +735,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
             : (lower.Contains("-nand") || lower.Contains("_nand"));
     }
 
-    private async Task<string> GetDeviceStorageTypeAsync()
+    private async Task<string?> GetDeviceStorageTypeAsync()
     {
         if (!IsConnected)
             return null;
@@ -755,7 +764,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         return null;
     }
 
-    private void UpdateBootloaderStorageTypeLabel(string storageType)
+    private void UpdateBootloaderStorageTypeLabel(string? storageType)
     {
         var label = "Detected storage: Unknown";
         if (string.Equals(storageType, "nor", StringComparison.OrdinalIgnoreCase))
@@ -978,10 +987,16 @@ public partial class FirmwareTabViewModel : ViewModelBase
         return firmwarePackage;
     }
 
-    private async Task<string> DownloadFirmwareAsync(string url = null, string filename = null)
+    private async Task<string?> DownloadFirmwareAsync(string? url = null, string? filename = null)
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(filename))
+            {
+                Logger.Warning("Download firmware skipped: missing url or filename.");
+                return null;
+            }
+
             var filePath = Path.Combine(Path.GetTempPath(), filename);
             Logger.Information($"Downloading firmware from {url} to {filePath}");
 
@@ -1008,7 +1023,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         }
     }
 
-    private async Task<string> DownloadBootloaderAsync(string filename)
+    private async Task<string?> DownloadBootloaderAsync(string filename)
     {
         try
         {
@@ -1071,7 +1086,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
             Bootloaders.Add(bootloader);
 
         if (Bootloaders.Any() && string.IsNullOrEmpty(SelectedBootloader))
-            SelectedBootloader = Bootloaders.FirstOrDefault();
+            SelectedBootloader = Bootloaders.FirstOrDefault() ?? string.Empty;
 
         Logger.Information($"Loaded {Bootloaders.Count} bootloader entries.");
     }
@@ -1118,8 +1133,14 @@ public partial class FirmwareTabViewModel : ViewModelBase
             {
                 foreach (var entry in archive.Entries.Where(entry => !entry.IsDirectory))
                 {
+                    if (string.IsNullOrEmpty(entry.Key))
+                        continue;
+
                     var destinationPath = Path.Combine(tempDir, entry.Key);
                     var directoryPath = Path.GetDirectoryName(destinationPath);
+
+                    if (string.IsNullOrEmpty(directoryPath))
+                        continue;
 
                     if (!Directory.Exists(directoryPath))
                         Directory.CreateDirectory(directoryPath);
@@ -1374,7 +1395,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
                 return;
             }
 
-            string firmwareFilePath = await DownloadFirmwareAsync(downloadUrl, filename);
+            string? firmwareFilePath = await DownloadFirmwareAsync(downloadUrl, filename);
             if (!string.IsNullOrEmpty(firmwareFilePath))
             {
                 await UpgradeFirmwareFromFileAsync(firmwareFilePath);
@@ -1430,7 +1451,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
                 return;
             }
 
-            string firmwareFilePath = await DownloadFirmwareAsync(downloadUrl, filename);
+            string? firmwareFilePath = await DownloadFirmwareAsync(downloadUrl, filename);
             if (!string.IsNullOrEmpty(firmwareFilePath))
             {
                 await UpgradeFirmwareFromFileAsync(firmwareFilePath);
@@ -1672,25 +1693,29 @@ public partial class FirmwareTabViewModel : ViewModelBase
         }
     }
 
-    public async Task SelectLocalFirmwarePackage(Window window)
+    public async Task SelectLocalFirmwarePackage(Window? window)
     {
-        var dialog = new OpenFileDialog
+        if (window is null)
+            return;
+
+        if (window.StorageProvider == null)
+            return;
+
+        var options = new FilePickerOpenOptions
         {
             Title = "Select a File",
-            Filters = new List<FileDialogFilter>
+            FileTypeFilter = new List<FilePickerFileType>
             {
-                new() { Name = "Compressed", Extensions = { "tgz" } },
-                new() { Name = "Bin Files", Extensions = { "bin" } },
-                new() { Name = "All Files", Extensions = { "*" } }
+                new("Compressed") { Patterns = new List<string> { "*.tgz" } },
+                new("Bin Files") { Patterns = new List<string> { "*.bin" } },
+                new("All Files") { Patterns = new List<string> { "*" } }
             }
         };
 
-        var result = await dialog.ShowAsync(window);
-
-        if (result != null && result.Length > 0)
+        var files = await window.StorageProvider.OpenFilePickerAsync(options);
+        var selectedFile = files.FirstOrDefault()?.TryGetLocalPath();
+        if (!string.IsNullOrEmpty(selectedFile))
         {
-            var selectedFile = result[0];
-            var fileName = Path.GetFileName(selectedFile);
             Console.WriteLine($"Selected File: {selectedFile}");
             _bRecursionSelectGuard = true;
             ManualLocalFirmwarePackageFile = selectedFile;
@@ -1738,7 +1763,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
 //
 public class FirmwareData
 {
-    public ObservableCollection<Manufacturer> Manufacturers { get; set; }
+    public ObservableCollection<Manufacturer> Manufacturers { get; set; } = new();
 
     public void SortCollections()
     {
@@ -1755,9 +1780,9 @@ public class FirmwareData
 
 public class Manufacturer
 {
-    public string Name { get; set; }
-    public string FriendlyName { get; set; }
-    public ObservableCollection<Device> Devices { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string FriendlyName { get; set; } = string.Empty;
+    public ObservableCollection<Device> Devices { get; set; } = new();
 
     public void SortCollections()
     {
@@ -1771,9 +1796,9 @@ public class Manufacturer
 
 public class Device
 {
-    public string Name { get; set; }
-    public string FriendlyName { get; set; }
-    public ObservableCollection<FirmwarePackage> FirmwarePackages { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string FriendlyName { get; set; } = string.Empty;
+    public ObservableCollection<FirmwarePackage> FirmwarePackages { get; set; } = new();
 
     public void SortCollections()
     {
@@ -1783,8 +1808,8 @@ public class Device
 
 public class FirmwarePackage
 {
-    public string Name { get; set; }
-    public string FriendlyName { get; set; }
-    public string PackageFile { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string FriendlyName { get; set; } = string.Empty;
+    public string PackageFile { get; set; } = string.Empty;
 }
 #endregion

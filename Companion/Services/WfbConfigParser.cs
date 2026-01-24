@@ -8,10 +8,10 @@ namespace Companion.Services;
 public class WfbConfigParser
 {
     // Properties to store parsed values
-    public string Unit { get; private set; }
-    public string Wlan { get; private set; }
-    public string Region { get; private set; }
-    public string Channel { get; private set; }
+    public string Unit { get; private set; } = string.Empty;
+    public string Wlan { get; private set; } = string.Empty;
+    public string Region { get; private set; } = string.Empty;
+    public string Channel { get; private set; } = string.Empty;
     public int TxPower { get; private set; }
     public int DriverTxPowerOverride { get; private set; }
     public int Bandwidth { get; private set; }
@@ -22,11 +22,11 @@ public class WfbConfigParser
     public long LinkId { get; private set; }
     public int UdpPort { get; private set; }
     public int RcvBuf { get; private set; }
-    public string FrameType { get; private set; }
+    public string FrameType { get; private set; } = string.Empty;
     public int FecK { get; private set; }
     public int FecN { get; private set; }
     public int PoolTimeout { get; private set; }
-    public string GuardInterval { get; private set; }
+    public string GuardInterval { get; private set; } = string.Empty;
 
     // Method to parse configuration from a string
     public void ParseConfigString(string configContent)
@@ -64,16 +64,16 @@ public class WfbConfigParser
 
         // Set properties based on parsed values
         configDict.TryGetValue("unit", out var unit);
-        Unit = unit;
+        Unit = unit ?? string.Empty;
 
         configDict.TryGetValue("wlan", out var wlan);
-        Wlan = wlan;
+        Wlan = wlan ?? string.Empty;
 
         configDict.TryGetValue("region", out var region);
-        Region = region;
+        Region = region ?? string.Empty;
 
         configDict.TryGetValue("channel", out var channel);
-        Channel = channel;
+        Channel = channel ?? string.Empty;
 
         if (configDict.TryGetValue("txpower", out var txPower))
             TxPower = int.TryParse(txPower, out var value) ? value : 0;
@@ -102,7 +102,7 @@ public class WfbConfigParser
         if (configDict.TryGetValue("rcv_buf", out var rcvBuf)) RcvBuf = int.TryParse(rcvBuf, out var value) ? value : 0;
 
         configDict.TryGetValue("frame_type", out var frameType);
-        FrameType = frameType;
+        FrameType = frameType ?? string.Empty;
 
         if (configDict.TryGetValue("fec_k", out var fecK)) FecK = int.TryParse(fecK, out var value) ? value : 0;
 
@@ -112,7 +112,7 @@ public class WfbConfigParser
             PoolTimeout = int.TryParse(poolTimeout, out var value) ? value : 0;
 
         configDict.TryGetValue("guard_interval", out var guardInterval);
-        GuardInterval = guardInterval;
+        GuardInterval = guardInterval ?? string.Empty;
 
         // Log the parsed configuration
         Log.Debug("WFB Configuration Parsed Successfully:");

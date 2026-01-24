@@ -15,6 +15,7 @@ namespace Companion.Services.Presets;
 /// <summary>
 /// Service for applying and managing presets
 /// </summary>
+[Obsolete("Deprecated: PresetService is legacy and will be replaced by a newer preset workflow.")]
 public class PresetService : IPresetService
 {
     private readonly ILogger _logger;
@@ -25,8 +26,8 @@ public class PresetService : IPresetService
     private readonly Dictionary<string, string> _cachedFileContents = new();
 
     // Add a field to track the active preset being applied
-    private Preset _activePreset;
-    private readonly string _presetsFolder;
+    private Preset? _activePreset;
+    private readonly string _presetsFolder = Path.Combine(Path.GetTempPath(), "OpenIPC Companion", "Presets");
 
     // List of critical system files to ignore
     private readonly HashSet<string> _criticalSystemFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -58,6 +59,7 @@ public class PresetService : IPresetService
                                     throw new ArgumentNullException(nameof(eventSubscriptionService));
         _yamlConfigService = yamlConfigService ?? throw new ArgumentNullException(nameof(yamlConfigService));
         _globalSettingsService = globalSettingsService;
+        Directory.CreateDirectory(_presetsFolder);
     }
 
     /// <inheritdoc />

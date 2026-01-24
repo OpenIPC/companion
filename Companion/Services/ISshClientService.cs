@@ -9,7 +9,7 @@ namespace Companion.Services;
 public interface ISshClientService
 {
     // Executes a command on the remote device and returns its response
-    Task<SshCommand> ExecuteCommandWithResponseAsync(DeviceConfig deviceConfig, string command,
+    Task<SshCommand?> ExecuteCommandWithResponseAsync(DeviceConfig deviceConfig, string command,
         CancellationToken cancellationToken);
 
     
@@ -56,5 +56,5 @@ public interface ISshClientService
         Action<string> updateProgress,
         CancellationToken cancellationToken = default,
         TimeSpan? timeout = null,
-        Func<string, bool> isCommandComplete = null);
+        Func<string, bool>? isCommandComplete = null);
 }

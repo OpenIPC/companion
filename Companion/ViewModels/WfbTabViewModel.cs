@@ -25,7 +25,6 @@ public partial class WfbTabViewModel : ViewModelBase
     #region Private Fields
     private readonly Dictionary<int, string> _24FrequencyMapping = FrequencyMappings.Frequency24GHz;
     private readonly Dictionary<int, string> _58FrequencyMapping = FrequencyMappings.Frequency58GHz;
-    private bool _isDisposed;
     private readonly IYamlConfigService _yamlConfigService;
     private readonly Dictionary<string, string> _yamlConfig = new();
     private readonly IGlobalSettingsService _globalSettingsService;
@@ -33,8 +32,8 @@ public partial class WfbTabViewModel : ViewModelBase
 
     #region Observable Properties
     [ObservableProperty] private bool _canConnect;
-    [ObservableProperty] private string _wfbConfContent;
-    [ObservableProperty] private string _wfbYamlContent;
+    [ObservableProperty] private string _wfbConfContent = string.Empty;
+    [ObservableProperty] private string _wfbYamlContent = string.Empty;
     [ObservableProperty] private int _selectedChannel;
     [ObservableProperty] private int _selectedPower24GHz;
     [ObservableProperty] private int _selectedBandwidth;
@@ -44,21 +43,21 @@ public partial class WfbTabViewModel : ViewModelBase
     [ObservableProperty] private int _selectedStbc;
     [ObservableProperty] private int _selectedFecK;
     [ObservableProperty] private int _selectedFecN;
-    [ObservableProperty] private string _selectedFrequency24String;
-    [ObservableProperty] private string _selectedFrequency58String;
+    [ObservableProperty] private string _selectedFrequency24String = string.Empty;
+    [ObservableProperty] private string _selectedFrequency58String = string.Empty;
     #endregion
 
     #region Collections
-    [ObservableProperty] private ObservableCollection<string> _frequencies58GHz;
-    [ObservableProperty] private ObservableCollection<string> _frequencies24GHz;
-    [ObservableProperty] private ObservableCollection<int> _power58GHz;
-    [ObservableProperty] private ObservableCollection<int> _power24GHz;
-    [ObservableProperty] private ObservableCollection<int> _bandwidth;
-    [ObservableProperty] private ObservableCollection<int> _mcsIndex;
-    [ObservableProperty] private ObservableCollection<int> _stbc;
-    [ObservableProperty] private ObservableCollection<int> _ldpc;
-    [ObservableProperty] private ObservableCollection<int> _fecK;
-    [ObservableProperty] private ObservableCollection<int> _fecN;
+    [ObservableProperty] private ObservableCollection<string> _frequencies58GHz = new();
+    [ObservableProperty] private ObservableCollection<string> _frequencies24GHz = new();
+    [ObservableProperty] private ObservableCollection<int> _power58GHz = new();
+    [ObservableProperty] private ObservableCollection<int> _power24GHz = new();
+    [ObservableProperty] private ObservableCollection<int> _bandwidth = new();
+    [ObservableProperty] private ObservableCollection<int> _mcsIndex = new();
+    [ObservableProperty] private ObservableCollection<int> _stbc = new();
+    [ObservableProperty] private ObservableCollection<int> _ldpc = new();
+    [ObservableProperty] private ObservableCollection<int> _fecK = new();
+    [ObservableProperty] private ObservableCollection<int> _fecN = new();
     [ObservableProperty] private int _mlink = 0;
     [ObservableProperty] private int _maxPower58GHz = 60;
     [ObservableProperty] private int _maxPower24GHz = 60;
@@ -68,7 +67,7 @@ public partial class WfbTabViewModel : ViewModelBase
     /// <summary>
     /// Command to restart the WFB service
     /// </summary>
-    public ICommand RestartWfbCommand { get; set; }
+    public ICommand RestartWfbCommand { get; set; } = new AsyncRelayCommand(() => Task.CompletedTask);
     #endregion
 
     #region Constructor
@@ -293,7 +292,7 @@ public partial class WfbTabViewModel : ViewModelBase
                     OpenIPC.WfbYamlFileLoc,
                     updatedYamlContent);
 
-                SshClientService.ExecuteCommandAsync(
+                await SshClientService.ExecuteCommandAsync(
                     DeviceConfig.Instance,
                     DeviceCommands.WfbRestartCommand);
 
@@ -449,12 +448,12 @@ public partial class WfbTabViewModel : ViewModelBase
         // Reset the other frequency collection to its first value
         if (frequencyMapping == _24FrequencyMapping)
         {
-            SelectedFrequency58String = Frequencies58GHz.FirstOrDefault();
+            SelectedFrequency58String = Frequencies58GHz.FirstOrDefault() ?? string.Empty;
             //SelectedPower = Power58GHz.FirstOrDefault();
         }
         else if (frequencyMapping == _58FrequencyMapping)
         {
-            SelectedFrequency24String = Frequencies24GHz.FirstOrDefault();
+            SelectedFrequency24String = Frequencies24GHz.FirstOrDefault() ?? string.Empty;
             //SelectedPower = Power24GHz.FirstOrDefault();
         }
 

@@ -19,14 +19,14 @@ public class LogViewerViewModel : ViewModelBase
     private int _duplicateCount;
     private DateTime _lastFlushTime = DateTime.Now;
     private string _lastMessage = string.Empty;
-    private string _messageText;
+    private string _messageText = string.Empty;
     #endregion
 
     #region Public Properties
     /// <summary>
     /// Collection of log messages to display
     /// </summary>
-    public ObservableCollection<string> LogMessages { get; set; }
+    public ObservableCollection<string> LogMessages { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the current message text
@@ -123,7 +123,7 @@ public class LogViewerViewModel : ViewModelBase
         // Periodically flush duplicate count (every 5 seconds)
         if ((DateTime.Now - _lastFlushTime).TotalSeconds >= 5 && _duplicateCount > 0)
         {
-            FlushDuplicateMessage();
+            _ = FlushDuplicateMessage();
         }
     }
 
@@ -143,7 +143,7 @@ public class LogViewerViewModel : ViewModelBase
         _lastMessage = message;
 
         // Add new message to log
-        Dispatcher.UIThread.InvokeAsync(() => LogMessages.Insert(0, formattedMessage));
+        await Dispatcher.UIThread.InvokeAsync(() => LogMessages.Insert(0, formattedMessage));
     }
 
     /// <summary>
@@ -156,7 +156,7 @@ public class LogViewerViewModel : ViewModelBase
             var duplicateMessage = FormatLogMessage(
                 $"[Last message repeated {_duplicateCount} times]");
 
-            Dispatcher.UIThread.InvokeAsync(() => LogMessages.Insert(0, duplicateMessage));
+            await Dispatcher.UIThread.InvokeAsync(() => LogMessages.Insert(0, duplicateMessage));
             _duplicateCount = 0;
             _lastFlushTime = DateTime.Now;
         }

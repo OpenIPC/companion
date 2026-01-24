@@ -14,7 +14,7 @@ public class PresetIndex
     /// Version of the preset index format
     /// </summary>
     [YamlMember(Alias = "version")]
-    public string Version { get; set; }
+    public string Version { get; set; } = string.Empty;
 
     /// <summary>
     /// Timestamp of when the index was last updated
@@ -34,4 +34,3 @@ public class PresetIndex
     [YamlMember(Alias = "presets")]
     public List<PresetIndexEntry> Presets { get; set; } = new();
 }
-

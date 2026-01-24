@@ -12,7 +12,7 @@ public class EventAggregatorSink : ILogEventSink
     private readonly IEventAggregator _eventAggregator;
     private readonly IFormatProvider _formatProvider;
 
-    public EventAggregatorSink(IEventAggregator eventAggregator, IFormatProvider formatProvider = null)
+    public EventAggregatorSink(IEventAggregator eventAggregator, IFormatProvider? formatProvider = null)
     {
         _eventAggregator = eventAggregator;
         _formatProvider = formatProvider ?? CultureInfo.InvariantCulture;

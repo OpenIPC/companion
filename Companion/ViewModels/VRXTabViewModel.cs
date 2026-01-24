@@ -21,20 +21,20 @@ public partial class VRXTabViewModel : ViewModelBase
 {
     [ObservableProperty] private bool _canConnect;
 
-    [ObservableProperty] private string _droneKeyChecksum;
+    [ObservableProperty] private string _droneKeyChecksum = string.Empty;
 
-    [ObservableProperty] private ObservableCollection<string> _fps;
+    [ObservableProperty] private ObservableCollection<string> _fps = new();
     [ObservableProperty] private bool _isExtendedMavLinkOSD;
 
     [ObservableProperty] private bool _isSimpleMavLinkOSD;
 
-    [ObservableProperty] private ObservableCollection<string> _resolution;
+    [ObservableProperty] private ObservableCollection<string> _resolution = new();
 
-    [ObservableProperty] private string _selectedFps;
+    [ObservableProperty] private string _selectedFps = string.Empty;
 
-    [ObservableProperty] private string _selectedResolution;
+    [ObservableProperty] private string _selectedResolution = string.Empty;
 
-    [ObservableProperty] private string _wfbConfContent;
+    [ObservableProperty] private string _wfbConfContent = string.Empty;
 
     public VRXTabViewModel(ILogger logger,
         ISshClientService sshClientService,
@@ -142,10 +142,10 @@ public partial class VRXTabViewModel : ViewModelBase
             {
                 //basic
                 UpdateUIMessage("Setting Simple Mavlink OSD");
-                SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.GsMavBasic1);
-                SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.GsMavBasic2);
+                await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.GsMavBasic1);
+                await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.GsMavBasic2);
                 UpdateUIMessage("Rebooting device");
-                SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.RebootCommand);
+                await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.RebootCommand);
             }
             catch (Exception e)
             {
@@ -157,10 +157,10 @@ public partial class VRXTabViewModel : ViewModelBase
             try
             {
                 UpdateUIMessage("Setting Extended Mavlink OSD");
-                SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.GsMavExtended1);
-                SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.GsMavExtended2);
+                await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.GsMavExtended1);
+                await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.GsMavExtended2);
                 UpdateUIMessage("Rebooting device");
-                SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.RebootCommand);
+                await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.RebootCommand);
             }
             catch (Exception e)
             {
@@ -187,9 +187,9 @@ public partial class VRXTabViewModel : ViewModelBase
     private async Task EnableVrxMSPDisplayport()
     {
         Log.Information("EnableVrxMSPDisplayport clicked");
-        SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.GSMSPDisplayportCommand);
-        SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.GSMSPDisplayport2Command);
-        SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.RebootCommand);
+        await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.GSMSPDisplayportCommand);
+        await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.GSMSPDisplayport2Command);
+        await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.RebootCommand);
         Log.Information("EnableVrxMSPDisplaypor..done");
         //mspgs
         //plink -ssh root@%2 -pw %3 sed -i '/pixelpilot --osd --screen-mode $SCREEN_MODE --dvr-framerate $REC_FPS --dvr-fmp4 --dvr record_${current_date}.mp4/c\pixelpilot --osd --osd-elements video,wfbng --screen-mode $SCREEN_MODE --dvr-framerate $REC_FPS --dvr-fmp4 --dvr record_${current_date}.mp4 "&"' /config/scripts/stream.sh
