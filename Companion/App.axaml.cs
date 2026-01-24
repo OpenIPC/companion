@@ -335,8 +335,7 @@ public class App : Application
         // Set up the necessary dependencies
         var httpClient = new HttpClient();
 
-        var configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            Assembly.GetExecutingAssembly().GetName().Name, "appsettings.json");
+        var configPath = OpenIPC.AppDataConfigPath;
 
         Console.WriteLine($"Loading configuration from: {configPath}");
 
