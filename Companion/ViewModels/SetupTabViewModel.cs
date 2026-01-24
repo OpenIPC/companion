@@ -84,18 +84,19 @@ public partial class SetupTabViewModel : ViewModelBase
     #endregion
 
     #region Commands
-    private ICommand _encryptionKeyActionCommand = new AsyncRelayCommand<string?>(_ => Task.CompletedTask);
-    private ICommand _firmwareUpdateCommand = new AsyncRelayCommand(() => Task.CompletedTask);
-    private ICommand _offlineUpdateCommand = new AsyncRelayCommand(() => Task.CompletedTask);
-    private ICommand _recvDroneKeyCommand = new AsyncRelayCommand(() => Task.CompletedTask);
-    private ICommand _recvGSKeyCommand = new AsyncRelayCommand(() => Task.CompletedTask);
-    private ICommand _resetCameraCommand = new AsyncRelayCommand(() => Task.CompletedTask);
-    private ICommand _scanCommand = new AsyncRelayCommand(() => Task.CompletedTask);
-    private ICommand _cancelScanCommand = new RelayCommand(() => { });
-    private ICommand _scriptFilesCommand = new AsyncRelayCommand(() => Task.CompletedTask);
-    private ICommand _sendDroneKeyCommand = new AsyncRelayCommand(() => Task.CompletedTask);
-    private ICommand _sendGSKeyCommand = new AsyncRelayCommand(() => Task.CompletedTask);
-    private ICommand _sensorFilesUpdateCommand = new AsyncRelayCommand(() => Task.CompletedTask);
+    private ICommand? _encryptionKeyActionCommand;
+    private ICommand? _firmwareUpdateCommand;
+    private ICommand? _offlineUpdateCommand;
+    private ICommand? _recvDroneKeyCommand;
+    private ICommand? _recvGSKeyCommand;
+    private ICommand? _resetCameraCommand;
+    private ICommand? _scanCommand;
+    private ICommand? _cancelScanCommand;
+    private ICommand? _scriptFilesCommand;
+    private ICommand? _sendDroneKeyCommand;
+    private ICommand? _sendGSKeyCommand;
+    private ICommand? _sensorFilesUpdateCommand;
+    private ICommand? _keyManagementCommand;
     public ICommand KeyManagementCommand => 
         _keyManagementCommand ??= new AsyncRelayCommand(ExecuteKeyManagementActionAsync);
     #endregion
@@ -108,7 +109,7 @@ public partial class SetupTabViewModel : ViewModelBase
     public ICommand RecvGSKeyCommand => _recvGSKeyCommand ??= new AsyncRelayCommand(RecvGSKeyAsync);
     public ICommand ScriptFilesCommand => _scriptFilesCommand ??= new AsyncRelayCommand(ScriptFilesActionAsync);
     public ICommand EncryptionKeyActionCommand =>
-        _encryptionKeyActionCommand ??= new AsyncRelayCommand<string>(EncryptionKeyActionAsync);
+        _encryptionKeyActionCommand ??= new AsyncRelayCommand<string?>(EncryptionKeyActionAsync);
     public ICommand SensorFilesUpdateCommand =>
         _sensorFilesUpdateCommand ??= new AsyncRelayCommand(SensorFilesUpdateAsync);
     public ICommand FirmwareUpdateCommand =>
@@ -328,8 +329,6 @@ public partial class SetupTabViewModel : ViewModelBase
     }
 
     // Key Management Methods to add to your SetupTabViewModel.cs file
-
-private ICommand _keyManagementCommand = new AsyncRelayCommand(() => Task.CompletedTask);
 
 private async Task ExecuteKeyManagementActionAsync()
 {
