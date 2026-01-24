@@ -5,6 +5,7 @@
              xmlns:vm="clr-namespace:Companion.ViewModels"
              xmlns:converters="clr-namespace:Companion.Converters"
              xmlns:assets="clr-namespace:Companion.Assets"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Companion.Views.FirmwareTabView"
              x:DataType="vm:FirmwareTabViewModel">
@@ -25,11 +26,14 @@
         <Style Selector="Expander[IsExpanded=true] TextBlock.expander-header-text">
             <Setter Property="Foreground" Value="White" />
         </Style>
+        <Style Selector="ComboBox.firmware-combo">
+            <Setter Property="Width" Value="{x:Static sys:Double.NaN}" />
+        </Style>
     </UserControl.Styles>
 
     <ScrollViewer>
         <StackPanel Orientation="Vertical">
-            <Expander IsExpanded="True"
+            <Expander IsExpanded="{Binding IsFirmwareExpanded}"
                       HorizontalAlignment="Stretch"
                       Margin="8,0,8,4"
                       IsEnabled="{Binding BootloaderInProgress, Converter={StaticResource InvertedBooleanConverter}}">
@@ -69,55 +73,64 @@
 
                     <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
                         <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*"
-                              ColumnDefinitions="Auto,Auto,Auto"
+                              ColumnDefinitions="*,Auto,*"
                               ShowGridLines="False">
 
                             <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Background="#E7E7E7" CornerRadius="8" Padding="5">
-                                <Panel>
-                                    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*"
-                                          ShowGridLines="False">
-                                        <!-- Manufacturer -->
-                                        <TextBlock Text="Manufacturer" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
+                                <Grid RowDefinitions="Auto,Auto,Auto"
+                                      ColumnDefinitions="Auto,*"
+                                      HorizontalAlignment="Stretch"
+                                      ShowGridLines="False">
+                                    <!-- Manufacturer -->
+                                    <TextBlock Text="Manufacturer" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
                                     <ComboBox Grid.Row="0" Grid.Column="1"
+                                              Classes="firmware-combo"
                                               IsEnabled="{Binding CanUseDropdowns}"
                                               SelectedItem="{Binding SelectedManufacturer, Mode=TwoWay}"
                                               ItemsSource="{Binding Manufacturers}"
-                                              HorizontalAlignment="Stretch"
+                                              HorizontalAlignment="Left"
+                                              Margin="10,0,0,0"
                                               Background="#E7E7E7" />
 
-                                        <!-- Device -->
-                                        <TextBlock Text="Device" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                                    <!-- Device -->
+                                    <TextBlock Text="Device" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
                                     <ComboBox Grid.Row="1" Grid.Column="1"
+                                              Classes="firmware-combo"
                                               IsEnabled="{Binding CanUseDropdowns}"
                                               SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
                                               ItemsSource="{Binding Devices}"
-                                              HorizontalAlignment="Stretch"
+                                              HorizontalAlignment="Left"
+                                              Margin="10,0,0,0"
                                               Background="#E7E7E7" />
 
-                                        <!-- WFB/Ruby -->
-                                        <TextBlock Text="WFB/Ruby" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
+                                    <!-- WFB/Ruby -->
+                                    <TextBlock Text="WFB/Ruby" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
                                     <ComboBox Grid.Row="2" Grid.Column="1"
+                                              Classes="firmware-combo"
                                               IsEnabled="{Binding CanUseDropdowns}"
                                               SelectedItem="{Binding SelectedFirmware, Mode=TwoWay}"
                                               ItemsSource="{Binding Firmwares}"
-                                              HorizontalAlignment="Stretch"
+                                              HorizontalAlignment="Left"
+                                              Margin="10,0,0,0"
                                               Background="#E7E7E7" />
-                                    </Grid>
-                                </Panel>
+                                </Grid>
                             </Border>
 
                             <TextBlock Text="OR" Grid.Row="1" Grid.Column="1" Padding="0,5,0,5" VerticalAlignment="Center" />
 
                             <!-- Choice Section -->
-                            <Border Grid.Row="4" Grid.Column="0"  Grid.ColumnSpan="2" Background="#E7E7E7" CornerRadius="8" Padding="5">
+                            <Border Grid.Row="4" Grid.Column="0"  Grid.ColumnSpan="3" Background="#E7E7E7" CornerRadius="8" Padding="5">
                                 <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto"
+                                      HorizontalAlignment="Stretch"
                                       ToolTip.Tip="{x:Static assets:Resources.FirmwareChoiceToolTip}">
                                     <TextBlock Text="Select Firmware" Grid.Row="0" Grid.Column="0"
                                                IsEnabled="{Binding CanUseDropdowns}"
                                                VerticalAlignment="Center" />
 
                                     <ComboBox Grid.Row="0" Grid.Column="1"
-                                              HorizontalAlignment="Stretch"
+                                              Classes="firmware-combo"
+                                              HorizontalAlignment="Left"
+                                              Margin="10,0,0,0"
                                               IsEnabled="{Binding CanUseDropdownsBySoc}"
                                               SelectedItem="{Binding SelectedFirmwareBySoc, Mode=TwoWay}"
                                               ItemsSource="{Binding FirmwareBySoc}"
@@ -128,7 +141,7 @@
                             <TextBlock Text="OR" Grid.Row="5" Grid.Column="1" Padding="0,5,0,5" VerticalAlignment="Center" />
 
                             <!-- Manual Section -->
-                            <Border Grid.Column="0" Grid.Row="6" Grid.ColumnSpan="2" Background="#E7E7E7"
+                            <Border Grid.Column="0" Grid.Row="6" Grid.ColumnSpan="3" Background="#E7E7E7"
                                     CornerRadius="8" Padding="5">
 
                                 <Grid ColumnDefinitions="Auto, Auto, Auto"
@@ -175,7 +188,7 @@
                             <!-- Update Button -->
                             <Button Content="Update"
                                     Grid.Row="7"
-                                    Grid.Column="1"
+                                    Grid.Column="2"
                                     IsDefault="True"
                                     HorizontalAlignment="Right"
                                     Width="100"
@@ -205,7 +218,7 @@
                 </StackPanel>
             </Expander>
 
-            <Expander IsExpanded="False"
+            <Expander IsExpanded="{Binding IsBootloaderExpanded}"
                       HorizontalAlignment="Stretch"
                       Margin="8,0,8,4"
                       IsEnabled="{Binding FirmwareUpgradeInProgress, Converter={StaticResource InvertedBooleanConverter}}">
