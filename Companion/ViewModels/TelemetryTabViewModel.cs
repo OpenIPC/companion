@@ -174,15 +174,15 @@ public partial class TelemetryTabViewModel : ViewModelBase
 
     private void InitializeCommands()
     {
-        EnableUART0Command = new RelayCommand(EnableUART0);
-        DisableUART0Command = new RelayCommand(DisableUART0);
-        AddMavlinkCommand = new RelayCommand(AddMavlink);
-        UploadLatestVtxMenuCommand = new RelayCommand(UploadLatestVtxMenu);
-        Enable40MhzCommand = new RelayCommand(Enable40Mhz);
-        MSPOSDExtraCameraCommand = new RelayCommand(AddMSPOSDCameraExtra);
-        MSPOSDExtraGSCommand = new RelayCommand(AddMSPOSDGSExtra);
-        RemoveMSPOSDExtraCommand = new RelayCommand(RemoveMSPOSDExtra);
-        SaveAndRestartTelemetryCommand = new RelayCommand(SaveAndRestartTelemetry);
+        EnableUART0Command = new AsyncRelayCommand(EnableUART0);
+        DisableUART0Command = new AsyncRelayCommand(DisableUART0);
+        AddMavlinkCommand = new AsyncRelayCommand(AddMavlink);
+        UploadLatestVtxMenuCommand = new AsyncRelayCommand(UploadLatestVtxMenu);
+        Enable40MhzCommand = new AsyncRelayCommand(Enable40Mhz);
+        MSPOSDExtraCameraCommand = new AsyncRelayCommand(AddMSPOSDCameraExtra);
+        MSPOSDExtraGSCommand = new AsyncRelayCommand(AddMSPOSDGSExtra);
+        RemoveMSPOSDExtraCommand = new AsyncRelayCommand(RemoveMSPOSDExtra);
+        SaveAndRestartTelemetryCommand = new AsyncRelayCommand(SaveAndRestartTelemetry);
         // Initialize the ToggleAlinkDroneCommand properly
         
     }
@@ -239,26 +239,26 @@ public partial class TelemetryTabViewModel : ViewModelBase
     #endregion
     
     #region Command Handlers
-    private async void EnableUART0()
+    private async Task EnableUART0()
     {
         UpdateUIMessage("Enabling UART0...");
         await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.UART0OnCommand);
     }
 
-    private async void DisableUART0()
+    private async Task DisableUART0()
     {
         UpdateUIMessage("Disabling UART0...");
         await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, DeviceCommands.UART0OffCommand);
     }
 
-    private async void AddMavlink()
+    private async Task AddMavlink()
     {
         UpdateUIMessage("Adding MAVLink...");
         await SshClientService.ExecuteCommandAsync(DeviceConfig.Instance, TelemetryCommands.Extra);
         await RebootDevice();
     }
 
-    private async void UploadLatestVtxMenu()
+    private async Task UploadLatestVtxMenu()
     {
         Log.Debug("UploadLatestVtxMenu executed");
 
@@ -272,7 +272,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
         await RebootDevice();
     }
 
-    private async void Enable40Mhz()
+    private async Task Enable40Mhz()
     {
         // if using wfb.yaml system don't do this
         UpdateUIMessage("Enabling 40MHz...");
@@ -285,7 +285,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
         UpdateUIMessage("Enabling 40MHz...done");
     }
 
-    private async void RemoveMSPOSDExtra()
+    private async Task RemoveMSPOSDExtra()
     {
         Log.Debug("Remove MSPOSDExtra executed");
 
@@ -306,7 +306,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
         }
     }
 
-    private async void AddMSPOSDCameraExtra()
+    private async Task AddMSPOSDCameraExtra()
     {
         Log.Debug("MSPOSDExtra executed");
         if (IsWfbYamlEnabled)
@@ -330,7 +330,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
         
     }
 
-    private async void AddMSPOSDGSExtra()
+    private async Task AddMSPOSDGSExtra()
     {
         Log.Debug("MSPOSDExtra executed");
 
@@ -351,7 +351,7 @@ public partial class TelemetryTabViewModel : ViewModelBase
         }
     }
 
-    private async void SaveAndRestartTelemetry()
+    private async Task SaveAndRestartTelemetry()
     {
         if (_globalSettingsService.IsWfbYamlEnabled)
         {

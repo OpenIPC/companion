@@ -87,7 +87,7 @@ public partial class MainViewModel : ViewModelBase
 
         EntryBoxBgColor = new SolidColorBrush(Colors.White);
 
-        ConnectCommand = new RelayCommand(() => Connect());
+        ConnectCommand = new AsyncRelayCommand(ConnectAsync);
 
         DeviceTypes = new ObservableCollection<DeviceType>(Enum.GetValues(typeof(DeviceType)).Cast<DeviceType>());
         
@@ -126,8 +126,6 @@ public partial class MainViewModel : ViewModelBase
                 _serviceProvider.GetRequiredService<CameraSettingsTabViewModel>(), IsTabsCollapsed));
             Tabs.Add(new TabItemViewModel("Telemetry", "avares://Companion/Assets/Icons/iconoir_drag_dark.svg",
                 _serviceProvider.GetRequiredService<TelemetryTabViewModel>(), IsTabsCollapsed));
-            Tabs.Add(new TabItemViewModel("Presets", "avares://Companion/Assets/Icons/iconoir_presets_dark.svg",
-                _serviceProvider.GetRequiredService<PresetsTabViewModel>(), IsTabsCollapsed));
             Tabs.Add(new TabItemViewModel("Setup", "avares://Companion/Assets/Icons/iconoir_settings_dark.svg",
                 _serviceProvider.GetRequiredService<SetupTabViewModel>(), IsTabsCollapsed));
             Tabs.Add(new TabItemViewModel("Firmware", "avares://Companion/Assets/Icons/iconair_firmware_dark.svg",
@@ -211,9 +209,29 @@ public partial class MainViewModel : ViewModelBase
     {
         var fullVersion = VersionHelper.GetAppVersion();
 
-        // Extract the first part of the version (e.g., "1.0.0")
-        var truncatedVersion = fullVersion.Split('+')[0]; // Handles semantic versions like "1.0.0+buildinfo"
-        return truncatedVersion.Length > 10 ? truncatedVersion.Substring(0, 10) : truncatedVersion;
+        var parts = fullVersion.Split('+', 2);
+        var baseVersion = parts[0];
+        string shortHash = null;
+
+        var gitSuffixIndex = baseVersion.IndexOf("-g", StringComparison.OrdinalIgnoreCase);
+        if (gitSuffixIndex >= 0)
+        {
+            var gitSuffix = baseVersion.Substring(gitSuffixIndex + 2);
+            baseVersion = baseVersion.Substring(0, gitSuffixIndex);
+            if (!string.IsNullOrWhiteSpace(gitSuffix))
+                shortHash = gitSuffix.Length > 7 ? gitSuffix.Substring(0, 7) : gitSuffix;
+        }
+
+        if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1]))
+        {
+            var hash = parts[1].Trim();
+            shortHash = hash.Length > 7 ? hash.Substring(0, 7) : hash;
+        }
+
+        if (!string.IsNullOrWhiteSpace(shortHash))
+            return $"{baseVersion}+{shortHash}";
+
+        return baseVersion.Length > 10 ? baseVersion.Substring(0, 10) : baseVersion;
     }
 
     private void CheckIfCanConnect()
@@ -428,7 +446,7 @@ public partial class MainViewModel : ViewModelBase
             }
         }
     }
-    private async void Connect()
+    private async Task ConnectAsync()
     {
         // Add the current IP to the cache
         AddCurrentIpToCache();
@@ -492,13 +510,13 @@ public partial class MainViewModel : ViewModelBase
             if (_deviceConfig.DeviceType == DeviceType.Camera)
             {
                 UpdateUIMessage("Processing Camera...");
-                processCameraFiles();
+                await processCameraFiles();
                 UpdateUIMessage("Processing Camera...done");
             }
             else if (_deviceConfig.DeviceType == DeviceType.Radxa)
             {
                 UpdateUIMessage("Processing Radxa...");
-                processRadxaFiles();
+                await processRadxaFiles();
                 UpdateUIMessage("Processing Radxa...done");
             }
         }
@@ -676,7 +694,7 @@ public partial class MainViewModel : ViewModelBase
         cts.Dispose();
     }
 
-    private async void processCameraFiles()
+    private async Task processCameraFiles()
     {
         // read device to determine configurations
         await _globalSettingsService.ReadDevice();
@@ -826,7 +844,7 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    private async void processRadxaFiles()
+    private async Task processRadxaFiles()
     {
         try
         {

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography;
 using System.Text;
@@ -61,6 +63,7 @@ public partial class SetupTabViewModel : ViewModelBase
     [ObservableProperty] private string _scanIpLabel;
     [ObservableProperty] private string _scanIPResultTextBox;
     [ObservableProperty] private string _scanMessages;
+    [ObservableProperty] private bool _isScanning;
     [ObservableProperty] private ObservableCollection<string> _scriptFileActionItems;
     [ObservableProperty] private string _selectedDroneKeyAction;
     [ObservableProperty] private string _selectedFwVersion;
@@ -87,6 +90,7 @@ public partial class SetupTabViewModel : ViewModelBase
     private ICommand _recvGSKeyCommand;
     private ICommand _resetCameraCommand;
     private ICommand _scanCommand;
+    private ICommand _cancelScanCommand;
     private ICommand _scriptFilesCommand;
     private ICommand _scriptFilesBackupCommand;
     private ICommand _scriptFilesRestoreCommand;
@@ -103,25 +107,27 @@ public partial class SetupTabViewModel : ViewModelBase
 
     #region Command Properties
     public ICommand ShowProgressBarCommand { get; private set; }
-    public ICommand SendGSKeyCommand => _sendGSKeyCommand ??= new RelayCommand(SendGSKey);
-    public ICommand RecvGSKeyCommand => _recvGSKeyCommand ??= new RelayCommand(RecvGSKey);
-    public ICommand ScriptFilesCommand => _scriptFilesCommand ??= new RelayCommand(ScriptFilesAction);
+    public ICommand SendGSKeyCommand => _sendGSKeyCommand ??= new AsyncRelayCommand(SendGSKeyAsync);
+    public ICommand RecvGSKeyCommand => _recvGSKeyCommand ??= new AsyncRelayCommand(RecvGSKeyAsync);
+    public ICommand ScriptFilesCommand => _scriptFilesCommand ??= new AsyncRelayCommand(ScriptFilesActionAsync);
     public ICommand EncryptionKeyActionCommand =>
-        _encryptionKeyActionCommand ??= new RelayCommand<string>(EncryptionKeyAction);
+        _encryptionKeyActionCommand ??= new AsyncRelayCommand<string>(EncryptionKeyActionAsync);
     public ICommand SensorFilesUpdateCommand =>
-        _sensorFilesUpdateCommand ??= new RelayCommand(SensorFilesUpdate);
+        _sensorFilesUpdateCommand ??= new AsyncRelayCommand(SensorFilesUpdateAsync);
     public ICommand FirmwareUpdateCommand =>
-        _firmwareUpdateCommand ??= new RelayCommand(SysUpgradeFirmwareUpdate);
+        _firmwareUpdateCommand ??= new AsyncRelayCommand(SysUpgradeFirmwareUpdateAsync);
     public ICommand SendDroneKeyCommand =>
-        _sendDroneKeyCommand ??= new RelayCommand(SendDroneKey);
+        _sendDroneKeyCommand ??= new AsyncRelayCommand(SendDroneKeyAsync);
     public ICommand RecvDroneKeyCommand =>
-        _recvDroneKeyCommand ??= new RelayCommand(RecvDroneKey);
+        _recvDroneKeyCommand ??= new AsyncRelayCommand(RecvDroneKeyAsync);
     public ICommand ResetCameraCommand =>
-        _resetCameraCommand ??= new RelayCommand(ResetCamera);
+        _resetCameraCommand ??= new AsyncRelayCommand(ResetCameraAsync);
     public ICommand OfflineUpdateCommand =>
-        _offlineUpdateCommand ??= new RelayCommand(OfflineUpdate);
+        _offlineUpdateCommand ??= new AsyncRelayCommand(OfflineUpdateAsync);
     public ICommand ScanCommand =>
-        _scanCommand ??= new RelayCommand(ScanNetwork);
+        _scanCommand ??= new AsyncRelayCommand(ScanNetworkAsync);
+    public ICommand CancelScanCommand =>
+        _cancelScanCommand ??= new RelayCommand(CancelScan);
     #endregion
 
     #region Public Properties
@@ -155,7 +161,7 @@ public partial class SetupTabViewModel : ViewModelBase
     {
         KeyChecksum = string.Empty;
         ChkSumStatusColor = "Green";
-        ScanIpLabel = "192.168.1.";
+        UpdateLocalNetworkInfo();
     }
 
     private void InitializeKeyManagement()
@@ -273,28 +279,28 @@ public partial class SetupTabViewModel : ViewModelBase
     #endregion
 
     #region Command Handlers
-    private async void ScriptFilesAction()
+    private async Task ScriptFilesActionAsync()
     {
         var action = SelectedScriptFileAction;
     }
 
-    private async void EncryptionKeyAction(string comboBoxName)
+    private async Task EncryptionKeyActionAsync(string comboBoxName)
     {
         var action = SelectedDroneKeyAction;
         switch (action)
         {
             case "Send":
-                if (comboBoxName.Equals("CameraKeyComboBox")) SendDroneKey();
-                if (comboBoxName.Equals("RadxaKeyComboBox")) SendGSKey();
+                if (comboBoxName.Equals("CameraKeyComboBox")) await SendDroneKeyAsync();
+                if (comboBoxName.Equals("RadxaKeyComboBox")) await SendGSKeyAsync();
                 break;
             case "Receive":
-                if (comboBoxName.Equals("CameraKeyComboBox")) RecvDroneKey();
-                if (comboBoxName.Equals("RadxaKeyComboBox")) RecvGSKey();
+                if (comboBoxName.Equals("CameraKeyComboBox")) await RecvDroneKeyAsync();
+                if (comboBoxName.Equals("RadxaKeyComboBox")) await RecvGSKeyAsync();
                 break;
         }
     }
 
-    private async void ScriptFilesBackup()
+    private async Task ScriptFilesBackup()
     {
         Log.Debug("Backup script executed");
         await SshClientService.DownloadFileLocalAsync(DeviceConfig.Instance, "/usr/bin/channels.sh", "channels.sh");
@@ -856,7 +862,7 @@ private string CalculateChecksum(byte[] data)
         return sb.ToString();
     }
 }
-    private async void ScriptFilesRestore()
+    private async Task ScriptFilesRestore()
     {
         Log.Debug("Restore script executed...not implemented yet");
     }
@@ -875,7 +881,7 @@ private string CalculateChecksum(byte[] data)
         }
     }
 
-    private async void SensorDriverUpdate()
+    private async Task SensorDriverUpdate()
     {
         Log.Debug("SensorDriverUpdate executed");
         DownloadProgress = 0;
@@ -891,7 +897,7 @@ private string CalculateChecksum(byte[] data)
         Log.Debug("SensorDriverUpdate executed..done");
     }
 
-    public async void SensorFilesUpdate()
+    public async Task SensorFilesUpdateAsync()
     {
         DownloadProgress = 0;
         IsProgressBarVisible = true;
@@ -929,7 +935,7 @@ private string CalculateChecksum(byte[] data)
         DownloadProgress = 100;
     }
 
-    private async void OfflineUpdate()
+    private async Task OfflineUpdateAsync()
     {
         Log.Debug("OfflineUpdate executed");
         IsProgressBarVisible = true;
@@ -937,44 +943,251 @@ private string CalculateChecksum(byte[] data)
         //Log.Debug("OfflineUpdate executed..done");
     }
 
-    private async void ScanNetwork()
+    private async Task ScanNetworkAsync()
     {
-        ScanMessages = "Starting scan...";
-        //ScanIPResultTextBox = "Available IP Addresses on your network:";
-        await Task.Delay(500); // Replace Thread.Sleep with async-friendly delay
+        if (IsScanning)
+            return;
 
-        var pingTasks = new List<Task>();
+        IsScanning = true;
+        using var cts = new CancellationTokenSource();
+        _scanCancellationTokenSource?.Dispose();
+        _scanCancellationTokenSource = cts;
+
+        var token = cts.Token;
+        ScanMessages = "Starting scan...";
+        await Task.Delay(200);
+
+        var hosts = BuildScanTargets(ScanIpLabel);
+        if (hosts.Count == 0)
+        {
+            var invalidBox = MessageBoxManager.GetMessageBoxStandard("Invalid subnet",
+                "Enter a valid prefix like 192.168., 192.168.1., or a full IP.");
+            await invalidBox.ShowAsync();
+            IsScanning = false;
+            return;
+        }
+
+        if (hosts.Count > 4096)
+        {
+            var confirm = MessageBoxManager.GetMessageBoxStandard(
+                "Large scan",
+                $"This will scan {hosts.Count} addresses and may take a while. Continue?",
+                ButtonEnum.YesNo);
+            if (await confirm.ShowAsync() != ButtonResult.Yes)
+            {
+                IsScanning = false;
+                return;
+            }
+        }
 
         ScanIPResultTextBox = string.Empty;
+        ScanMessages = $"Scanning {hosts.Count} addresses...";
 
-        for (var i = 0; i < 254; i++)
+        var semaphore = new SemaphoreSlim(32);
+        var pingTasks = hosts.Select(async host =>
         {
-            var host = ScanIpLabel + i;
-            Log.Debug($"Scanning {host}()");
-
-            // Use async ping operation
-            var pingTask = Task.Run(async () =>
+            await semaphore.WaitAsync(token);
+            try
             {
+                if (token.IsCancellationRequested)
+                    return;
+
                 var ping = new Ping();
-                var pingReply = await ping.SendPingAsync(host);
+                var pingReply = await ping.SendPingAsync(host, 500);
+                if (token.IsCancellationRequested)
+                    return;
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     ScanMessages = $"Scanned {host}, result: {pingReply.Status}";
-                    //ScanIPResultTextBox += Environment.NewLine + host + ": " + pingReply.Status.ToString();
-                    if (pingReply.Status == IPStatus.Success) ScanIPResultTextBox += host + Environment.NewLine;
+                    if (pingReply.Status == IPStatus.Success)
+                        ScanIPResultTextBox += host + Environment.NewLine;
                 });
-            });
-            pingTasks.Add(pingTask);
+            }
+            catch (OperationCanceledException)
+            {
+                // Scan canceled.
+            }
+            catch (Exception ex)
+            {
+                Log.Debug($"Scan failed for {host}: {ex.Message}");
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }).ToList();
+
+        ScanMessages = "Waiting for scan results...";
+        try
+        {
+            await Task.WhenAll(pingTasks);
+        }
+        catch (OperationCanceledException)
+        {
+            // Scan canceled.
         }
 
-        ScanMessages = "Waiting for scan results.....";
-        // Wait for all ping tasks to complete
-        await Task.WhenAll(pingTasks);
+        if (token.IsCancellationRequested)
+        {
+            ScanMessages = "Scan canceled";
+        }
+        else
+        {
+            ScanMessages = "Scan completed";
+            var confirmBox = MessageBoxManager.GetMessageBoxStandard("Scan completed", "Scan completed");
+            await confirmBox.ShowAsync();
+        }
 
-        ScanMessages = "Scan completed";
-        var confirmBox = MessageBoxManager.GetMessageBoxStandard("Scan completed", "Scan completed");
-        await confirmBox.ShowAsync();
+        IsScanning = false;
+    }
+
+    private CancellationTokenSource _scanCancellationTokenSource;
+
+    private void CancelScan()
+    {
+        if (!IsScanning)
+            return;
+
+        ScanMessages = "Canceling scan...";
+        _scanCancellationTokenSource?.Cancel();
+    }
+
+    private void UpdateLocalNetworkInfo()
+    {
+        var localInfo = GetPreferredLocalIPv4();
+        if (localInfo == null)
+        {
+            LocalIp = "Local IP: Unknown";
+            ScanIpLabel = "192.168.1.";
+            return;
+        }
+
+        var (ip, mask) = localInfo.Value;
+        LocalIp = $"Local IP: {ip}";
+        ScanIpLabel = BuildScanPrefix(ip, mask);
+    }
+
+    private static (IPAddress ip, IPAddress mask)? GetPreferredLocalIPv4()
+    {
+        var candidates = new List<(IPAddress ip, IPAddress mask, bool hasGateway, bool isPrivate)>();
+
+        foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+        {
+            if (nic.OperationalStatus != OperationalStatus.Up)
+                continue;
+
+            if (nic.NetworkInterfaceType == NetworkInterfaceType.Loopback ||
+                nic.NetworkInterfaceType == NetworkInterfaceType.Tunnel)
+                continue;
+
+            var properties = nic.GetIPProperties();
+            var hasGateway = properties.GatewayAddresses
+                .Any(g => g.Address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(g.Address));
+
+            foreach (var unicast in properties.UnicastAddresses)
+            {
+                if (unicast.Address.AddressFamily != AddressFamily.InterNetwork)
+                    continue;
+
+                if (IPAddress.IsLoopback(unicast.Address))
+                    continue;
+
+                if (unicast.Address.ToString().StartsWith("169.254."))
+                    continue;
+
+                var mask = unicast.IPv4Mask ?? IPAddress.Parse("255.255.255.0");
+                var isPrivate = IsPrivateIPv4(unicast.Address);
+                candidates.Add((unicast.Address, mask, hasGateway, isPrivate));
+            }
+        }
+
+        if (!candidates.Any())
+            return null;
+
+        var best = candidates
+            .OrderByDescending(c => c.hasGateway)
+            .ThenByDescending(c => c.isPrivate)
+            .First();
+
+        return (best.ip, best.mask);
+    }
+
+    private static bool IsPrivateIPv4(IPAddress address)
+    {
+        var bytes = address.GetAddressBytes();
+        if (bytes.Length != 4)
+            return false;
+
+        return bytes[0] == 10 ||
+               (bytes[0] == 172 && bytes[1] is >= 16 and <= 31) ||
+               (bytes[0] == 192 && bytes[1] == 168);
+    }
+
+    private static string BuildScanPrefix(IPAddress ipAddress, IPAddress mask)
+    {
+        var octets = ipAddress.GetAddressBytes();
+        var maskOctets = mask.GetAddressBytes();
+
+        var prefixLength = 0;
+        foreach (var octet in maskOctets)
+        {
+            for (var bit = 7; bit >= 0; bit--)
+            {
+                if ((octet & (1 << bit)) != 0)
+                    prefixLength++;
+            }
+        }
+
+        if (prefixLength <= 16)
+            return $"{octets[0]}.{octets[1]}.";
+
+        if (prefixLength <= 24)
+            return $"{octets[0]}.{octets[1]}.{octets[2]}.";
+
+        return $"{octets[0]}.{octets[1]}.{octets[2]}.{octets[3]}";
+    }
+
+    private static List<string> BuildScanTargets(string input)
+    {
+        var hosts = new List<string>();
+        if (string.IsNullOrWhiteSpace(input))
+            return hosts;
+
+        var trimmed = input.Trim();
+        if (trimmed.EndsWith("."))
+            trimmed = trimmed.TrimEnd('.');
+
+        var parts = trimmed.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2 || parts.Length > 4)
+            return hosts;
+
+        if (!parts.All(part => int.TryParse(part, out var octet) && octet is >= 0 and <= 255))
+            return hosts;
+
+        if (parts.Length == 4)
+        {
+            hosts.Add(trimmed);
+            return hosts;
+        }
+
+        if (parts.Length == 3)
+        {
+            var prefix = $"{parts[0]}.{parts[1]}.{parts[2]}.";
+            for (var i = 1; i < 255; i++)
+                hosts.Add(prefix + i);
+            return hosts;
+        }
+
+        var twoOctetPrefix = $"{parts[0]}.{parts[1]}.";
+        for (var third = 0; third <= 255; third++)
+        {
+            var thirdPrefix = $"{twoOctetPrefix}{third}.";
+            for (var fourth = 1; fourth < 255; fourth++)
+                hosts.Add(thirdPrefix + fourth);
+        }
+
+        return hosts;
     }
     #endregion
 
@@ -1263,7 +1476,7 @@ private string CalculateChecksum(byte[] data)
         }
     }
 
-    private async void SysUpgradeFirmwareUpdate()
+    private async Task SysUpgradeFirmwareUpdateAsync()
     {
         Log.Debug("FirmwareUpdate executed");
         // if "%1" == "sysup" (
@@ -1274,7 +1487,7 @@ private string CalculateChecksum(byte[] data)
         Log.Debug("FirmwareUpdate executed..done");
     }
 
-    private async void RecvDroneKey()
+    private async Task RecvDroneKeyAsync()
     {
         Log.Debug("RecvDroneKeyCommand executed");
 
@@ -1301,7 +1514,7 @@ private string CalculateChecksum(byte[] data)
         Log.Debug("RecvDroneKeyCommand executed...done");
     }
 
-    private async void SendDroneKey()
+    private async Task SendDroneKeyAsync()
     {
         Log.Debug("SendDroneKey executed");
         // if "%1" == "keysulcam" (
@@ -1313,7 +1526,7 @@ private string CalculateChecksum(byte[] data)
         Log.Debug("SendDroneKey executed...done");
     }
 
-    private async void ResetCamera()
+    private async Task ResetCameraAsync()
     {
         Log.Debug("ResetCamera executed");
         // if "%1" == "resetcam" (
@@ -1341,7 +1554,7 @@ private string CalculateChecksum(byte[] data)
         Log.Debug("ResetCamera executed...done");
     }
 
-    private async void SensorFilesBackup()
+    private async Task SensorFilesBackup()
     {
         // if "%1" == "bindl" (
         //     echo y | mkdir backup
@@ -1353,7 +1566,7 @@ private string CalculateChecksum(byte[] data)
         Log.Debug("SensorFilesBackup executed...done");
     }
 
-    private async void GenerateKeys()
+    private async Task GenerateKeys()
     {
         // keysgen " + String.Format("{0}", txtIP.Text) + " " + txtPassword.Text
         // plink -ssh root@%2 -pw %3 wfb_keygen
@@ -1373,7 +1586,7 @@ private string CalculateChecksum(byte[] data)
         }
     }
 
-    private async void SendGSKey()
+    private async Task SendGSKeyAsync()
     {
         try
         {
@@ -1395,7 +1608,7 @@ private string CalculateChecksum(byte[] data)
         }
     }
 
-    private async void RecvGSKey()
+    private async Task RecvGSKeyAsync()
     {
         UpdateUIMessage("Receiving keys...");
 

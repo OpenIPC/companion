@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -70,6 +72,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -254,11 +258,11 @@ jobs:
 
       - name: Create metainfo file
         run: |
-          # Get version from tag or use default
+          # Get version from tag or use git hash
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
           else
-            VERSION="1.0.0"
+            VERSION="0.0.0-dev+$(git rev-parse --short HEAD)"
           fi
           
           cat > ${{ env.APP_ID }}.metainfo.xml << EOF
@@ -319,6 +323,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download Flatpak artifacts
         uses: actions/download-artifact@v4

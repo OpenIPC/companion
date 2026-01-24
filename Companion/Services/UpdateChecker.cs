@@ -54,9 +54,16 @@ public class UpdateChecker
             return version.StartsWith(prefix) ? version.Substring(prefix.Length) : version;
         }
 
+        string NormalizeVersion(string version)
+        {
+            var cleaned = ExtractVersionNumber(ExtractGHVersionNumber(version));
+            var withoutMetadata = cleaned.Split('+', 2)[0];
+            return withoutMetadata.Split('-', 2)[0];
+        }
+
         // Extract and parse the version numbers
-        return Version.TryParse(ExtractGHVersionNumber(newVersion), out var newVer) &&
-               Version.TryParse(ExtractVersionNumber(currentVersion), out var currVer) &&
+        return Version.TryParse(NormalizeVersion(newVersion), out var newVer) &&
+               Version.TryParse(NormalizeVersion(currentVersion), out var currVer) &&
                newVer > currVer;
     }
 

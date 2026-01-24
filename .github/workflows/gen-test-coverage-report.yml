@@ -4,8 +4,6 @@ concurrency:
   group: coverage-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Runs on master branch commits,
-# every commit in a pull request, any published release.
 on:
   workflow_dispatch:
   push:
@@ -17,7 +15,6 @@ on:
 
 jobs:
   coverage:
-    # Minimal permissions; bump only if you actually need more
     permissions:
       contents: read
       pull-requests: write
@@ -36,12 +33,10 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # If you rely on workloads (e.g., MAUI/Avalonia workloads), keep this.
-      # It can be slow; remove if not needed.
+      # Keep only if you truly need workloads (often you don't for unit tests)
       - name: Restore workloads
         run: dotnet workload restore
 
-      # ---- Project path updates (OpenIPC_Config -> Companion.Desktop) ----
       - name: Restore dependencies
         run: dotnet restore Companion.Desktop/Companion.Desktop.csproj
 
@@ -49,7 +44,7 @@ jobs:
         run: dotnet build Companion.Desktop/Companion.Desktop.csproj --configuration Release --no-restore
 
       - name: Run tests with coverage
-        run: dotnet test Companion.Tests/Companion.Tests.csproj --configuration Release --verbosity normal --logger "trx" --collect:"XPlat Code Coverage"
+        run: dotnet test Companion.Tests/Companion.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx" --collect:"XPlat Code Coverage"
 
       - name: Combine Coverage Reports
         uses: danielpalme/ReportGenerator-GitHub-Action@5.2.4
@@ -83,8 +78,8 @@ jobs:
           thresholds: "10 30"
 
       - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@v2
         if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
           recreate: true
           path: code-coverage-results.md
@@ -98,12 +93,11 @@ jobs:
           retention-days: 3
 
       - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2.16.1
         if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2.16.1
         with:
           trx_files: "${{ github.workspace }}/**/*.trx"
 
-      # Cleanup: use find (rm -rf with ** globs is unreliable in bash)
       - name: Cleanup Disk Space
         if: always()
         shell: bash
@@ -113,8 +107,6 @@ jobs:
           find "${{ github.workspace }}" -type f -name "*.cobertura.xml" -delete || true
           rm -f "${{ github.workspace }}/Cobertura.xml" "${{ github.workspace }}/code-coverage-results.md" || true
 
-      # Optional: pruning artifacts requires extra perms and can be flaky.
-      # Keeping it, but scoping it to non-PR events avoids unnecessary API calls.
       - name: Prune Old Artifacts
         if: always() && github.event_name != 'pull_request'
         uses: c-hive/gha-remove-artifacts@v1

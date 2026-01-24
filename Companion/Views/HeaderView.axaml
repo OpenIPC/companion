@@ -88,10 +88,13 @@
                 <!-- <Image Source="/Assets/Icons/OpenIPC.png" Width="40" Height="40" Margin="0,0,10,0" /> -->
                 <Svg Width="150" Margin="10,5,0,0" Path="/Assets/Icons/openipc-logo.svg" />
 
-                <TextBlock FontSize="14" Foreground="White" Margin="10,5,0,5">
-                    <Run Text="COMPANION" />
-                    <Run Text="{Binding AppVersionText}" />
-                </TextBlock>
+                <StackPanel Orientation="Horizontal" Margin="10,10,0,8" MaxWidth="180">
+                    <TextBlock FontSize="14" Foreground="White" Text="COMPANION" />
+                    <TextBlock FontSize="14" Foreground="White" Opacity="0.75"
+                               Margin="6,2,0,0"
+                               TextTrimming="CharacterEllipsis"
+                               Text="{Binding AppVersionText}" />
+                </StackPanel>
 
 
             </StackPanel>

@@ -117,7 +117,7 @@ public partial class WfbTabViewModel : ViewModelBase
 
     private void InitializeCommands()
     {
-        RestartWfbCommand = new RelayCommand(RestartWfb);
+        RestartWfbCommand = new AsyncRelayCommand(RestartWfbAsync);
     }
 
 
@@ -276,7 +276,7 @@ public partial class WfbTabViewModel : ViewModelBase
     /**
      * Take the updated yaml content and upload it to the device
      */
-    private async void RestartWfb()
+    private async Task RestartWfbAsync()
     {
 
         //if wfb.yaml, save that part and restart

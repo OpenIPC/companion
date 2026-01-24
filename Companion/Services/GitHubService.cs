@@ -10,7 +10,6 @@ namespace Companion.Services
     {
         private readonly IMemoryCache _cache;
         private readonly HttpClient _httpClient;
-        private readonly string _cacheKey = "GitHubData"; // Unique key for your data
         private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(120); // Cache for 1 hour
         private readonly ILogger _logger;
         
@@ -24,7 +23,8 @@ namespace Companion.Services
 
         public async Task<string> GetGitHubDataAsync(string url)
         {
-            if (_cache.TryGetValue(_cacheKey, out string cachedData))
+            var cacheKey = $"GitHubData::{url}";
+            if (_cache.TryGetValue(cacheKey, out string cachedData))
             {
                 _logger.Information("GitHub API data retrieved from cache.");
                 return cachedData;
@@ -42,7 +42,7 @@ namespace Companion.Services
                     .SetAbsoluteExpiration(_cacheDuration) // Data expires after this time
                     .SetPriority(CacheItemPriority.Normal);   // Low priority for eviction
 
-                _cache.Set(_cacheKey, response, cacheEntryOptions);
+                _cache.Set(cacheKey, response, cacheEntryOptions);
                 _logger.Information("Data retrieved from GitHub API and cached.");
                 return response;
             }

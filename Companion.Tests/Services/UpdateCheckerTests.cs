@@ -51,4 +51,36 @@ public class UpdateCheckerTests
         Assert.That(result.DownloadUrl, Is.EqualTo("https://example.com/download"));
         Assert.That(result.NewVersion, Is.EqualTo("release-v1.2.0"));
     }
+
+    [Test]
+    public async Task CheckForUpdateAsync_HandlesBuildMetadataInCurrentVersion()
+    {
+        // Arrange
+        var mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+        mockHttpMessageHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(MockUpdateJson)
+            });
+
+        var mockHttpClient = new HttpClient(mockHttpMessageHandler.Object);
+
+        var mockConfiguration = new Mock<IConfiguration>();
+        mockConfiguration.Setup(c => c["UpdateChecker:LatestJsonUrl"]).Returns("https://mock-url/latest.json");
+
+        var updateChecker = new UpdateChecker(mockHttpClient, mockConfiguration.Object);
+
+        // Act
+        var result = await updateChecker.CheckForUpdateAsync("v0.0.1+githash");
+
+        // Assert
+        Assert.That(result.HasUpdate, Is.True);
+        Assert.That(result.NewVersion, Is.EqualTo("release-v1.2.0"));
+    }
 }

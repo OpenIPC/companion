@@ -25,12 +25,16 @@ public class SysUpgradeService
         {
             updateProgress("Uploading kernel...");
             string kernelFilename = Path.GetFileName(kernelPath);
-            await _sshClientService.UploadFileAsync(deviceConfig, kernelPath, $"{OpenIPC.RemoteTempFolder}/{kernelFilename}");
+            var remoteKernelPath = $"{OpenIPC.RemoteTempFolder}/{kernelFilename}";
+            await _sshClientService.UploadFileAsync(deviceConfig, kernelPath, remoteKernelPath);
+            await ValidateRemoteFileSizeAsync(deviceConfig, kernelPath, remoteKernelPath, "kernel", updateProgress, cancellationToken);
             updateProgress("Kernel binary uploaded successfully.");
 
             updateProgress("Uploading root filesystem...");
             string rootfsFilename = Path.GetFileName(rootfsPath);
-            await _sshClientService.UploadFileAsync(deviceConfig, rootfsPath, $"{OpenIPC.RemoteTempFolder}/{rootfsFilename}");
+            var remoteRootfsPath = $"{OpenIPC.RemoteTempFolder}/{rootfsFilename}";
+            await _sshClientService.UploadFileAsync(deviceConfig, rootfsPath, remoteRootfsPath);
+            await ValidateRemoteFileSizeAsync(deviceConfig, rootfsPath, remoteRootfsPath, "rootfs", updateProgress, cancellationToken);
             updateProgress("Root filesystem binary uploaded successfully.");
 
             //updateProgress("Starting sysupgrade...");
@@ -48,5 +52,31 @@ public class SysUpgradeService
             _logger.Error(ex, "Error during sysupgrade.");
             updateProgress($"Error: {ex.Message}");
         }
+    }
+
+    private async Task ValidateRemoteFileSizeAsync(
+        DeviceConfig deviceConfig,
+        string localPath,
+        string remotePath,
+        string label,
+        Action<string> updateProgress,
+        CancellationToken cancellationToken)
+    {
+        var localSize = new FileInfo(localPath).Length;
+        updateProgress($"Validating {label} upload...");
+
+        var result = await _sshClientService.ExecuteCommandWithResponseAsync(
+            deviceConfig,
+            $"wc -c < {remotePath}",
+            cancellationToken);
+
+        if (result == null || string.IsNullOrWhiteSpace(result.Result))
+            throw new InvalidOperationException($"Failed to verify {label} upload (no response).");
+
+        if (!long.TryParse(result.Result.Trim(), out var remoteSize))
+            throw new InvalidOperationException($"Failed to parse {label} size from device.");
+
+        if (remoteSize != localSize)
+            throw new InvalidOperationException($"{label} upload size mismatch. Local={localSize} Remote={remoteSize}");
     }
 }

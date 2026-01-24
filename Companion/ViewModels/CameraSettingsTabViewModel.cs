@@ -105,7 +105,7 @@ public partial class CameraSettingsTabViewModel : ViewModelBase
             throw new ArgumentNullException(nameof(eventSubscriptionService));
 
         InitializeCollections();
-        RestartMajesticCommand = new RelayCommand(async () => await SaveRestartMajesticCommand());
+        RestartMajesticCommand = new AsyncRelayCommand(SaveRestartMajesticCommand);
 
         _eventSubscriptionService.Subscribe<MajesticContentUpdatedEvent, MajesticContentUpdatedMessage>(
             OnMajesticContentUpdated);

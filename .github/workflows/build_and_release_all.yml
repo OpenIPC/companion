@@ -52,29 +52,22 @@ jobs:
         with:
           # If manually triggered, use the input branch; otherwise use the tag ref
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target_branch || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Ensure full git history
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git rev-parse --is-shallow-repository | grep -q true; then
+            git fetch --prune --unshallow --tags
+          else
+            git fetch --prune --tags
+          fi
 
       - name: Setup .NET (8.x)
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '8.0.x'
-
-      - name: Read Version
-        id: get_version
-        shell: bash
-        run: |
-          set -euo pipefail
-      
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            VERSION="0.0.1"
-          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
-            VERSION="${GITHUB_REF#refs/tags/}"
-            VERSION="${VERSION#release-v}"
-          else
-            VERSION="0.0.0-dev"
-          fi
-      
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          echo "v$VERSION" > Companion.Desktop/VERSION
 
       - name: Restore dependencies
         run: dotnet restore Companion.Desktop/Companion.Desktop.csproj
@@ -108,19 +101,6 @@ jobs:
               -p:PublishSingleFile=true
           fi
 
-      - name: Write VERSION into publish output
-        shell: bash
-        run: |
-          set -euo pipefail
-          case "${{ runner.os }}" in
-            Windows) PUBLISH_DIR="Companion.Desktop/bin/Release/net8.0/win-${{ matrix.arch }}/publish" ;;
-            macOS)   PUBLISH_DIR="Companion.Desktop/bin/Release/net8.0/osx-${{ matrix.arch }}/publish" ;;
-            Linux)   PUBLISH_DIR="Companion.Desktop/bin/Release/net8.0/linux-${{ matrix.arch }}/publish" ;;
-          esac
-          echo "v${{ env.VERSION }}" > "$PUBLISH_DIR/VERSION"
-          echo "Wrote VERSION to $PUBLISH_DIR/VERSION:"
-          cat "$PUBLISH_DIR/VERSION"
-      
       # ----- macOS: bundle .app + sign + dmg -----
       - name: Decode signing certificate
         if: matrix.os == 'macos-latest'
@@ -267,6 +247,9 @@ jobs:
           hdiutil create -volname "Companion" -srcfolder dmg_build -ov -format UDZO -fs HFS+ -size 500m "${DMG_NAME}"
           rm -rf dmg_build
 
+          rm -f "Companion-macos-${{ matrix.arch }}.zip"
+          zip -r "Companion-macos-${{ matrix.arch }}.zip" "${APP_DIR}"
+
       # ----- Linux packaging -----
       - name: Linux - zip publish folder
         if: matrix.os == 'ubuntu-latest'
@@ -301,6 +284,13 @@ jobs:
           name: Companion-macos-${{ matrix.arch }}
           path: Companion-macos-${{ matrix.arch }}.dmg
           compression-level: 9
+      - name: Upload macOS App Zip
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Companion-macos-${{ matrix.arch }}-app
+          path: Companion-macos-${{ matrix.arch }}.zip
+          compression-level: 9
 
       - name: Upload Windows Artifact
         if: matrix.os == 'windows-latest'
@@ -314,7 +304,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Companion-linux-${{ matrix.arch }}
-          path: Companion-linux-${{ matrix.arch }}.zip
+          path: ./Companion.Desktop/bin/Release/net8.0/linux-${{ matrix.arch }}/publish/**
           compression-level: 0
 
   release:
@@ -353,11 +343,17 @@ jobs:
             fi
           done
 
-          # Copy Linux zips (they are inside artifact folders)
-          find ./artifacts -type f -name "Companion-linux-*.zip" -exec cp {} ./release_files/ \;
+          # Re-zip Linux folders to a single file per arch
+          for arch in x64 arm64; do
+            if [ -d "./artifacts/Companion-linux-${arch}" ]; then
+              (cd "./artifacts/Companion-linux-${arch}" && zip -r "../../release_files/Companion-linux-${arch}.zip" .)
+            fi
+          done
 
           # Copy macOS DMGs (also inside artifact folders)
           find ./artifacts -type f -name "Companion-macos-*.dmg" -exec cp {} ./release_files/ \;
+          # Copy macOS app zips
+          find ./artifacts -type f -name "Companion-macos-*.zip" -exec cp {} ./release_files/ \;
 
           ls -la ./release_files
 
@@ -385,10 +381,11 @@ jobs:
             ### Downloads
             * **Windows**: `Companion-windows-x64.zip` / `Companion-windows-arm64.zip`
             * **macOS**: `Companion-macos-x64.dmg` / `Companion-macos-arm64.dmg`
+            * **macOS (App ZIP)**: `Companion-macos-x64.zip` / `Companion-macos-arm64.zip`
             * **Linux**: `Companion-linux-x64.zip` / `Companion-linux-arm64.zip`
 
             ### Install
             * **Windows**: unzip and run `Companion.Desktop.exe`.
-            * **macOS**: open `.dmg` and drag **Companion.app** to Applications.
+            * **macOS**: open `.dmg` and drag **Companion.app** to Applications. (ZIP contains the `.app` bundle.)
             * **Linux**: unzip and run `./Companion.Desktop` (chmod +x if needed).
           files: ./release_files/*
