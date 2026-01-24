@@ -104,6 +104,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
     [ObservableProperty] private bool _bootloaderInProgress;
     [ObservableProperty] private string _bootloaderStorageTypeLabel = "Detected storage: Unknown";
     [ObservableProperty] private bool _firmwareUpgradeInProgress;
+    [ObservableProperty] private bool _isFirmwareExpanded = true;
+    [ObservableProperty] private bool _isBootloaderExpanded;
 
     #endregion
 
@@ -197,6 +199,24 @@ public partial class FirmwareTabViewModel : ViewModelBase
         BootloaderProgressText = string.Empty;
         BootloaderInProgress = false;
         FirmwareUpgradeInProgress = false;
+        IsFirmwareExpanded = true;
+        IsBootloaderExpanded = false;
+    }
+
+    partial void OnIsFirmwareExpandedChanged(bool value)
+    {
+        if (value && IsBootloaderExpanded)
+        {
+            IsBootloaderExpanded = false;
+        }
+    }
+
+    partial void OnIsBootloaderExpandedChanged(bool value)
+    {
+        if (value && IsFirmwareExpanded)
+        {
+            IsFirmwareExpanded = false;
+        }
     }
 
     private void InitializeCommands()
