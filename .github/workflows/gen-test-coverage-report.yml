@@ -11,7 +11,6 @@ jobs:
   coverage:
     permissions:
       contents: read
-      actions: write
       pull-requests: write
       checks: write
 
@@ -33,7 +32,7 @@ jobs:
         run: dotnet workload restore
 
       - name: Restore dependencies
-        run: dotnet restore Companion.Desktop/Companion.Desktop.csproj
+        run: dotnet restore
 
       - name: Build project
         run: dotnet build Companion.Desktop/Companion.Desktop.csproj --configuration Release --no-restore
@@ -60,7 +59,7 @@ jobs:
         with:
           name: coverage
           path: ${{ github.workspace }}/Cobertura.xml
-          retention-days: 3
+          retention-days: 1
 
       - name: Publish Code Coverage Report
         uses: irongut/CodeCoverageSummary@v1.3.0
@@ -88,7 +87,7 @@ jobs:
         with:
           name: test-results
           path: ${{ github.workspace }}/**/TestResults/**/*
-          retention-days: 3
+          retention-days: 1
 
       - name: Publish Test Results
         if: always()
@@ -104,10 +103,3 @@ jobs:
           find "${{ github.workspace }}" -type f -name "*.trx" -delete || true
           find "${{ github.workspace }}" -type f -name "*.cobertura.xml" -delete || true
           rm -f "${{ github.workspace }}/Cobertura.xml" "${{ github.workspace }}/code-coverage-results.md" || true
-
-      - name: Prune Old Artifacts
-        if: always() && github.event_name != 'pull_request'
-        uses: c-hive/gha-remove-artifacts@v1
-        with:
-          age: '1 day'
-          skip-recent: 2
