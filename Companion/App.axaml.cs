@@ -160,25 +160,6 @@ public class App : Application
                 hasChanges = true;
                 Log.Information("Added UpdateChecker settings to existing settings");
             }
-            // Check if Presets section exists, add if missing
-            if (existingSettings["Presets"] == null)
-            {
-                existingSettings["Presets"] = new JObject(
-                    new JProperty("Repositories", 
-                        new JArray(
-                            new JObject(
-                                new JProperty("Url", "https://github.com/OpenIPC/fpv-presets"),
-                                new JProperty("Branch", "master"),
-                                new JProperty("Description", "Official OpenIPC presets repository"),
-                                new JProperty("IsActive", true)
-                            )
-                        )
-                    )
-                );
-                hasChanges = true;
-                Log.Information("Added Presets section to existing settings");
-            }
-            
             // Add more upgrade steps for other sections as needed
             
             // Save changes if needed
@@ -426,20 +407,6 @@ public class App : Application
                 new JObject(
                     new JProperty("LatestJsonUrl",
                         "https://github.com/OpenIPC/companion/releases/latest/download/latest.json")
-                )
-            ),
-            new JProperty("Presets",
-                new JObject(
-                    new JProperty("Repositories", 
-                        new JArray(
-                            new JObject(
-                                new JProperty("Url", "https://github.com/OpenIPC/fpv-presets"),
-                                new JProperty("Branch", "master"),
-                                new JProperty("Description", "Official OpenIPC presets repository"),
-                                new JProperty("IsActive", true)
-                            )
-                        )
-                    )
                 )
             ),
             new JProperty("Serilog",
