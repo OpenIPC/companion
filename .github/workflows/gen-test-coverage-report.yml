@@ -37,6 +37,9 @@ jobs:
       - name: Build project
         run: dotnet build Companion.Desktop/Companion.Desktop.csproj --configuration Release --no-restore
 
+      - name: Build tests
+        run: dotnet build Companion.Tests/Companion.Tests.csproj --configuration Release --no-restore
+
       - name: Run tests with coverage
         run: dotnet test Companion.Tests/Companion.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx" --collect:"XPlat Code Coverage"
 
