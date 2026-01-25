@@ -147,9 +147,18 @@ public class App : Application
                 existingSettings["UpdateChecker"] = new JObject(
                     new JProperty("LatestJsonUrl", "https://github.com/OpenIPC/companion/releases/latest/download/latest.json")
                 );
-                
+
                 hasChanges = true;
-                Log.Information("Added Presets section to existing settings");
+                Log.Information("Updated UpdateChecker settings in existing settings");
+            }
+            else
+            {
+                existingSettings["UpdateChecker"] = new JObject(
+                    new JProperty("LatestJsonUrl", "https://github.com/OpenIPC/companion/releases/latest/download/latest.json")
+                );
+
+                hasChanges = true;
+                Log.Information("Added UpdateChecker settings to existing settings");
             }
             // Check if Presets section exists, add if missing
             if (existingSettings["Presets"] == null)
