@@ -19,6 +19,10 @@ public class OpenIPC
 
     public const string OpenIPCBuilderGitHubApiUrl = "https://api.github.com/repos/OpenIPC/builder/releases/latest";
     public const string OpenIPCFirmwareGitHubApiUrl = "https://api.github.com/repos/OpenIPC/firmware/releases/latest";
+    public const string GregApfpvContentsGitHubApiUrl =
+        "https://api.github.com/repos/sickgreg/OpenIPC_sickgregFPV_apfpv/contents";
+    public const string GregApfpvRawBaseUrl =
+        "https://raw.githubusercontent.com/sickgreg/OpenIPC_sickgregFPV_apfpv/main/";
     public const string MajesticFileLoc = "/etc/majestic.yaml";
     public const string WfbConfFileLoc = "/etc/wfb.conf";
     public const string WfbYamlFileLoc = "/etc/wfb.yaml";

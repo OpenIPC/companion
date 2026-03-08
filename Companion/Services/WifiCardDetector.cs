@@ -63,6 +63,10 @@ namespace Companion.Services;
                     driver = "ar9271";
                     Log.Information($"Read WiFi card: {card}, Driver: {driver}");
                     break;
+                case "0bda:c812":
+                    driver = "88x2cu";
+                    Log.Information($"Read WiFi card: {card}, Driver: {driver}");
+                    break;
             }
 
            if (driver != null) break; //Stop at the first match (mimics the bash script behavior)
