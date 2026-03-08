@@ -77,13 +77,24 @@
                               ShowGridLines="False">
 
                             <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Background="#E7E7E7" CornerRadius="8" Padding="5">
-                                <Grid RowDefinitions="Auto,Auto,Auto"
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto"
                                       ColumnDefinitions="Auto,*"
                                       HorizontalAlignment="Stretch"
                                       ShowGridLines="False">
-                                    <!-- Manufacturer -->
-                                    <TextBlock Text="Manufacturer" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
+                                    <!-- Firmware Source -->
+                                    <TextBlock Text="Firmware Source" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
                                     <ComboBox Grid.Row="0" Grid.Column="1"
+                                              Classes="firmware-combo"
+                                              IsEnabled="{Binding CanUseDropdownsBySoc}"
+                                              SelectedItem="{Binding SelectedFirmwareSource, Mode=TwoWay}"
+                                              ItemsSource="{Binding FirmwareSources}"
+                                              HorizontalAlignment="Left"
+                                              Margin="10,0,0,0"
+                                              Background="#E7E7E7" />
+
+                                    <!-- Manufacturer -->
+                                    <TextBlock Text="Manufacturer" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Row="1" Grid.Column="1"
                                               Classes="firmware-combo"
                                               IsEnabled="{Binding CanUseDropdowns}"
                                               SelectedItem="{Binding SelectedManufacturer, Mode=TwoWay}"
@@ -93,8 +104,8 @@
                                               Background="#E7E7E7" />
 
                                     <!-- Device -->
-                                    <TextBlock Text="Device" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
-                                    <ComboBox Grid.Row="1" Grid.Column="1"
+                                    <TextBlock Text="Device" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Row="2" Grid.Column="1"
                                               Classes="firmware-combo"
                                               IsEnabled="{Binding CanUseDropdowns}"
                                               SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
@@ -104,8 +115,8 @@
                                               Background="#E7E7E7" />
 
                                     <!-- WFB/Ruby -->
-                                    <TextBlock Text="WFB/Ruby" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
-                                    <ComboBox Grid.Row="2" Grid.Column="1"
+                                    <TextBlock Text="WFB/Ruby" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Row="3" Grid.Column="1"
                                               Classes="firmware-combo"
                                               IsEnabled="{Binding CanUseDropdowns}"
                                               SelectedItem="{Binding SelectedFirmware, Mode=TwoWay}"

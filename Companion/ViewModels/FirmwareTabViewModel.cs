@@ -79,6 +79,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private static readonly Regex MtdLineRegex =
         new(@"^(?<dev>mtd\d+):\s+(?<size>[0-9a-fA-F]+)\s+(?<erasesize>[0-9a-fA-F]+)\s+""(?<name>[^""]+)""",
             RegexOptions.Compiled);
+    private const string OpenIpcFirmwareSource = "OpenIPC Builder";
+    private const string GregApfpvFirmwareSource = "Greg APFPV";
     #endregion
 
     #region Observable Properties
@@ -106,6 +108,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     [ObservableProperty] private bool _firmwareUpgradeInProgress;
     [ObservableProperty] private bool _isFirmwareExpanded = true;
     [ObservableProperty] private bool _isBootloaderExpanded;
+    [ObservableProperty] private string _selectedFirmwareSource;
 
     #endregion
 
@@ -114,7 +117,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     /// <summary>
     /// Gets whether dropdowns should be enabled based on connection and firmware selection state
     /// </summary>
-    public bool CanUseDropdowns => IsConnected;
+    public bool CanUseDropdowns => IsConnected && !IsGregApfpvSourceSelected();
 
     /// <summary>
     /// Gets whether soc dropdowns should be enabled based on connection and firmware selection state
@@ -147,6 +150,11 @@ public partial class FirmwareTabViewModel : ViewModelBase
     /// </summary>
     public ObservableCollection<string> FirmwareBySoc { get; set; } = new();
     public ObservableCollection<string> Bootloaders { get; set; } = new();
+    public ObservableCollection<string> FirmwareSources { get; } = new()
+    {
+        OpenIpcFirmwareSource,
+        GregApfpvFirmwareSource
+    };
 
     #endregion
 
@@ -201,6 +209,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         FirmwareUpgradeInProgress = false;
         IsFirmwareExpanded = true;
         IsBootloaderExpanded = false;
+        SelectedFirmwareSource = OpenIpcFirmwareSource;
     }
 
     partial void OnIsFirmwareExpandedChanged(bool value)
@@ -298,6 +307,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
         IsLocalFirmwarePackageSelected = false;
         _bRecursionSelectGuard = false;
         UpdateCanExecuteCommands();
+    }
+
+    partial void OnSelectedFirmwareSourceChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || _bRecursionSelectGuard)
+            return;
+
+        ClearFirmwareSelectionsAndCollections();
+        _ = LoadManufacturersAsync();
     }
     
     partial void OnSelectedManufacturerChanged(string value)
@@ -593,6 +611,30 @@ public partial class FirmwareTabViewModel : ViewModelBase
         UpdateCanExecuteCommands();
     }
 
+    private void ClearFirmwareSelectionsAndCollections()
+    {
+        _bRecursionSelectGuard = true;
+
+        SelectedManufacturer = string.Empty;
+        SelectedDevice = string.Empty;
+        SelectedFirmware = string.Empty;
+        SelectedFirmwareBySoc = string.Empty;
+        ManualLocalFirmwarePackageFile = string.Empty;
+
+        IsLocalFirmwarePackageSelected = false;
+        IsManufacturerDeviceFirmwareComboSelected = false;
+        IsManualUpdateEnabled = true;
+        IsFirmwareBySocSelected = false;
+
+        Manufacturers.Clear();
+        Devices.Clear();
+        Firmwares.Clear();
+        FirmwareBySoc.Clear();
+
+        _bRecursionSelectGuard = false;
+        UpdateCanExecuteCommands();
+    }
+
     private bool CanExecuteDownloadFirmware()
     {
         return CanConnect &&
@@ -646,7 +688,9 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
             Logger.Information($"Fetched {filenames.Count()} firmware files.");
 
-            FirmwareData firmwareData = ProcessFilenames(filenames);
+            FirmwareData firmwareData = IsGregApfpvSourceSelected()
+                ? new FirmwareData { Manufacturers = new ObservableCollection<Manufacturer>() }
+                : ProcessFilenames(filenames);
             
             // Populate FirmwareBySoc
             PopulateFirmwareBySoc(filenames); // Calling populate method here
@@ -696,11 +740,31 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     private async Task<IEnumerable<string>> GetFilenamesAsync()
     {
-        var response = await _gitHubService.GetGitHubDataAsync(OpenIPC.OpenIPCBuilderGitHubApiUrl);
-        var releaseData = JObject.Parse(response.ToString());
-        var assets = releaseData["assets"];
-        return assets?.Select(asset => asset["name"]?.ToString()).Where(name => !string.IsNullOrEmpty(name)) ??
-               Enumerable.Empty<string>();
+        if (IsGregApfpvSourceSelected())
+        {
+            var response = await _gitHubService.GetGitHubDataAsync(OpenIPC.GregApfpvContentsGitHubApiUrl);
+            if (string.IsNullOrEmpty(response))
+                return Enumerable.Empty<string>();
+
+            var items = JArray.Parse(response);
+            return items
+                .Where(item => item["type"]?.ToString() == "file")
+                .Select(item => item["name"]?.ToString())
+                .Where(name => !string.IsNullOrEmpty(name))
+                .Select(name => name!)
+                .Where(name => name.EndsWith(".tgz", StringComparison.OrdinalIgnoreCase));
+        }
+        else
+        {
+            var response = await _gitHubService.GetGitHubDataAsync(OpenIPC.OpenIPCBuilderGitHubApiUrl);
+            if (string.IsNullOrEmpty(response))
+                return Enumerable.Empty<string>();
+
+            var releaseData = JObject.Parse(response);
+            var assets = releaseData["assets"];
+            return assets?.Select(asset => asset["name"]?.ToString()).Where(name => !string.IsNullOrEmpty(name)) ??
+                   Enumerable.Empty<string>();
+        }
     }
 
     private async Task<IEnumerable<string>> GetBootloaderFilenamesAsync()
@@ -1385,7 +1449,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
             if (!string.IsNullOrEmpty(firmwwareFile))
             {
                 filename = firmwwareFile;
-                downloadUrl = $"https://github.com/OpenIPC/builder/releases/download/latest/{firmwwareFile}";
+                downloadUrl = BuildFirmwareDownloadUrl(firmwwareFile);
             }
             
             else
@@ -1441,7 +1505,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
                 !string.IsNullOrEmpty(firmware?.Name))
             {
                 filename = firmware.PackageFile;
-                downloadUrl = $"https://github.com/OpenIPC/builder/releases/download/latest/{filename}";
+                downloadUrl = BuildFirmwareDownloadUrl(filename);
             }
             
             else
@@ -1725,6 +1789,19 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
             UpdateCanExecuteCommands();
         }
+    }
+
+    private bool IsGregApfpvSourceSelected()
+    {
+        return string.Equals(SelectedFirmwareSource, GregApfpvFirmwareSource, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string BuildFirmwareDownloadUrl(string firmwareFilename)
+    {
+        if (IsGregApfpvSourceSelected())
+            return $"{OpenIPC.GregApfpvRawBaseUrl}{firmwareFilename}";
+
+        return $"https://github.com/OpenIPC/builder/releases/download/latest/{firmwareFilename}";
     }
 
     #endregion

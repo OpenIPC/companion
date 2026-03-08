@@ -144,6 +144,39 @@ public class FirmwareTabViewModelTests
     }
 
     [Test]
+    public void SelectedFirmwareSource_DefaultsToOpenIpcBuilder()
+    {
+        Assert.That(_viewModel.SelectedFirmwareSource, Is.EqualTo("OpenIPC Builder"));
+    }
+
+    [Test]
+    public void BuildFirmwareDownloadUrl_DefaultSource_UsesOpenIpcReleaseUrl()
+    {
+        var url = (string)InvokePrivateMethod(_viewModel, "BuildFirmwareDownloadUrl", "test-fw.tgz");
+        Assert.That(url, Is.EqualTo("https://github.com/OpenIPC/builder/releases/download/latest/test-fw.tgz"));
+    }
+
+    [Test]
+    public void BuildFirmwareDownloadUrl_GregSource_UsesRawGithubUrl()
+    {
+        _viewModel.SelectedFirmwareSource = "Greg APFPV";
+
+        var url = (string)InvokePrivateMethod(_viewModel, "BuildFirmwareDownloadUrl", "test-fw.tgz");
+
+        Assert.That(url, Is.EqualTo("https://raw.githubusercontent.com/sickgreg/OpenIPC_sickgregFPV_apfpv/main/test-fw.tgz"));
+    }
+
+    [Test]
+    public void CanUseDropdowns_GregSource_ReturnsFalse()
+    {
+        _viewModel.CanConnect = true;
+        _viewModel.IsConnected = true;
+        _viewModel.SelectedFirmwareSource = "Greg APFPV";
+
+        Assert.That(_viewModel.CanUseDropdowns, Is.False);
+    }
+
+    [Test]
     public void UpdateSysupgradeProgressFromLine_KernelWritingPercent_MapsToRange()
     {
         SetPrivateField(_viewModel, "_sysupgradeInProgress", true);
