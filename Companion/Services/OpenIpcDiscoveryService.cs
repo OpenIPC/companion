@@ -187,6 +187,17 @@ public class OpenIpcDiscoveryService : IOpenIpcDiscoveryService
         if (usbCandidates.Count > 0)
             return usbCandidates;
 
+        if (OperatingSystem.IsMacOS())
+        {
+            var macBridgeCandidates = candidates
+                .Where(candidate => candidate.InterfaceName.Equals("bridge100", StringComparison.OrdinalIgnoreCase) &&
+                                    candidate.IsPrivateIPv4)
+                .ToList();
+
+            if (macBridgeCandidates.Count > 0)
+                return macBridgeCandidates;
+        }
+
         var directAttached = candidates
             .Where(candidate => !candidate.HasGateway &&
                                 !candidate.IsVirtualLike &&

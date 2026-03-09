@@ -133,6 +133,9 @@ public class NetworkHelper
 
     public static string BuildDiscoveryScanPrefix(IPAddress ipAddress, IPAddress mask)
     {
+        if (!OperatingSystem.IsWindows())
+            return BuildScanPrefix(ipAddress, mask);
+
         var prefix = BuildScanPrefix(ipAddress, mask);
         var parts = prefix.Split('.', StringSplitOptions.RemoveEmptyEntries);
 
@@ -226,16 +229,40 @@ public class NetworkHelper
     private static bool IsVirtualLikeInterface(NetworkInterface nic)
     {
         var descriptor = $"{nic.Name} {nic.Description} {nic.Id}";
+        if (OperatingSystem.IsWindows())
+        {
+            return ContainsAny(descriptor,
+                "virtual",
+                "vmware",
+                "hyper-v",
+                "vbox",
+                "docker",
+                "wsl",
+                "vethernet",
+                "default switch",
+                "tailscale",
+                "zerotier");
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            if (nic.Name.Equals("bridge100", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            return ContainsAny(descriptor,
+                "virtual",
+                "vmware",
+                "vbox",
+                "docker",
+                "tailscale",
+                "zerotier");
+        }
+
         return ContainsAny(descriptor,
-            "bridge",
             "virtual",
             "vmware",
-            "hyper-v",
             "vbox",
             "docker",
-            "wsl",
-            "vethernet",
-            "default switch",
             "tailscale",
             "zerotier");
     }

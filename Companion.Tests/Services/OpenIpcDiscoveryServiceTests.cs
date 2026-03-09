@@ -12,6 +12,12 @@ public class OpenIpcDiscoveryServiceTests
     [Test]
     public void BuildDiscoveryScanPrefix_ClampsBroadSubnetToClassC()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Pass("Windows-specific discovery clamp.");
+            return;
+        }
+
         var prefix = NetworkHelper.BuildDiscoveryScanPrefix(
             IPAddress.Parse("192.168.2.45"),
             IPAddress.Parse("255.255.0.0"));
@@ -54,5 +60,48 @@ public class OpenIpcDiscoveryServiceTests
 
         Assert.That(selected.Select(candidate => candidate.InterfaceName).ToArray(),
             Is.EqualTo(new[] { "USB Ethernet/RNDIS Gadget" }));
+    }
+
+    [Test]
+    public void SelectPreferredCandidates_OnMacOsPrefersBridge100ForInternetSharing()
+    {
+        if (!OperatingSystem.IsMacOS())
+        {
+            Assert.Pass("macOS-specific bridge selection.");
+            return;
+        }
+
+        var method = typeof(OpenIpcDiscoveryService).GetMethod(
+            "SelectPreferredCandidates",
+            BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.That(method, Is.Not.Null);
+
+        var candidates = new List<NetworkHelper.LocalNetworkCandidate>
+        {
+            new(
+                IPAddress.Parse("192.168.1.55"),
+                IPAddress.Parse("255.255.255.0"),
+                "en17",
+                60,
+                false,
+                false,
+                false,
+                true),
+            new(
+                IPAddress.Parse("192.168.2.1"),
+                IPAddress.Parse("255.255.255.0"),
+                "bridge100",
+                35,
+                false,
+                false,
+                false,
+                true)
+        };
+
+        var selected = (IReadOnlyList<NetworkHelper.LocalNetworkCandidate>)method!.Invoke(null, new object[] { candidates })!;
+
+        Assert.That(selected.Select(candidate => candidate.InterfaceName).ToArray(),
+            Is.EqualTo(new[] { "bridge100" }));
     }
 }
