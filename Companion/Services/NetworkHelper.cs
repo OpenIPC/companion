@@ -15,7 +15,9 @@ public class NetworkHelper
         string InterfaceName,
         int Priority,
         bool HasGateway,
-        bool IsUsbLike);
+        bool IsUsbLike,
+        bool IsVirtualLike,
+        bool IsPrivateIPv4);
 
     public static string GetLocalIPAddress()
     {
@@ -83,6 +85,8 @@ public class NetworkHelper
 
                 var mask = unicast.IPv4Mask ?? IPAddress.Parse("255.255.255.0");
                 var isUsbLike = IsUsbLikeInterface(nic);
+                var isVirtualLike = IsVirtualLikeInterface(nic);
+                var isPrivateIPv4 = IsPrivateIPv4(unicast.Address);
                 var priority = CalculatePriority(nic, unicast.Address, hasGateway, isUsbLike);
                 candidates.Add(new LocalNetworkCandidate(
                     unicast.Address,
@@ -90,7 +94,9 @@ public class NetworkHelper
                     nic.Name,
                     priority,
                     hasGateway,
-                    isUsbLike));
+                    isUsbLike,
+                    isVirtualLike,
+                    isPrivateIPv4));
             }
         }
 
@@ -123,6 +129,19 @@ public class NetworkHelper
             return $"{octets[0]}.{octets[1]}.{octets[2]}.";
 
         return $"{octets[0]}.{octets[1]}.{octets[2]}.{octets[3]}";
+    }
+
+    public static string BuildDiscoveryScanPrefix(IPAddress ipAddress, IPAddress mask)
+    {
+        var prefix = BuildScanPrefix(ipAddress, mask);
+        var parts = prefix.Split('.', StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length < 3)
+            return $"{ipAddress.GetAddressBytes()[0]}.{ipAddress.GetAddressBytes()[1]}.{ipAddress.GetAddressBytes()[2]}.";
+
+        return parts.Length == 4
+            ? $"{parts[0]}.{parts[1]}.{parts[2]}.{parts[3]}"
+            : $"{parts[0]}.{parts[1]}.{parts[2]}.";
     }
 
     public static List<string> BuildScanTargets(string input)
@@ -202,6 +221,23 @@ public class NetworkHelper
     {
         var descriptor = $"{nic.Name} {nic.Description} {nic.Id}";
         return ContainsAny(descriptor, "usb", "serial", "rndis", "cdc", "ecm", "ncm");
+    }
+
+    private static bool IsVirtualLikeInterface(NetworkInterface nic)
+    {
+        var descriptor = $"{nic.Name} {nic.Description} {nic.Id}";
+        return ContainsAny(descriptor,
+            "bridge",
+            "virtual",
+            "vmware",
+            "hyper-v",
+            "vbox",
+            "docker",
+            "wsl",
+            "vethernet",
+            "default switch",
+            "tailscale",
+            "zerotier");
     }
 
     private static bool ContainsAny(string value, params string[] markers)

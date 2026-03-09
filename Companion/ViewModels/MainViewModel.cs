@@ -39,6 +39,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly TimeSpan _openIpcDiscoveryRetryInterval = TimeSpan.FromSeconds(2);
     private string? _lastAutoConnectAttemptIp;
     private bool _isUpdatingDiscoveryMode;
+    private bool _manualEntrySessionOverride;
     
     [ObservableProperty] private string _svgPath;
     private bool _isTabsCollapsed;
@@ -333,11 +334,13 @@ public partial class MainViewModel : ViewModelBase
 
         if (value)
         {
+            _manualEntrySessionOverride = false;
             StopOpenIpcDiscovery();
             OpenIpcDiscoveryStatus = "Manual entry enabled.";
         }
         else if (IsAutoScanEnabled && !IsDiscoveringOpenIpcDevices)
         {
+            _manualEntrySessionOverride = false;
             _ = RunStartupDiscoveryAsync();
         }
 
@@ -590,7 +593,7 @@ public partial class MainViewModel : ViewModelBase
 
     private async Task RunStartupDiscoveryAsync()
     {
-        if (!IsAutoScanEnabled || IsManualConnectionEntryEnabled)
+        if (!IsAutoScanEnabled || IsManualConnectionEntryEnabled || _manualEntrySessionOverride)
             return;
 
         await ScanForOpenIpcDevicesAsync();
@@ -616,6 +619,7 @@ public partial class MainViewModel : ViewModelBase
         _openIpcDiscoveryCancellationTokenSource = new CancellationTokenSource();
 
         IsDiscoveringOpenIpcDevices = true;
+        _manualEntrySessionOverride = false;
         _isUpdatingDiscoveryMode = true;
         IsManualConnectionEntryEnabled = false;
         _isUpdatingDiscoveryMode = false;
@@ -705,7 +709,7 @@ public partial class MainViewModel : ViewModelBase
             SelectedDeviceType == DeviceType.None)
         {
             OpenIpcDiscoveryStatus = $"Found OpenIPC device at {IpAddress}. Enter credentials to connect manually.";
-            IsManualConnectionEntryEnabled = true;
+            _manualEntrySessionOverride = true;
             UpdateDeviceDiscoveryOverlay(false);
             return false;
         }
@@ -724,8 +728,8 @@ public partial class MainViewModel : ViewModelBase
     private void StopOpenIpcDiscovery()
     {
         _openIpcDiscoveryCancellationTokenSource?.Cancel();
+        _manualEntrySessionOverride = true;
         OpenIpcDiscoveryStatus = "Scanning stopped. Manual entry enabled.";
-        IsManualConnectionEntryEnabled = true;
         UpdateDeviceDiscoveryOverlay(false);
         (StopOpenIpcDiscoveryCommand as RelayCommand)?.NotifyCanExecuteChanged();
         (ScanForOpenIpcDevicesCommand as AsyncRelayCommand)?.NotifyCanExecuteChanged();
@@ -739,7 +743,11 @@ public partial class MainViewModel : ViewModelBase
         if (!string.IsNullOrWhiteSpace(message))
             DeviceDiscoveryOverlayMessage = message;
 
-        ShowDeviceDiscoveryOverlay = forceVisible ?? (IsAutoScanEnabled && !IsManualConnectionEntryEnabled && !IsConnected);
+        ShowDeviceDiscoveryOverlay = forceVisible ??
+                                     (IsAutoScanEnabled &&
+                                      !IsManualConnectionEntryEnabled &&
+                                      !_manualEntrySessionOverride &&
+                                      !IsConnected);
     }
 
     private void MergeDiscoveredIpAddresses(IReadOnlyList<string> discoveredHosts)

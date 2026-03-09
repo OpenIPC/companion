@@ -30,7 +30,16 @@ public class AppPreferencesService : IAppPreferencesService
         try
         {
             var json = File.ReadAllText(PreferencesFilename);
-            return JsonConvert.DeserializeObject<AppPreferences>(json) ?? new AppPreferences();
+            var preferences = JsonConvert.DeserializeObject<AppPreferences>(json) ?? new AppPreferences();
+            var normalized = Normalize(preferences);
+
+            if (normalized.PreferManualConnectionEntry != preferences.PreferManualConnectionEntry ||
+                normalized.AutoScanOpenIpcDevices != preferences.AutoScanOpenIpcDevices)
+            {
+                Save(normalized);
+            }
+
+            return normalized;
         }
         catch (Exception ex)
         {
@@ -51,5 +60,15 @@ public class AppPreferencesService : IAppPreferencesService
         {
             _logger.Error(ex, "Failed to save app preferences to {PreferencesFilename}", PreferencesFilename);
         }
+    }
+
+    private static AppPreferences Normalize(AppPreferences preferences)
+    {
+        if (preferences.AutoScanOpenIpcDevices && preferences.PreferManualConnectionEntry)
+        {
+            preferences.PreferManualConnectionEntry = false;
+        }
+
+        return preferences;
     }
 }

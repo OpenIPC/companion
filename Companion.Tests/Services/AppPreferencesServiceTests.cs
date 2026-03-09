@@ -54,4 +54,23 @@ public class AppPreferencesServiceTests
 
         Assert.That(actual.AutoScanOpenIpcDevices, Is.False);
     }
+
+    [Test]
+    public void Load_WhenAutoScanAndManualEntryAreBothTrue_DisablesManualEntry()
+    {
+        var invalid = new AppPreferences
+        {
+            AutoScanOpenIpcDevices = true,
+            PreferManualConnectionEntry = true
+        };
+        File.WriteAllText(_testPreferencesFilePath, Newtonsoft.Json.JsonConvert.SerializeObject(invalid));
+
+        using var logger = new LoggerConfiguration().CreateLogger();
+        var service = new AppPreferencesService(logger);
+
+        var actual = service.Load();
+
+        Assert.That(actual.AutoScanOpenIpcDevices, Is.True);
+        Assert.That(actual.PreferManualConnectionEntry, Is.False);
+    }
 }

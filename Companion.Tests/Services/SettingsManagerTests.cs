@@ -65,8 +65,26 @@ public class SettingsManagerTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result.IpAddress, Is.EqualTo(string.Empty));
         Assert.That(result.Username, Is.EqualTo(string.Empty));
-        Assert.That(result.Password, Is.EqualTo(string.Empty));
+        Assert.That(result.Password, Is.EqualTo("12345"));
         Assert.That(result.DeviceType, Is.EqualTo(DeviceType.Camera));
+    }
+
+    [Test]
+    public void LoadSettings_FileExistsWithBlankPassword_DefaultsPasswordTo12345()
+    {
+        var expectedConfig = new DeviceConfig
+        {
+            IpAddress = "192.168.1.1",
+            Username = "root",
+            Password = "",
+            DeviceType = DeviceType.Camera
+        };
+        File.WriteAllText(_testSettingsFilePath, JsonConvert.SerializeObject(expectedConfig));
+
+        var result = SettingsManager.LoadSettings();
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Password, Is.EqualTo("12345"));
     }
 
     [Test]
@@ -118,7 +136,7 @@ public class SettingsManagerTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result.IpAddress, Is.EqualTo(string.Empty));
         Assert.That(result.Username, Is.EqualTo(string.Empty));
-        Assert.That(result.Password, Is.EqualTo(string.Empty));
+        Assert.That(result.Password, Is.EqualTo("12345"));
         Assert.That(result.DeviceType, Is.EqualTo(DeviceType.Camera));
     }
 }

@@ -37,10 +37,15 @@ public static class SettingsManager
                 deviceConfig = JsonConvert.DeserializeObject<DeviceConfig>(json);
 
                 if (deviceConfig != null)
+                {
+                    if (string.IsNullOrWhiteSpace(deviceConfig.Password))
+                        deviceConfig.Password = "12345";
+
                     // Optionally publish an event if needed
                     // eventAggregator?.GetEvent<DeviceStateUpdatedEvent>()?.Publish(
                     //     new DeviceStateUpdatedMessage(true, deviceConfig));
                     return deviceConfig;
+                }
 
                 Log.Error("LoadSettings: deviceConfig is null. The file content might be corrupted.");
             }
@@ -62,7 +67,7 @@ public static class SettingsManager
         {
             IpAddress = "",
             Username = "",
-            Password = "",
+            Password = "12345",
             DeviceType = DeviceType.Camera,
         };
     }

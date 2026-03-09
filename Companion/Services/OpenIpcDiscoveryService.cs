@@ -36,7 +36,7 @@ public class OpenIpcDiscoveryService : IOpenIpcDiscoveryService
         var scanGroups = preferredCandidates
             .Select(candidate => new
             {
-                Prefix = NetworkHelper.BuildScanPrefix(candidate.IpAddress, candidate.Mask),
+                Prefix = NetworkHelper.BuildDiscoveryScanPrefix(candidate.IpAddress, candidate.Mask),
                 candidate.InterfaceName,
                 candidate.Priority
             })
@@ -180,12 +180,31 @@ public class OpenIpcDiscoveryService : IOpenIpcDiscoveryService
     private static IReadOnlyList<NetworkHelper.LocalNetworkCandidate> SelectPreferredCandidates(
         IReadOnlyList<NetworkHelper.LocalNetworkCandidate> candidates)
     {
-        var directAttached = candidates
-            .Where(candidate => candidate.IsUsbLike || !candidate.HasGateway)
+        var usbCandidates = candidates
+            .Where(candidate => candidate.IsUsbLike && !candidate.IsVirtualLike)
             .ToList();
 
-        if (directAttached.Count > 0)
+        if (usbCandidates.Count > 0)
+            return usbCandidates;
+
+        var directAttached = candidates
+            .Where(candidate => !candidate.HasGateway &&
+                                !candidate.IsVirtualLike &&
+                                candidate.IsPrivateIPv4)
+            .ToList();
+
+        if (!OperatingSystem.IsWindows() && directAttached.Count > 0)
             return directAttached;
+
+        var primaryCandidates = candidates
+            .Where(candidate => !candidate.IsVirtualLike && candidate.IsPrivateIPv4)
+            .OrderByDescending(candidate => candidate.Priority)
+            .ThenBy(candidate => candidate.InterfaceName, StringComparer.OrdinalIgnoreCase)
+            .Take(OperatingSystem.IsWindows() ? 2 : 1)
+            .ToList();
+
+        if (primaryCandidates.Count > 0)
+            return primaryCandidates;
 
         return candidates.Take(1).ToList();
     }
