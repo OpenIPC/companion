@@ -182,6 +182,8 @@ public class App : Application
         services.AddSingleton<IEventSubscriptionService, EventSubscriptionService>();
         services.AddSingleton<ISshClientService, SshClientService>();
         services.AddSingleton<IMessageBoxService, MessageBoxService>();
+        services.AddSingleton<IAppPreferencesService, AppPreferencesService>();
+        services.AddSingleton<IOpenIpcDiscoveryService, OpenIpcDiscoveryService>();
 
         services.AddSingleton<IYamlConfigService, YamlConfigService>();
         

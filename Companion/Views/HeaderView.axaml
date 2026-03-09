@@ -81,6 +81,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <!-- Logo and Title -->
@@ -174,6 +175,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <!-- IP Address -->
@@ -223,10 +225,50 @@
                              Text="{Binding Password, Mode=TwoWay}" Classes="InputBox"
                              ToolTip.Tip="Password" />
                 </StackPanel>
+
+                <TextBlock Grid.Row="2"
+                           Margin="0,2,0,0"
+                           Foreground="White"
+                           FontSize="11"
+                           MaxWidth="320"
+                           TextTrimming="CharacterEllipsis"
+                           Text="{Binding OpenIpcDiscoveryStatus}" />
             </Grid>
 
+            <Button Grid.Column="4"
+                    Width="36"
+                    Height="36"
+                    Margin="8,0,4,0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ToolTip.Tip="OpenIPC discovery settings">
+                <Button.Flyout>
+                    <Flyout Placement="BottomEdgeAlignedRight">
+                        <StackPanel Width="240" Spacing="10" Margin="4">
+                            <TextBlock Text="OpenIPC Discovery"
+                                       FontWeight="SemiBold" />
+                            <CheckBox Content="Scan automatically at startup"
+                                      IsChecked="{Binding IsAutoScanEnabled, Mode=TwoWay}" />
+                            <CheckBox Content="Enter connection details manually"
+                                      IsChecked="{Binding IsManualConnectionEntryEnabled, Mode=TwoWay}" />
+                            <Button Content="Scan now"
+                                    Command="{Binding ScanForOpenIpcDevicesCommand}" />
+                            <Button Content="Stop scanning"
+                                    Command="{Binding StopOpenIpcDiscoveryCommand}" />
+                            <TextBlock Text="{Binding OpenIpcDiscoveryStatus}"
+                                       TextWrapping="Wrap"
+                                       FontSize="11" />
+                        </StackPanel>
+                    </Flyout>
+                </Button.Flyout>
+                <Svg Width="20"
+                     Path="/Assets/Icons/iconoir_settings_light.svg" />
+            </Button>
+
             <!-- Circular Connect Button -->
-            <StackPanel Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,0,10,0">
+            <StackPanel Grid.Column="5" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,0,10,0">
                 <Button Width="50" Height="50" Command="{Binding ConnectCommand}"
                         IsEnabled="{Binding CanConnect}"
                         Classes="CircularButton"

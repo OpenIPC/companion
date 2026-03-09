@@ -139,5 +139,47 @@
             <!-- Log Viewer -->
             <views:LogViewer Grid.Column="1" Margin="3,3,3,3" />
         </Grid>
+
+        <Border Grid.RowSpan="4"
+                IsVisible="{Binding ShowDeviceDiscoveryOverlay}"
+                Background="#D91C1C1C">
+            <Grid>
+                <Border Width="420"
+                        MaxWidth="420"
+                        Padding="28"
+                        CornerRadius="18"
+                        Background="#F5F1E8"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                    <StackPanel Spacing="14">
+                        <TextBlock Text="{Binding DeviceDiscoveryOverlayTitle}"
+                                   FontSize="28"
+                                   FontWeight="SemiBold"
+                                   Foreground="#1B1B1B"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding DeviceDiscoveryOverlayMessage}"
+                                   TextWrapping="Wrap"
+                                   FontSize="16"
+                                   Foreground="#333333"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center" />
+                        <TextBlock Text="{Binding OpenIpcDiscoveryStatus}"
+                                   TextWrapping="Wrap"
+                                   FontSize="13"
+                                   Foreground="#666666"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center" />
+                        <ProgressBar IsIndeterminate="True"
+                                     Height="8"
+                                     Margin="0,8,0,0" />
+                        <Button Content="Cancel"
+                                Command="{Binding StopOpenIpcDiscoveryCommand}"
+                                HorizontalAlignment="Center"
+                                Padding="18,8"
+                                Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

@@ -32,6 +32,13 @@ public partial class MainViewModel : ViewModelBase
     private readonly TimeSpan _pingInterval = TimeSpan.FromSeconds(1);
     private readonly TimeSpan _pingTimeout = TimeSpan.FromMilliseconds(500);
     private readonly IMessageBoxService _messageBoxService;
+    private readonly IAppPreferencesService _appPreferencesService;
+    private readonly IOpenIpcDiscoveryService _openIpcDiscoveryService;
+    private readonly AppPreferences _appPreferences;
+    private CancellationTokenSource? _openIpcDiscoveryCancellationTokenSource;
+    private readonly TimeSpan _openIpcDiscoveryRetryInterval = TimeSpan.FromSeconds(2);
+    private string? _lastAutoConnectAttemptIp;
+    private bool _isUpdatingDiscoveryMode;
     
     [ObservableProperty] private string _svgPath;
     private bool _isTabsCollapsed;
@@ -59,13 +66,18 @@ public partial class MainViewModel : ViewModelBase
         IEventSubscriptionService eventSubscriptionService,
         IServiceProvider serviceProvider,
         IGlobalSettingsService globalSettingsService,
-        IMessageBoxService messageBoxService)
+        IMessageBoxService messageBoxService,
+        IAppPreferencesService appPreferencesService,
+        IOpenIpcDiscoveryService openIpcDiscoveryService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
         
         _logger = logger?.ForContext(GetType()) ?? 
                  throw new ArgumentNullException(nameof(logger));
         _messageBoxService = messageBoxService;
+        _appPreferencesService = appPreferencesService;
+        _openIpcDiscoveryService = openIpcDiscoveryService;
+        _appPreferences = _appPreferencesService.Load();
         LoadSettings();
         
         // Initialize the ping service
@@ -87,7 +99,9 @@ public partial class MainViewModel : ViewModelBase
 
         EntryBoxBgColor = new SolidColorBrush(Colors.White);
 
-        ConnectCommand = new AsyncRelayCommand(ConnectAsync);
+        ConnectCommand = new AsyncRelayCommand(ConnectFromUiAsync);
+        ScanForOpenIpcDevicesCommand = new AsyncRelayCommand(ScanForOpenIpcDevicesAsync, CanRunOpenIpcDiscovery);
+        StopOpenIpcDiscoveryCommand = new RelayCommand(StopOpenIpcDiscovery, CanStopOpenIpcDiscovery);
 
         DeviceTypes = new ObservableCollection<DeviceType>(Enum.GetValues(typeof(DeviceType)).Cast<DeviceType>());
         
@@ -102,9 +116,18 @@ public partial class MainViewModel : ViewModelBase
         Sensor = string.Empty;
         NetworkCardType = string.Empty;
         IsVRXEnabled = false;
+        IsAutoScanEnabled = _appPreferences.AutoScanOpenIpcDevices;
+        IsManualConnectionEntryEnabled = _appPreferences.PreferManualConnectionEntry;
+        OpenIpcDiscoveryStatus = IsAutoScanEnabled
+            ? "Auto-scan will search the local network for OpenIPC devices."
+            : "Auto-scan is off.";
+        DeviceDiscoveryOverlayTitle = "Please connect device";
+        DeviceDiscoveryOverlayMessage = "Connect the debug dongle, power up the device, and Companion will connect when it becomes available.";
         
         // initialize tabs with Camera
         InitializeTabs(DeviceType.Camera);
+
+        _ = RunStartupDiscoveryAsync();
     }
 
     private void InitializeTabs(DeviceType deviceType)
@@ -288,6 +311,39 @@ public partial class MainViewModel : ViewModelBase
         CheckIfCanConnect();
     }
 
+    partial void OnIsAutoScanEnabledChanged(bool value)
+    {
+        _appPreferences.AutoScanOpenIpcDevices = value;
+        _appPreferencesService.Save(_appPreferences);
+        if (!value)
+            StopOpenIpcDiscovery();
+        OpenIpcDiscoveryStatus = value
+            ? "Auto-scan is on. Companion will scan the local network at startup."
+            : "Auto-scan is off.";
+        UpdateDeviceDiscoveryOverlay();
+    }
+
+    partial void OnIsManualConnectionEntryEnabledChanged(bool value)
+    {
+        _appPreferences.PreferManualConnectionEntry = value;
+        _appPreferencesService.Save(_appPreferences);
+
+        if (_isUpdatingDiscoveryMode)
+            return;
+
+        if (value)
+        {
+            StopOpenIpcDiscovery();
+            OpenIpcDiscoveryStatus = "Manual entry enabled.";
+        }
+        else if (IsAutoScanEnabled && !IsDiscoveringOpenIpcDevices)
+        {
+            _ = RunStartupDiscoveryAsync();
+        }
+
+        UpdateDeviceDiscoveryOverlay();
+    }
+
     private void SendDeviceTypeMessage(DeviceType deviceType)
     {
         // Insert logic to send a message based on the selected device type
@@ -446,8 +502,14 @@ public partial class MainViewModel : ViewModelBase
             }
         }
     }
-    private async Task ConnectAsync()
+    private async Task ConnectFromUiAsync()
     {
+        await ConnectAsync();
+    }
+
+    private async Task<bool> ConnectAsync()
+    {
+        UpdateDeviceDiscoveryOverlay(false, "Connecting to device...");
         // Add the current IP to the cache
         AddCurrentIpToCache();
         
@@ -464,7 +526,7 @@ public partial class MainViewModel : ViewModelBase
         if (_deviceConfig.Hostname == string.Empty)
         {
             _logger.Error("Failed to get hostname, stopping");
-            return;
+            return false;
         }
 
         var validator = App.ServiceProvider.GetRequiredService<DeviceConfigValidator>();
@@ -479,7 +541,7 @@ public partial class MainViewModel : ViewModelBase
             if (result == ButtonResult.Cancel)
             {
                 _logger.Debug("Device selection and hostname mismatch, stopping");
-                return;
+                return false;
             }
         }
 
@@ -522,6 +584,175 @@ public partial class MainViewModel : ViewModelBase
         }
 
         UpdateUIMessage("Connected");
+        UpdateDeviceDiscoveryOverlay(false);
+        return true;
+    }
+
+    private async Task RunStartupDiscoveryAsync()
+    {
+        if (!IsAutoScanEnabled || IsManualConnectionEntryEnabled)
+            return;
+
+        await ScanForOpenIpcDevicesAsync();
+    }
+
+    private bool CanRunOpenIpcDiscovery()
+    {
+        return !IsDiscoveringOpenIpcDevices;
+    }
+
+    private bool CanStopOpenIpcDiscovery()
+    {
+        return IsDiscoveringOpenIpcDevices;
+    }
+
+    private async Task ScanForOpenIpcDevicesAsync()
+    {
+        if (IsDiscoveringOpenIpcDevices)
+            return;
+
+        _openIpcDiscoveryCancellationTokenSource?.Cancel();
+        _openIpcDiscoveryCancellationTokenSource?.Dispose();
+        _openIpcDiscoveryCancellationTokenSource = new CancellationTokenSource();
+
+        IsDiscoveringOpenIpcDevices = true;
+        _isUpdatingDiscoveryMode = true;
+        IsManualConnectionEntryEnabled = false;
+        _isUpdatingDiscoveryMode = false;
+        _lastAutoConnectAttemptIp = null;
+        OpenIpcDiscoveryStatus = "Scanning local network for OpenIPC devices...";
+        UpdateDeviceDiscoveryOverlay(true,
+            "Please connect device",
+            "Connect the debug dongle, power up the device, and Companion will connect automatically when the device is ready.");
+        (ScanForOpenIpcDevicesCommand as AsyncRelayCommand)?.NotifyCanExecuteChanged();
+        (StopOpenIpcDiscoveryCommand as RelayCommand)?.NotifyCanExecuteChanged();
+
+        try
+        {
+            while (!_openIpcDiscoveryCancellationTokenSource.Token.IsCancellationRequested &&
+                   !IsManualConnectionEntryEnabled)
+            {
+                var discoveredHosts = await _openIpcDiscoveryService.DiscoverAsync(
+                    _openIpcDiscoveryCancellationTokenSource.Token);
+
+                MergeDiscoveredIpAddresses(discoveredHosts);
+
+                if (discoveredHosts.Count == 0)
+                {
+                    OpenIpcDiscoveryStatus = "Scanning... no OpenIPC devices found yet.";
+                    UpdateDeviceDiscoveryOverlay(true,
+                        "Please connect device",
+                        "Waiting for an OpenIPC device to appear on the local network.");
+                    await Task.Delay(_openIpcDiscoveryRetryInterval, _openIpcDiscoveryCancellationTokenSource.Token);
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(IpAddress) || !discoveredHosts.Contains(IpAddress))
+                    IpAddress = discoveredHosts[0];
+
+                OpenIpcDiscoveryStatus = discoveredHosts.Count == 1
+                    ? $"Found OpenIPC device at {discoveredHosts[0]}. Connecting..."
+                    : $"Found {discoveredHosts.Count} OpenIPC devices. Connecting to {IpAddress}...";
+                UpdateDeviceDiscoveryOverlay(true,
+                    "Device found",
+                    $"Found OpenIPC device at {IpAddress}. Connecting...");
+
+                SaveConfig();
+
+                if (!string.Equals(_lastAutoConnectAttemptIp, IpAddress, StringComparison.OrdinalIgnoreCase))
+                {
+                    _lastAutoConnectAttemptIp = IpAddress;
+                    var connected = await TryAutoConnectDiscoveredDeviceAsync();
+                    if (connected)
+                    {
+                        OpenIpcDiscoveryStatus = $"Connected to OpenIPC device at {IpAddress}.";
+                        UpdateDeviceDiscoveryOverlay(false);
+                        return;
+                    }
+                }
+
+                OpenIpcDiscoveryStatus = "OpenIPC device found. Automatic connect failed; continuing scan.";
+                UpdateDeviceDiscoveryOverlay(true,
+                    "Please connect device",
+                    "A device was found, but automatic connection failed. Waiting for the next available device state.");
+                await Task.Delay(_openIpcDiscoveryRetryInterval, _openIpcDiscoveryCancellationTokenSource.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            OpenIpcDiscoveryStatus = "OpenIPC scan canceled.";
+            UpdateDeviceDiscoveryOverlay(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to scan for OpenIPC devices.");
+            OpenIpcDiscoveryStatus = "OpenIPC scan failed.";
+            UpdateDeviceDiscoveryOverlay(false);
+        }
+        finally
+        {
+            IsDiscoveringOpenIpcDevices = false;
+            UpdateDeviceDiscoveryOverlay();
+            (ScanForOpenIpcDevicesCommand as AsyncRelayCommand)?.NotifyCanExecuteChanged();
+            (StopOpenIpcDiscoveryCommand as RelayCommand)?.NotifyCanExecuteChanged();
+        }
+    }
+
+    private async Task<bool> TryAutoConnectDiscoveredDeviceAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Password) ||
+            string.IsNullOrWhiteSpace(IpAddress) ||
+            SelectedDeviceType == DeviceType.None)
+        {
+            OpenIpcDiscoveryStatus = $"Found OpenIPC device at {IpAddress}. Enter credentials to connect manually.";
+            IsManualConnectionEntryEnabled = true;
+            UpdateDeviceDiscoveryOverlay(false);
+            return false;
+        }
+
+        try
+        {
+            return await ConnectAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Automatic connect failed for discovered OpenIPC device at {IpAddress}.", IpAddress);
+            return false;
+        }
+    }
+
+    private void StopOpenIpcDiscovery()
+    {
+        _openIpcDiscoveryCancellationTokenSource?.Cancel();
+        OpenIpcDiscoveryStatus = "Scanning stopped. Manual entry enabled.";
+        IsManualConnectionEntryEnabled = true;
+        UpdateDeviceDiscoveryOverlay(false);
+        (StopOpenIpcDiscoveryCommand as RelayCommand)?.NotifyCanExecuteChanged();
+        (ScanForOpenIpcDevicesCommand as AsyncRelayCommand)?.NotifyCanExecuteChanged();
+    }
+
+    private void UpdateDeviceDiscoveryOverlay(bool? forceVisible = null, string? title = null, string? message = null)
+    {
+        if (!string.IsNullOrWhiteSpace(title))
+            DeviceDiscoveryOverlayTitle = title;
+
+        if (!string.IsNullOrWhiteSpace(message))
+            DeviceDiscoveryOverlayMessage = message;
+
+        ShowDeviceDiscoveryOverlay = forceVisible ?? (IsAutoScanEnabled && !IsManualConnectionEntryEnabled && !IsConnected);
+    }
+
+    private void MergeDiscoveredIpAddresses(IReadOnlyList<string> discoveredHosts)
+    {
+        var merged = discoveredHosts
+            .Concat(CachedIpAddresses)
+            .Where(Utilities.IsValidIpAddress)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(10)
+            .ToList();
+
+        CachedIpAddresses = new ObservableCollection<string>(merged);
+        _deviceConfig.CachedIpAddresses = merged;
     }
 
     
@@ -1092,6 +1323,16 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private bool isVRXEnabled;
     [ObservableProperty] private DeviceConfig _deviceConfig;
     [ObservableProperty] private TabItemViewModel _selectedTab;
+    [ObservableProperty] private bool _isAutoScanEnabled;
+    [ObservableProperty] private bool _isDiscoveringOpenIpcDevices;
+    [ObservableProperty] private bool _isManualConnectionEntryEnabled;
+    [ObservableProperty] private string _openIpcDiscoveryStatus;
+    [ObservableProperty] private bool _showDeviceDiscoveryOverlay;
+    [ObservableProperty] private string _deviceDiscoveryOverlayTitle;
+    [ObservableProperty] private string _deviceDiscoveryOverlayMessage;
+
+    public ICommand ScanForOpenIpcDevicesCommand { get; }
+    public ICommand StopOpenIpcDiscoveryCommand { get; }
 
     #endregion
 }
