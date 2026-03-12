@@ -288,7 +288,8 @@ public class App : Application
         }
         else // Assume Linux
         {
-            var configDirectory = Path.Combine($"./config/{appName}");
+            var configDirectory =
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), appName.Replace(" ", ""));
             if (!Directory.Exists(configDirectory))
                 Directory.CreateDirectory(configDirectory);
 

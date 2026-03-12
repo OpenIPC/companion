@@ -168,7 +168,7 @@ public class OpenIPC
         else // Assume Linux
         {
             AppDataConfigDirectory =
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), appName);
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), appName.Replace(" ", ""));
             AppDataConfigPath = Path.Combine(AppDataConfigDirectory, "appsettings.json");
             DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "OpenIPC.Companion.json");
             LocalTempFolder = Path.Combine(AppDataConfigDirectory, "Temp");
