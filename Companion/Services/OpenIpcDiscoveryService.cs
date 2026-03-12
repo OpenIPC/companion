@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Companion.Models;
@@ -18,13 +20,31 @@ public class OpenIpcDiscoveryService : IOpenIpcDiscoveryService
     private static readonly HttpClient ProbeHttpClient = CreateProbeHttpClient();
     private static readonly HttpClient AuthProbeHttpClient = CreateAuthProbeHttpClient();
 
+    private static readonly string CacheFilePath =
+        Path.Combine(OpenIPC.AppDataConfigDirectory, "discovered_devices.json");
+
+    private readonly HashSet<string> _cachedHosts = new(StringComparer.OrdinalIgnoreCase);
+
     public OpenIpcDiscoveryService(ILogger logger)
     {
         _logger = logger.ForContext<OpenIpcDiscoveryService>();
+        LoadCache();
     }
 
     public async Task<IReadOnlyList<string>> DiscoverAsync(CancellationToken cancellationToken = default)
     {
+        // Fast path: probe previously discovered hosts first
+        if (_cachedHosts.Count > 0)
+        {
+            _logger.Information("Probing {Count} cached host(s) before full scan.", _cachedHosts.Count);
+            var cachedResults = await ProbeCachedHostsAsync(cancellationToken);
+            if (cachedResults.Count > 0)
+            {
+                _logger.Information("Found {Count} cached OpenIPC device(s), skipping full scan.", cachedResults.Count);
+                return cachedResults;
+            }
+        }
+
         var candidates = NetworkHelper.GetLocalNetworkCandidates();
         if (candidates.Count == 0)
         {
@@ -95,7 +115,77 @@ public class OpenIpcDiscoveryService : IOpenIpcDiscoveryService
             .ToList();
 
         _logger.Information("OpenIPC discovery finished with {DeviceCount} matches.", ordered.Count);
+
+        if (ordered.Count > 0)
+            UpdateCache(ordered);
+
         return ordered;
+    }
+
+    private async Task<IReadOnlyList<string>> ProbeCachedHostsAsync(CancellationToken cancellationToken)
+    {
+        var results = new List<string>();
+        var tasks = _cachedHosts.Select(async host =>
+        {
+            try
+            {
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(TimeSpan.FromMilliseconds(1500));
+                if (await LooksLikeOpenIpcAsync(host, timeoutCts.Token))
+                {
+                    lock (results)
+                    {
+                        results.Add(host);
+                    }
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Cached host probe failed for {Host}.", host);
+            }
+        });
+
+        await Task.WhenAll(tasks);
+        return results.OrderBy(ip => ip, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private void UpdateCache(IEnumerable<string> hosts)
+    {
+        foreach (var host in hosts)
+            _cachedHosts.Add(host);
+
+        try
+        {
+            var json = JsonSerializer.Serialize(_cachedHosts.ToList());
+            File.WriteAllText(CacheFilePath, json);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Failed to persist discovery cache.");
+        }
+    }
+
+    private void LoadCache()
+    {
+        try
+        {
+            if (!File.Exists(CacheFilePath))
+                return;
+
+            var json = File.ReadAllText(CacheFilePath);
+            var hosts = JsonSerializer.Deserialize<List<string>>(json);
+            if (hosts == null) return;
+
+            foreach (var host in hosts)
+                _cachedHosts.Add(host);
+
+            _logger.Information("Loaded {Count} cached host(s) from discovery cache.", _cachedHosts.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Failed to load discovery cache.");
+        }
     }
 
     private static async Task<bool> IsReachableAsync(string host, CancellationToken cancellationToken)
