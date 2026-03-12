@@ -125,7 +125,6 @@ public class OpenIpcDiscoveryService : IOpenIpcDiscoveryService
         return ContainsOpenIpcMarker(headers) ||
                ContainsOpenIpcMarker(server) ||
                ContainsOpenIpcMarker(authHeader) ||
-               LooksLikeBasicAuthDevice(response, authHeader) ||
                ContainsOpenIpcMarker(body);
     }
 
@@ -220,9 +219,4 @@ public class OpenIpcDiscoveryService : IOpenIpcDiscoveryService
         return candidates.Take(1).ToList();
     }
 
-    private static bool LooksLikeBasicAuthDevice(HttpResponseMessage response, string authHeader)
-    {
-        return (int)response.StatusCode == 401 &&
-               authHeader.Contains("Basic", StringComparison.OrdinalIgnoreCase);
-    }
 }
