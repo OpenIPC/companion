@@ -16,6 +16,7 @@ public class OpenIpcDiscoveryService : IOpenIpcDiscoveryService
 {
     private readonly ILogger _logger;
     private static readonly HttpClient ProbeHttpClient = CreateProbeHttpClient();
+    private static readonly HttpClient AuthProbeHttpClient = CreateAuthProbeHttpClient();
 
     public OpenIpcDiscoveryService(ILogger logger)
     {
@@ -122,10 +123,46 @@ public class OpenIpcDiscoveryService : IOpenIpcDiscoveryService
         var authHeader = string.Join(" ", response.Headers.WwwAuthenticate.Select(header => header.ToString()));
         var body = await response.Content.ReadAsStringAsync(timeoutCts.Token);
 
-        return ContainsOpenIpcMarker(headers) ||
-               ContainsOpenIpcMarker(server) ||
-               ContainsOpenIpcMarker(authHeader) ||
-               ContainsOpenIpcMarker(body);
+        if (ContainsOpenIpcMarker(headers) ||
+            ContainsOpenIpcMarker(server) ||
+            ContainsOpenIpcMarker(authHeader) ||
+            ContainsOpenIpcMarker(body))
+            return true;
+
+        // If the device returned 401 Basic auth, try with default OpenIPC credentials
+        // to confirm it's actually an OpenIPC device and not a false positive
+        if ((int)response.StatusCode == 401 &&
+            authHeader.Contains("Basic", StringComparison.OrdinalIgnoreCase))
+            return await LooksLikeOpenIpcWithCredentialsAsync(host, timeoutCts.Token);
+
+        return false;
+    }
+
+    private async Task<bool> LooksLikeOpenIpcWithCredentialsAsync(string host, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"http://{host}/");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Basic", Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes("root:12345")));
+            using var response = await AuthProbeHttpClient.SendAsync(request,
+                HttpCompletionOption.ResponseContentRead, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+                return false;
+
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            var headers = string.Join(" ", response.Headers.SelectMany(h => h.Value));
+            var server = response.Headers.Server.ToString();
+
+            return ContainsOpenIpcMarker(body) ||
+                   ContainsOpenIpcMarker(headers) ||
+                   ContainsOpenIpcMarker(server);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static bool ContainsOpenIpcMarker(string? content)
@@ -153,6 +190,16 @@ public class OpenIpcDiscoveryService : IOpenIpcDiscoveryService
         var handler = new HttpClientHandler
         {
             AllowAutoRedirect = false
+        };
+
+        return new HttpClient(handler, disposeHandler: true);
+    }
+
+    private static HttpClient CreateAuthProbeHttpClient()
+    {
+        var handler = new HttpClientHandler
+        {
+            AllowAutoRedirect = true
         };
 
         return new HttpClient(handler, disposeHandler: true);
