@@ -65,8 +65,8 @@ public static class SettingsManager
         // Default values if no settings file exists or an error occurs
         return new DeviceConfig
         {
-            IpAddress = "",
-            Username = "",
+            IpAddress = "192.168.1.10",
+            Username = "root",
             Password = "12345",
             DeviceType = DeviceType.Camera,
         };
