@@ -147,29 +147,19 @@ public class App : Application
                 existingSettings["UpdateChecker"] = new JObject(
                     new JProperty("LatestJsonUrl", "https://github.com/OpenIPC/companion/releases/latest/download/latest.json")
                 );
-                
+
                 hasChanges = true;
-                Log.Information("Added Presets section to existing settings");
+                Log.Information("Updated UpdateChecker settings in existing settings");
             }
-            // Check if Presets section exists, add if missing
-            if (existingSettings["Presets"] == null)
+            else
             {
-                existingSettings["Presets"] = new JObject(
-                    new JProperty("Repositories", 
-                        new JArray(
-                            new JObject(
-                                new JProperty("Url", "https://github.com/OpenIPC/fpv-presets"),
-                                new JProperty("Branch", "master"),
-                                new JProperty("Description", "Official OpenIPC presets repository"),
-                                new JProperty("IsActive", true)
-                            )
-                        )
-                    )
+                existingSettings["UpdateChecker"] = new JObject(
+                    new JProperty("LatestJsonUrl", "https://github.com/OpenIPC/companion/releases/latest/download/latest.json")
                 );
+
                 hasChanges = true;
-                Log.Information("Added Presets section to existing settings");
+                Log.Information("Added UpdateChecker settings to existing settings");
             }
-            
             // Add more upgrade steps for other sections as needed
             
             // Save changes if needed
@@ -298,7 +288,8 @@ public class App : Application
         }
         else // Assume Linux
         {
-            var configDirectory = Path.Combine($"./config/{appName}");
+            var configDirectory =
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), appName.Replace(" ", ""));
             if (!Directory.Exists(configDirectory))
                 Directory.CreateDirectory(configDirectory);
 
@@ -335,9 +326,7 @@ public class App : Application
         // Set up the necessary dependencies
         var httpClient = new HttpClient();
 
-        var appName = Assembly.GetExecutingAssembly().GetName().Name ?? "Companion";
-        var configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            appName, "appsettings.json");
+        var configPath = OpenIPC.AppDataConfigPath;
 
         Console.WriteLine($"Loading configuration from: {configPath}");
 
@@ -419,20 +408,6 @@ public class App : Application
                 new JObject(
                     new JProperty("LatestJsonUrl",
                         "https://github.com/OpenIPC/companion/releases/latest/download/latest.json")
-                )
-            ),
-            new JProperty("Presets",
-                new JObject(
-                    new JProperty("Repositories", 
-                        new JArray(
-                            new JObject(
-                                new JProperty("Url", "https://github.com/OpenIPC/fpv-presets"),
-                                new JProperty("Branch", "master"),
-                                new JProperty("Description", "Official OpenIPC presets repository"),
-                                new JProperty("IsActive", true)
-                            )
-                        )
-                    )
                 )
             ),
             new JProperty("Serilog",

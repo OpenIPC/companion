@@ -33,6 +33,7 @@ public partial class PresetsTabViewModel : ViewModelBase
     private readonly IPresetService _presetService;
     private readonly HttpClient _httpClient;
     private readonly ILogger _logger;
+    private readonly bool _presetsEnabled;
 
     #region Observable Properties
 
@@ -103,6 +104,7 @@ public partial class PresetsTabViewModel : ViewModelBase
         _logger = logger?.ForContext(GetType()) ?? 
                  throw new ArgumentNullException(nameof(logger));
         _httpClient = new HttpClient();
+        _presetsEnabled = IsPresetsEnabled();
 
         SubscribeToEvents();
 
@@ -124,7 +126,10 @@ public partial class PresetsTabViewModel : ViewModelBase
         LoadInitialRepositories();
 
         // Use async method to load presets
-        _ = LoadPresetsAsync();
+        if (_presetsEnabled)
+            _ = LoadPresetsAsync();
+        else
+            UpdateUIMessage("Presets are deprecated and disabled.");
     }
 
     #endregion
@@ -137,6 +142,22 @@ public partial class PresetsTabViewModel : ViewModelBase
     }
 
     #endregion
+
+    private bool IsPresetsEnabled()
+    {
+        var configuration = App.ServiceProvider.GetService<IConfiguration>();
+        return configuration?.GetValue("Presets:Enabled", false) ?? false;
+    }
+
+    private bool EnsurePresetsEnabled()
+    {
+        if (_presetsEnabled)
+            return true;
+
+        UpdateUIMessage("Presets are deprecated and disabled.");
+        _logger.Information("Presets are deprecated and disabled; skipping operation.");
+        return false;
+    }
 
     #region Event Handlers
 
@@ -217,6 +238,9 @@ public partial class PresetsTabViewModel : ViewModelBase
 
     private async Task LoadPresetsAsync()
     {
+        if (!EnsurePresetsEnabled())
+            return;
+
         try
         {
             IsLoading = true;
@@ -252,6 +276,9 @@ public partial class PresetsTabViewModel : ViewModelBase
 
     private async Task LoadPresetFilesAsync(Preset preset)
     {
+        if (!EnsurePresetsEnabled())
+            return;
+
         try
         {
             // Ensure the preset files are loaded
@@ -308,6 +335,9 @@ public partial class PresetsTabViewModel : ViewModelBase
 
     private async Task LoadRemotePresetsAsync()
     {
+        if (!EnsurePresetsEnabled())
+            return;
+
         foreach (var repository in Repositories.Where(r => r.IsActive))
         {
             try
@@ -383,6 +413,9 @@ public partial class PresetsTabViewModel : ViewModelBase
 
     private void LoadInitialRepositories()
     {
+        if (!EnsurePresetsEnabled())
+            return;
+
         try
         {
             // Clear existing repositories
@@ -454,6 +487,9 @@ public partial class PresetsTabViewModel : ViewModelBase
 
     private Task AddRepository()
     {
+        if (!EnsurePresetsEnabled())
+            return;
+
         // Show a dialog to get preset details
 
         var presetAddRepoViewModel = new PresetsAddRepoViewModel();
@@ -509,6 +545,9 @@ public partial class PresetsTabViewModel : ViewModelBase
 
     private void RemoveRepository(Repository? repository)
     {
+        if (!EnsurePresetsEnabled())
+            return;
+
         if (repository == null)
             return;
 
@@ -519,6 +558,9 @@ public partial class PresetsTabViewModel : ViewModelBase
 
     private async Task SyncRepositoryAsync(Repository? repository)
     {
+        if (!EnsurePresetsEnabled())
+            return;
+
         if (repository == null || !repository.IsActive)
             return;
 
@@ -555,6 +597,9 @@ public partial class PresetsTabViewModel : ViewModelBase
 
     private async Task FetchPresetsAsync()
     {
+        if (!EnsurePresetsEnabled())
+            return;
+
         try
         {
             IsLoading = true;
@@ -599,6 +644,9 @@ public partial class PresetsTabViewModel : ViewModelBase
 
     public async Task ApplyPresetAsync(Preset? preset)
     {
+        if (!EnsurePresetsEnabled())
+            return;
+
         if (preset == null) return;
 
         try

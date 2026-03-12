@@ -9,13 +9,18 @@ namespace Companion.Services;
 
 public class UpdateChecker
 {
+    private const string DefaultLatestJsonUrl =
+        "https://github.com/OpenIPC/companion/releases/latest/download/latest.json";
+
     private readonly HttpClient _httpClient;
     private readonly string _latestJsonUrl;
 
     public UpdateChecker(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _latestJsonUrl = configuration["UpdateChecker:LatestJsonUrl"] ?? string.Empty;
+        _latestJsonUrl = configuration["UpdateChecker:LatestJsonUrl"];
+        if (string.IsNullOrWhiteSpace(_latestJsonUrl))
+            _latestJsonUrl = DefaultLatestJsonUrl;
     }
 
 

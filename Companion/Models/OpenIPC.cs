@@ -19,6 +19,10 @@ public class OpenIPC
 
     public const string OpenIPCBuilderGitHubApiUrl = "https://api.github.com/repos/OpenIPC/builder/releases/latest";
     public const string OpenIPCFirmwareGitHubApiUrl = "https://api.github.com/repos/OpenIPC/firmware/releases/latest";
+    public const string GregApfpvContentsGitHubApiUrl =
+        "https://api.github.com/repos/sickgreg/OpenIPC_sickgregFPV_apfpv/contents";
+    public const string GregApfpvRawBaseUrl =
+        "https://raw.githubusercontent.com/sickgreg/OpenIPC_sickgregFPV_apfpv/main/";
     public const string MajesticFileLoc = "/etc/majestic.yaml";
     public const string WfbConfFileLoc = "/etc/wfb.conf";
     public const string WfbYamlFileLoc = "/etc/wfb.yaml";
@@ -163,7 +167,8 @@ public class OpenIPC
         }
         else // Assume Linux
         {
-            AppDataConfigDirectory = Path.Combine($"./config/{appName}");
+            AppDataConfigDirectory =
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), appName.Replace(" ", ""));
             AppDataConfigPath = Path.Combine(AppDataConfigDirectory, "appsettings.json");
             DeviceSettingsConfigPath = Path.Combine(AppDataConfigDirectory, "OpenIPC.Companion.json");
             LocalTempFolder = Path.Combine(AppDataConfigDirectory, "Temp");
