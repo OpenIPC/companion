@@ -61,7 +61,7 @@ public static class SettingsManager
         return new DeviceConfig
         {
             IpAddress = "192.168.1.10",
-            Username = "",
+            Username = "root",
             Password = "12345",
             DeviceType = DeviceType.Camera,
         };
