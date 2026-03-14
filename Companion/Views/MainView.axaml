@@ -41,7 +41,7 @@
                         SelectedItem="{Binding SelectedTab}"
                         Width="{Binding IsTabsCollapsed, 
                         Converter={StaticResource BooleanToWidthConverter},
-                        ConverterParameter='80,180'}"
+                        ConverterParameter='80,200'}"
                         Padding="0,0,10,0">
                 
                 <TabControl.ItemTemplate>

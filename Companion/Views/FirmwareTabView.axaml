@@ -33,6 +33,49 @@
 
     <ScrollViewer>
         <StackPanel Orientation="Vertical">
+
+            <Expander IsExpanded="{Binding IsBackupExpanded}"
+                      HorizontalAlignment="Stretch"
+                      Margin="8,0,8,4"
+                      IsEnabled="{Binding FirmwareUpgradeInProgress, Converter={StaticResource InvertedBooleanConverter}}">
+                <Expander.Header>
+                    <Border CornerRadius="8"
+                            Padding="10"
+                            HorizontalAlignment="Stretch"
+                            Classes="expander-header">
+                        <TextBlock Text="Backup"
+                                   FontWeight="SemiBold"
+                                   Classes="expander-header-text" />
+                    </Border>
+                </Expander.Header>
+                <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
+                    <StackPanel Orientation="Vertical" Spacing="10">
+                        <TextBlock Text="Backup firmware partitions from the device"
+                                   FontSize="16"
+                                   FontWeight="SemiBold" />
+
+                        <TextBlock Text="This runs on the device over SSH, reads /proc/mtd, creates MTD dumps under /tmp, generates SHA-256 checksums, archives the backup, and then prompts you to save the completed archive locally."
+                                   TextWrapping="Wrap" />
+
+                        <Button Width="220"
+                                HorizontalAlignment="Left"
+                                IsEnabled="{Binding CanBackupFirmware}"
+                                Content="Create Backup"
+                                Command="{Binding BackupFirmwareAsyncCommand}" />
+
+                        <TextBlock Text="{Binding BackupProgressText}"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.8" />
+
+                        <ProgressBar Background="#F0F0F0"
+                                     Foreground="{Binding ProgressBarBrush}"
+                                     Minimum="0"
+                                     Maximum="100"
+                                     Height="16"
+                                     Value="{Binding BackupProgressValue}" />
+                    </StackPanel>
+                </Border>
+            </Expander>
             
             <Expander IsExpanded="{Binding IsBootloaderExpanded}"
                       HorizontalAlignment="Stretch"

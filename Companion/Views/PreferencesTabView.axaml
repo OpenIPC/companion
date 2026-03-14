@@ -24,7 +24,7 @@
                                FontSize="16"
                                FontWeight="SemiBold" />
 
-                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
                         <TextBlock Grid.Row="0" Grid.Column="0"
                                    Text="Check for updates on startup"
                                    VerticalAlignment="Center"
@@ -47,20 +47,29 @@
                                       OnContent="Enabled"
                                       OffContent="Disabled" />
 
-                        <TextBlock Grid.Row="2" Grid.Column="0"
+                        <Border Grid.Row="2"
+                                Grid.Column="1"
+                                Background="#E7E7E7"
+                                CornerRadius="6"
+                                Padding="10"
+                                Margin="0,0,0,12"
+                                HorizontalAlignment="Left"
+                                MaxWidth="460">
+                            <TextBlock Text="When enabled: WFB, Camera, Telemetry, and Setup are hidden for camera workflows, and camera connections land on Firmware. Preferences are saved automatically and applied when the application is reopened."
+                                       TextWrapping="Wrap"
+                                       Opacity="0.8" />
+                        </Border>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0"
                                    Text="Preferred firmware source"
                                    VerticalAlignment="Center"
                                    Margin="0,0,12,0" />
-                        <ComboBox Grid.Row="2" Grid.Column="1"
+                        <ComboBox Grid.Row="3" Grid.Column="1"
                                   Width="220"
                                   HorizontalAlignment="Left"
                                   ItemsSource="{Binding FirmwareSources}"
                                   SelectedItem="{Binding PreferredFirmwareSource, Mode=TwoWay}" />
                     </Grid>
-
-                    <TextBlock Text="When enabled, WFB, Camera, Telemetry, and Setup are hidden for camera workflows, and camera connections land on Firmware."
-                               TextWrapping="Wrap"
-                               Opacity="0.7" />
                 </StackPanel>
             </Border>
 

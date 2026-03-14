@@ -239,6 +239,61 @@ public class FirmwareTabViewModelTests
         Assert.That(_viewModel.ProgressValue, Is.EqualTo(kernelStart));
     }
 
+    [Test]
+    public void ParseMtdIndices_ReturnsAllPartitionIndices()
+    {
+        const string mtdOutput = """
+                                 dev:    size   erasesize  name
+                                 mtd0: 00040000 00010000 "boot"
+                                 mtd1: 00010000 00010000 "env"
+                                 mtd2: 00200000 00010000 "kernel"
+                                 mtd3: 00800000 00010000 "rootfs"
+                                 mtd4: 005b0000 00010000 "rootfs_data"
+                                 """;
+
+        var result = (List<int>)InvokePrivateStaticMethod(typeof(FirmwareTabViewModel), "ParseMtdIndices", mtdOutput);
+
+        Assert.That(result, Is.EqualTo(new[] { 0, 1, 2, 3, 4 }));
+    }
+
+    [Test]
+    public void ParseMtdIndices_IgnoresInvalidLines()
+    {
+        const string mtdOutput = """
+                                 dev:    size   erasesize  name
+                                 nonsense
+                                 mtd0: 00040000 00010000 "boot"
+                                 other text
+                                 mtd2: 00200000 00010000 "kernel"
+                                 """;
+
+        var result = (List<int>)InvokePrivateStaticMethod(typeof(FirmwareTabViewModel), "ParseMtdIndices", mtdOutput);
+
+        Assert.That(result, Is.EqualTo(new[] { 0, 2 }));
+    }
+
+    [Test]
+    public void CanBackupFirmware_ReturnsTrue_WhenConnectedAndIdle()
+    {
+        _viewModel.IsConnected = true;
+        _viewModel.BootloaderInProgress = false;
+        _viewModel.FirmwareUpgradeInProgress = false;
+        _viewModel.BackupInProgress = false;
+
+        Assert.That(_viewModel.CanBackupFirmware, Is.True);
+        Assert.That(_viewModel.BackupFirmwareAsyncCommand.CanExecute(null), Is.True);
+    }
+
+    [Test]
+    public void CanBackupFirmware_ReturnsFalse_WhenBackupAlreadyRunning()
+    {
+        _viewModel.IsConnected = true;
+        _viewModel.BackupInProgress = true;
+
+        Assert.That(_viewModel.CanBackupFirmware, Is.False);
+        Assert.That(_viewModel.BackupFirmwareAsyncCommand.CanExecute(null), Is.False);
+    }
+
     private static void SetPrivateField(object target, string fieldName, object value)
     {
         var field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
@@ -253,6 +308,14 @@ public class FirmwareTabViewModelTests
         if (method == null)
             throw new InvalidOperationException($"Method '{methodName}' not found.");
         return method.Invoke(target, args);
+    }
+
+    private static object InvokePrivateStaticMethod(Type type, string methodName, params object[] args)
+    {
+        var method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static);
+        if (method == null)
+            throw new InvalidOperationException($"Static method '{methodName}' not found.");
+        return method.Invoke(null, args);
     }
 
     private static int GetPrivateStaticInt(Type type, string fieldName)
