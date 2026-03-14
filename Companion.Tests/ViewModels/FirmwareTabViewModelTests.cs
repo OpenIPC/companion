@@ -294,6 +294,24 @@ public class FirmwareTabViewModelTests
         Assert.That(_viewModel.BackupFirmwareAsyncCommand.CanExecute(null), Is.False);
     }
 
+    [Test]
+    public void FilterBootloadersByStorage_DefaultsToNor_WhenStorageTypeIsUnknown()
+    {
+        var filenames = new[]
+        {
+            "ssc338q-u-boot-nand.bin",
+            "ssc338q-u-boot-nor.bin"
+        };
+
+        var result = (IEnumerable<string>)InvokePrivateStaticMethod(
+            typeof(FirmwareTabViewModel),
+            "FilterBootloadersByStorage",
+            filenames,
+            null);
+
+        Assert.That(result, Is.EqualTo(new[] { "ssc338q-u-boot-nor.bin" }));
+    }
+
     private static void SetPrivateField(object target, string fieldName, object value)
     {
         var field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);

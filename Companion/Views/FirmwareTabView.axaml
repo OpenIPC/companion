@@ -112,7 +112,9 @@
                                        Text="Bootloader"
                                        VerticalAlignment="Center" />
                             <ComboBox Grid.Row="0" Grid.Column="1"
-                                      HorizontalAlignment="Stretch"
+                                      Classes="firmware-combo"
+                                      HorizontalAlignment="Left"
+                                      Margin="10,0,0,0"
                                       IsEnabled="{Binding CanConnect}"
                                       SelectedItem="{Binding SelectedBootloader, Mode=TwoWay}"
                                       ItemsSource="{Binding Bootloaders}"

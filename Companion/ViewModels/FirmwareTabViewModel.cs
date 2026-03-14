@@ -525,8 +525,9 @@ public partial class FirmwareTabViewModel : ViewModelBase
         {
             Logger.Information("Loading bootloader list...");
             var filenames = await GetBootloaderFilenamesAsync();
-            var storageType = await GetDeviceStorageTypeAsync();
-            UpdateBootloaderStorageTypeLabel(storageType);
+            var detectedStorageType = await GetDeviceStorageTypeAsync();
+            var storageType = NormalizeBootloaderStorageType(detectedStorageType);
+            UpdateBootloaderStorageTypeLabel(detectedStorageType, storageType);
             var filtered = FilterBootloadersByStorage(filenames, storageType);
             UpdateBootloaders(filtered);
         }
@@ -851,8 +852,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         if (!bootloaderFiles.Any())
             return bootloaderFiles;
 
-        if (string.IsNullOrEmpty(storageType))
-            return bootloaderFiles;
+        storageType = NormalizeBootloaderStorageType(storageType);
 
         var filtered = bootloaderFiles
             .Where(name => IsBootloaderForStorage(name, storageType))
@@ -863,13 +863,21 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     private static bool IsBootloaderForStorage(string filename, string storageType)
     {
-        if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(storageType))
+        if (string.IsNullOrWhiteSpace(filename))
             return false;
 
+        storageType = NormalizeBootloaderStorageType(storageType);
         var lower = filename.ToLowerInvariant();
         return storageType == "nor"
             ? (lower.Contains("-nor") || lower.Contains("_nor"))
             : (lower.Contains("-nand") || lower.Contains("_nand"));
+    }
+
+    private static string NormalizeBootloaderStorageType(string storageType)
+    {
+        return string.Equals(storageType, "nand", StringComparison.OrdinalIgnoreCase)
+            ? "nand"
+            : "nor";
     }
 
     private async Task<string> GetDeviceStorageTypeAsync()
@@ -901,13 +909,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
         return null;
     }
 
-    private void UpdateBootloaderStorageTypeLabel(string storageType)
+    private void UpdateBootloaderStorageTypeLabel(string detectedStorageType, string resolvedStorageType)
     {
-        var label = "Detected storage: Unknown";
-        if (string.Equals(storageType, "nor", StringComparison.OrdinalIgnoreCase))
+        var label = "Detected storage: Unknown (defaulting to NOR)";
+        if (string.Equals(detectedStorageType, "nor", StringComparison.OrdinalIgnoreCase))
             label = "Detected storage: NOR";
-        else if (string.Equals(storageType, "nand", StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(detectedStorageType, "nand", StringComparison.OrdinalIgnoreCase))
             label = "Detected storage: NAND";
+        else if (string.Equals(resolvedStorageType, "nor", StringComparison.OrdinalIgnoreCase))
+            label = "Detected storage: Unknown (defaulting to NOR)";
 
         if (!Dispatcher.UIThread.CheckAccess())
         {
@@ -1963,7 +1973,16 @@ public partial class FirmwareTabViewModel : ViewModelBase
             _sysupgradePhase = SysupgradePhase.None;
             ProgressValue = 100;
             SetProgressBarBrush(ProgressCompleteBrush);
-            await _messageBoxService.ShowCustomMessageBox("Upgrade Complete!!", "Device has been flashed!", ButtonEnum.Ok, Icon.Success);
+            var deviceUrl = $"http://{DeviceConfig.Instance.IpAddress}";
+            var result = await _messageBoxService.ShowCustomMessageBox(
+                "Upgrade Complete!!",
+                $"Device has been flashed!\n\nOpen device page:\n{deviceUrl}\n\nOpen this link now?",
+                ButtonEnum.YesNo,
+                Icon.Success);
+
+            if (result == ButtonResult.Yes)
+                OpenUrl(deviceUrl);
+
             Logger.Information("Firmware upgrade completed successfully.");
         }
         catch (Exception ex)
@@ -1973,6 +1992,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
             _sysupgradeInProgress = false;
             _sysupgradePhase = SysupgradePhase.None;
         }
+    }
+
+    private static void OpenUrl(string url)
+    {
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = url,
+            UseShellExecute = true
+        });
     }
 
     public async Task SelectLocalFirmwarePackage(Window window)
