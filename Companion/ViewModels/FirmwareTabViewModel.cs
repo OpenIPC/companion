@@ -49,6 +49,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private CancellationTokenSource _cancellationTokenSource;
     private FirmwareData _firmwareData;
     private readonly IGitHubService _gitHubService;
+    private readonly IPreferencesService _preferencesService;
     private bool _bInitializedCommands = false;
     private bool _bRecursionSelectGuard = false;
     private readonly IMessageBoxService _messageBoxService;
@@ -178,10 +179,12 @@ public partial class FirmwareTabViewModel : ViewModelBase
         ISshClientService sshClientService,
         IEventSubscriptionService eventSubscriptionService,
         IGitHubService gitHubService,
+        IPreferencesService preferencesService,
         IMessageBoxService messageBoxService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
         _gitHubService = gitHubService;
+        _preferencesService = preferencesService;
         _messageBoxService = messageBoxService;
         _httpClient = new HttpClient();
         _sysupgradeService = new SysUpgradeService(sshClientService, logger);
@@ -209,7 +212,11 @@ public partial class FirmwareTabViewModel : ViewModelBase
         FirmwareUpgradeInProgress = false;
         IsFirmwareExpanded = true;
         IsBootloaderExpanded = false;
-        SelectedFirmwareSource = OpenIpcFirmwareSource;
+        var preferences = _preferencesService.Load();
+        SelectedFirmwareSource = string.Equals(preferences.PreferredFirmwareSource, GregApfpvFirmwareSource,
+            StringComparison.OrdinalIgnoreCase)
+            ? GregApfpvFirmwareSource
+            : OpenIpcFirmwareSource;
     }
 
     partial void OnIsFirmwareExpandedChanged(bool value)
@@ -314,6 +321,9 @@ public partial class FirmwareTabViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(value) || _bRecursionSelectGuard)
             return;
 
+        var preferences = _preferencesService.Load();
+        preferences.PreferredFirmwareSource = value;
+        _preferencesService.Save(preferences);
         ClearFirmwareSelectionsAndCollections();
         _ = LoadManufacturersAsync();
     }

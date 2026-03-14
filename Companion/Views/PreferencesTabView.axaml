@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Companion.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="800"
+             d:DesignHeight="450"
+             x:Class="Companion.Views.PreferencesTabView"
+             x:DataType="vm:PreferencesTabViewModel">
+
+    <ScrollViewer>
+        <StackPanel Orientation="Vertical" Margin="10" Spacing="16">
+            <Border Background="#B0B0B0" CornerRadius="10" Padding="10">
+                <TextBlock Text="Application preferences are stored per user in the app data folder and apply across supported desktop platforms."
+                           Foreground="Black"
+                           FontSize="14"
+                           TextWrapping="Wrap" />
+            </Border>
+
+            <Border Background="#F0F0F0" CornerRadius="8" Padding="16">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="General"
+                               FontSize="16"
+                               FontWeight="SemiBold" />
+
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0"
+                                   Text="Check for updates on startup"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,12,12" />
+                        <ToggleSwitch Grid.Row="0" Grid.Column="1"
+                                      HorizontalAlignment="Left"
+                                      Margin="0,0,0,12"
+                                      IsChecked="{Binding CheckForUpdatesOnStartup, Mode=TwoWay}"
+                                      OnContent="Enabled"
+                                      OffContent="Disabled" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0"
+                                   Text="Firmware focused mode"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,12,12" />
+                        <ToggleSwitch Grid.Row="1" Grid.Column="1"
+                                      HorizontalAlignment="Left"
+                                      Margin="0,0,0,12"
+                                      IsChecked="{Binding FirmwareFocusedMode, Mode=TwoWay}"
+                                      OnContent="Enabled"
+                                      OffContent="Disabled" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0"
+                                   Text="Preferred firmware source"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,12,0" />
+                        <ComboBox Grid.Row="2" Grid.Column="1"
+                                  Width="220"
+                                  HorizontalAlignment="Left"
+                                  ItemsSource="{Binding FirmwareSources}"
+                                  SelectedItem="{Binding PreferredFirmwareSource, Mode=TwoWay}" />
+                    </Grid>
+
+                    <TextBlock Text="When enabled, WFB, Camera, Telemetry, and Setup are hidden for camera workflows, and camera connections land on Firmware."
+                               TextWrapping="Wrap"
+                               Opacity="0.7" />
+                </StackPanel>
+            </Border>
+
+            <Border Background="#F0F0F0" CornerRadius="8" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="Debug Tools"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,10" />
+
+                    <TextBlock Text="Advanced debugging tools and system diagnostics."
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,16" />
+
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Content="Get Device Info"
+                                IsEnabled="{Binding CanConnect}"
+                                Command="{Binding GenerateSystemReportCommand}"
+                                Margin="0,0,8,8" />
+
+                        <Button Content="Open Logs Folder"
+                                Command="{Binding OpenLogsFolderCommand}"
+                                Margin="0,0,8,8" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="{Binding StatusMessage}"
+                       FontStyle="Italic"
+                       Opacity="0.7" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

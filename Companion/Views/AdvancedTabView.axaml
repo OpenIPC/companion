@@ -129,39 +129,6 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Section 2: Debug Tools -->
-                    <Border Background="#F0F0F0" CornerRadius="8" Padding="16">
-                        <StackPanel>
-                            <!-- Section Header -->
-                            <TextBlock Text="Debug Tools"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
-                                       Margin="0,0,0,10" />
-
-                            <!-- Section Description -->
-                            <TextBlock Text="Advanced debugging tools and system diagnostics."
-                                       TextWrapping="Wrap"
-                                       Margin="0,0,0,16" />
-
-                            <!-- Section Controls -->
-                            <WrapPanel Orientation="Horizontal">
-                                <Button Content="Generate System Report"
-                                        IsEnabled="{Binding CanConnect}"
-                                        Command="{Binding GenerateSystemReportCommand}"
-                                        Margin="0,0,8,8" />
-
-                                <Button Content="View System Logs"
-                                        IsEnabled="{Binding CanConnect}"
-                                        Command="{Binding ViewSystemLogsCommand}"
-                                        Margin="0,0,8,8" />
-
-                                <Button Content="Network Diagnostics"
-                                        IsEnabled="{Binding CanConnect}"
-                                        Command="{Binding NetworkDiagnosticsCommand}"
-                                        Margin="0,0,8,8" />
-                            </WrapPanel>
-                        </StackPanel>
-                    </Border>
                 </ItemsControl.Items>
             </ItemsControl>
         </StackPanel>

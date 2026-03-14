@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System;
 using Moq;
+using Companion.Models;
 using Companion.Services;
 using Companion.ViewModels;
 using Serilog;
@@ -19,6 +20,7 @@ public class FirmwareTabViewModelTests
     private Mock<ISshClientService> _mockSshClientService;
     private Mock<IEventSubscriptionService> _mockEventSubscriptionService;
     private Mock<IGitHubService> _mockGithubService;
+    private Mock<IPreferencesService> _mockPreferencesService;
     private Mock<IMessageBoxService> _mockMessageBoxService;
 
     [SetUp]
@@ -30,13 +32,16 @@ public class FirmwareTabViewModelTests
         _mockSshClientService = new Mock<ISshClientService>();
         _mockEventSubscriptionService = new Mock<IEventSubscriptionService>();
         _mockGithubService = new Mock<IGitHubService>();
+        _mockPreferencesService = new Mock<IPreferencesService>();
         _mockMessageBoxService = new Mock<IMessageBoxService>();
+        _mockPreferencesService.Setup(x => x.Load()).Returns(new UserPreferences());
         
         _viewModel = new FirmwareTabViewModel(
             _mockLogger.Object,
             _mockSshClientService.Object,
             _mockEventSubscriptionService.Object,
             _mockGithubService.Object,
+            _mockPreferencesService.Object,
             _mockMessageBoxService.Object);
     }
 

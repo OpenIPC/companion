@@ -33,6 +33,75 @@
 
     <ScrollViewer>
         <StackPanel Orientation="Vertical">
+            
+            <Expander IsExpanded="{Binding IsBootloaderExpanded}"
+                      HorizontalAlignment="Stretch"
+                      Margin="8,0,8,4"
+                      IsEnabled="{Binding FirmwareUpgradeInProgress, Converter={StaticResource InvertedBooleanConverter}}">
+                <Expander.Header>
+                    <Border CornerRadius="8"
+                            Padding="10"
+                            HorizontalAlignment="Stretch"
+                            Classes="expander-header">
+                        <TextBlock Text="Bootloader"
+                                   FontWeight="SemiBold"
+                                   Classes="expander-header-text" />
+                    </Border>
+                </Expander.Header>
+                <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
+                    <StackPanel Orientation="Vertical" Spacing="10">
+                        <TextBlock Text="Replace bootloader from Linux"
+                                   FontSize="16"
+                                   FontWeight="SemiBold" />
+
+                        <TextBlock Text="Select the correct bootloader for your SoC, confirm, then download, upload, and flash it on the device."
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding BootloaderStorageTypeLabel}"
+                                   FontWeight="Medium"
+                                   Opacity="0.85" />
+                        <TextBlock Text="Warning: Replacing the bootloader can permanently brick the device. Proceed only if you accept the risk."
+                                   TextWrapping="Wrap"
+                                   Foreground="#B00020"
+                                   FontWeight="SemiBold" />
+
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                       Text="Bootloader"
+                                       VerticalAlignment="Center" />
+                            <ComboBox Grid.Row="0" Grid.Column="1"
+                                      HorizontalAlignment="Stretch"
+                                      IsEnabled="{Binding CanConnect}"
+                                      SelectedItem="{Binding SelectedBootloader, Mode=TwoWay}"
+                                      ItemsSource="{Binding Bootloaders}"
+                                      Background="#E7E7E7" />
+
+                            <CheckBox Grid.Row="1" Grid.Column="1"
+                                      IsEnabled="{Binding CanConnect}"
+                                      IsChecked="{Binding BootloaderConfirmed, Mode=TwoWay}"
+                                      Content="I accept the risk of bricking this device. This will overwrite /dev/mtd0 and erase /dev/mtd1." />
+
+                            <Button Grid.Row="2" Grid.Column="1"
+                                    Width="220"
+                                    HorizontalAlignment="Left"
+                                    IsEnabled="{Binding CanReplaceBootloader}"
+                                    Content="Replace Bootloader"
+                                    ToolTip.Tip="Download and Replace Bootloader"
+                                    Command="{Binding ReplaceBootloaderAsyncCommand}" />
+                        </Grid>
+
+                        <TextBlock Text="{Binding BootloaderProgressText}"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.8" />
+
+                        <ProgressBar Background="#F0F0F0"
+                                     Foreground="{Binding ProgressBarBrush}"
+                                     Minimum="0" Maximum="100"
+                                     Height="16"
+                                     Value="{Binding BootloaderProgressValue}" />
+                    </StackPanel>
+                </Border>
+            </Expander>
+            
             <Expander IsExpanded="{Binding IsFirmwareExpanded}"
                       HorizontalAlignment="Stretch"
                       Margin="8,0,8,4"
@@ -229,73 +298,7 @@
                 </StackPanel>
             </Expander>
 
-            <Expander IsExpanded="{Binding IsBootloaderExpanded}"
-                      HorizontalAlignment="Stretch"
-                      Margin="8,0,8,4"
-                      IsEnabled="{Binding FirmwareUpgradeInProgress, Converter={StaticResource InvertedBooleanConverter}}">
-                <Expander.Header>
-                    <Border CornerRadius="8"
-                            Padding="10"
-                            HorizontalAlignment="Stretch"
-                            Classes="expander-header">
-                        <TextBlock Text="Bootloader"
-                                   FontWeight="SemiBold"
-                                   Classes="expander-header-text" />
-                    </Border>
-                </Expander.Header>
-                <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
-                    <StackPanel Orientation="Vertical" Spacing="10">
-                        <TextBlock Text="Replace bootloader from Linux"
-                                   FontSize="16"
-                                   FontWeight="SemiBold" />
-
-                        <TextBlock Text="Select the correct bootloader for your SoC, confirm, then download, upload, and flash it on the device."
-                                   TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding BootloaderStorageTypeLabel}"
-                                   FontWeight="Medium"
-                                   Opacity="0.85" />
-                        <TextBlock Text="Warning: Replacing the bootloader can permanently brick the device. Proceed only if you accept the risk."
-                                   TextWrapping="Wrap"
-                                   Foreground="#B00020"
-                                   FontWeight="SemiBold" />
-
-                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
-                            <TextBlock Grid.Row="0" Grid.Column="0"
-                                       Text="Bootloader"
-                                       VerticalAlignment="Center" />
-                            <ComboBox Grid.Row="0" Grid.Column="1"
-                                      HorizontalAlignment="Stretch"
-                                      IsEnabled="{Binding CanConnect}"
-                                      SelectedItem="{Binding SelectedBootloader, Mode=TwoWay}"
-                                      ItemsSource="{Binding Bootloaders}"
-                                      Background="#E7E7E7" />
-
-                            <CheckBox Grid.Row="1" Grid.Column="1"
-                                      IsEnabled="{Binding CanConnect}"
-                                      IsChecked="{Binding BootloaderConfirmed, Mode=TwoWay}"
-                                      Content="I accept the risk of bricking this device. This will overwrite /dev/mtd0 and erase /dev/mtd1." />
-
-                            <Button Grid.Row="2" Grid.Column="1"
-                                    Width="220"
-                                    HorizontalAlignment="Left"
-                                    IsEnabled="{Binding CanReplaceBootloader}"
-                                    Content="Replace Bootloader"
-                                    ToolTip.Tip="Download and Replace Bootloader"
-                                    Command="{Binding ReplaceBootloaderAsyncCommand}" />
-                        </Grid>
-
-                        <TextBlock Text="{Binding BootloaderProgressText}"
-                                   TextWrapping="Wrap"
-                                   Opacity="0.8" />
-
-                        <ProgressBar Background="#F0F0F0"
-                                     Foreground="{Binding ProgressBarBrush}"
-                                     Minimum="0" Maximum="100"
-                                     Height="16"
-                                     Value="{Binding BootloaderProgressValue}" />
-                    </StackPanel>
-                </Border>
-            </Expander>
+            
         </StackPanel>
     </ScrollViewer>
 </UserControl>

@@ -31,12 +31,6 @@ public class App : Application
 
     public static string OSType { get; private set; }
 
-#if DEBUG
-    private bool _ShouldCheckForUpdates = false;
-#else
-    private bool _ShouldCheckForUpdates = true;
-#endif
-
     private void DetectOsType()
     {
         // Detect OS Type
@@ -189,6 +183,7 @@ public class App : Application
         services.AddSingleton<IConfiguration>(configuration);
         services.AddTransient<DeviceConfigValidator>();
         services.AddSingleton<IGlobalSettingsService, GlobalSettingsService>();
+        services.AddSingleton<IPreferencesService, PreferencesService>();
 
         // Register IConfiguration
         services.AddTransient<DeviceConfigValidator>();
@@ -242,7 +237,8 @@ public class App : Application
         logger.Information("Starting up....");
 
         // check for updates
-        if (_ShouldCheckForUpdates)
+        var preferencesService = ServiceProvider.GetRequiredService<IPreferencesService>();
+        if (ShouldCheckForUpdates(preferencesService))
             CheckForUpdatesAsync();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -368,6 +364,7 @@ public class App : Application
         services.AddSingleton<CameraSettingsTabViewModel>();
         services.AddSingleton<ConnectControlsViewModel>();
         services.AddSingleton<LogViewerViewModel>();
+        services.AddSingleton<PreferencesTabViewModel>();
         services.AddSingleton<SetupTabViewModel>();
         services.AddSingleton<StatusBarViewModel>();
         services.AddSingleton<TelemetryTabViewModel>();
@@ -376,7 +373,6 @@ public class App : Application
         services.AddSingleton<WfbTabViewModel>();
         services.AddSingleton<FirmwareTabViewModel>();
         services.AddSingleton<PresetsTabViewModel>();
-        services.AddSingleton<AdvancedTabViewModel>();
     }
 
     private static void RegisterViews(IServiceCollection services)
@@ -387,6 +383,7 @@ public class App : Application
         services.AddTransient<CameraSettingsTabView>();
         services.AddTransient<ConnectControlsView>();
         services.AddTransient<LogViewer>();
+        services.AddTransient<PreferencesTabView>();
         services.AddTransient<SetupTabView>();
         services.AddTransient<StatusBarView>();
         services.AddTransient<TelemetryTabView>();
@@ -395,7 +392,6 @@ public class App : Application
         services.AddTransient<FirmwareTabView>();
         services.AddTransient<WfbTabView>();
         services.AddTransient<PresetsTabView>();
-        services.AddTransient<AdvancedTabView>();
     }
 
     private JObject createDefaultAppSettings()
@@ -456,5 +452,16 @@ public class App : Application
         );
 
         return defaultSettings;
+    }
+
+    private static bool ShouldCheckForUpdates(IPreferencesService preferencesService)
+    {
+        var preferences = preferencesService.Load();
+
+#if DEBUG
+        return false && preferences.CheckForUpdatesOnStartup;
+#else
+        return preferences.CheckForUpdatesOnStartup;
+#endif
     }
 }

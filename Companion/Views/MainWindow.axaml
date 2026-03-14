@@ -3,7 +3,8 @@
         xmlns:views="clr-namespace:Companion.Views"
         x:Class="Companion.Views.MainWindow"
         Title="OpenIPC Companion"
-        Icon="/Assets/Icons/OpenIPC.ico">
+        Icon="/Assets/Icons/OpenIPC.ico"
+        WindowState="Maximized">
     <!-- Width="900" Height="850" MinWidth="600" MinHeight="800"> -->
 
     <!-- MainView is the content of the MainWindow -->
