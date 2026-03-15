@@ -63,9 +63,9 @@ public class SettingsManagerTests
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.IpAddress, Is.EqualTo(string.Empty));
-        Assert.That(result.Username, Is.EqualTo(string.Empty));
-        Assert.That(result.Password, Is.EqualTo(string.Empty));
+        Assert.That(result.IpAddress, Is.EqualTo("192.168.1.10"));
+        Assert.That(result.Username, Is.EqualTo("root"));
+        Assert.That(result.Password, Is.EqualTo("12345"));
         Assert.That(result.DeviceType, Is.EqualTo(DeviceType.Camera));
     }
 
@@ -116,9 +116,9 @@ public class SettingsManagerTests
         //     Times.Once);
         //
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.IpAddress, Is.EqualTo(string.Empty));
-        Assert.That(result.Username, Is.EqualTo(string.Empty));
-        Assert.That(result.Password, Is.EqualTo(string.Empty));
+        Assert.That(result.IpAddress, Is.EqualTo("192.168.1.10"));
+        Assert.That(result.Username, Is.EqualTo("root"));
+        Assert.That(result.Password, Is.EqualTo("12345"));
         Assert.That(result.DeviceType, Is.EqualTo(DeviceType.Camera));
     }
 }
