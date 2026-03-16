@@ -287,6 +287,25 @@ jobs:
           hdiutil create -volname "Companion" -srcfolder dmg_build -ov -format UDZO -fs HFS+ -size 500m "${DMG_NAME}"
           rm -rf dmg_build
 
+          MOUNT_DIR="$(mktemp -d)"
+          DEVICE_NAME=""
+          cleanup_mount() {
+            if [[ -n "${DEVICE_NAME}" ]]; then
+              hdiutil detach "${DEVICE_NAME}" || true
+            fi
+            rm -rf "${MOUNT_DIR}"
+          }
+          trap cleanup_mount EXIT
+
+          ATTACH_OUTPUT="$(hdiutil attach -readonly -nobrowse -mountpoint "${MOUNT_DIR}" "${DMG_NAME}")"
+          DEVICE_NAME="$(echo "${ATTACH_OUTPUT}" | awk '/Apple_HFS/ {print $1; exit}')"
+          if [[ -z "${DEVICE_NAME}" ]]; then
+            echo "ERROR: Failed to determine mounted DMG device."
+            exit 1
+          fi
+
+          codesign --verify --deep --strict --verbose=4 "${MOUNT_DIR}/${APP_DIR}"
+
       # ----- Linux packaging -----
       - name: Linux - zip publish folder
         if: matrix.os == 'ubuntu-latest'
