@@ -278,7 +278,12 @@ jobs:
           fi
 
           rm -f "${DMG_NAME}"
-          mkdir -p dmg_build && cp -R "${APP_DIR}" dmg_build/ && ln -s /Applications dmg_build/Applications
+          mkdir -p dmg_build
+          rm -rf "dmg_build/${APP_DIR}"
+          # Preserve bundle metadata and signatures when staging the signed app for the DMG.
+          ditto "${APP_DIR}" "dmg_build/${APP_DIR}"
+          codesign --verify --deep --strict --verbose=4 "dmg_build/${APP_DIR}"
+          ln -s /Applications dmg_build/Applications
           hdiutil create -volname "Companion" -srcfolder dmg_build -ov -format UDZO -fs HFS+ -size 500m "${DMG_NAME}"
           rm -rf dmg_build
 
