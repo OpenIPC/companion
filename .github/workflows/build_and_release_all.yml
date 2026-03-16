@@ -293,7 +293,7 @@ jobs:
             if [[ -n "${DEVICE_NAME}" ]]; then
               hdiutil detach "${DEVICE_NAME}" || true
             fi
-            rm -rf "${MOUNT_DIR}"
+            rmdir "${MOUNT_DIR}" 2>/dev/null || true
           }
           trap cleanup_mount EXIT
 
