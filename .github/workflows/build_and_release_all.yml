@@ -305,6 +305,40 @@ jobs:
           fi
 
           codesign --verify --deep --strict --verbose=4 "${MOUNT_DIR}/${APP_DIR}"
+          spctl --assess --type execute --verbose=4 "${MOUNT_DIR}/${APP_DIR}" || true
+
+      - name: Notarize and staple macOS DMG
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+
+          DMG_NAME="Companion-macos-${{ matrix.arch }}.dmg"
+
+          if [[ -z "${APPLE_ID:-}" || -z "${APPLE_APP_SPECIFIC_PASSWORD:-}" || -z "${APPLE_TEAM_ID:-}" ]]; then
+            if [[ "${GITHUB_REF:-}" == refs/tags/release-v* ]]; then
+              echo "ERROR: Missing notarization secrets for tagged release."
+              echo "Required: APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID"
+              exit 1
+            fi
+
+            echo "No notarization credentials configured; skipping notarization."
+            exit 0
+          fi
+
+          xcrun notarytool submit "${DMG_NAME}" \
+            --apple-id "${APPLE_ID}" \
+            --password "${APPLE_APP_SPECIFIC_PASSWORD}" \
+            --team-id "${APPLE_TEAM_ID}" \
+            --wait
+
+          xcrun stapler staple "${DMG_NAME}"
+          xcrun stapler validate "${DMG_NAME}"
+          spctl --assess --type open --verbose=4 "${DMG_NAME}" || true
 
       # ----- Linux packaging -----
       - name: Linux - zip publish folder
