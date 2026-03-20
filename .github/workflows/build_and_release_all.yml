@@ -270,6 +270,8 @@ jobs:
             echo "Signing app with identity: $CODESIGN_IDENTITY"
             codesign --keychain "$KEYCHAIN_PATH" \
                      --deep --force --verify --verbose \
+                     --options runtime \
+                     --timestamp \
                      --sign "${CODESIGN_IDENTITY}" "${APP_DIR}"
             codesign --verify --verbose=4 "${APP_DIR}"
             spctl --assess --type execute --verbose "${APP_DIR}" || true
@@ -330,11 +332,26 @@ jobs:
             exit 0
           fi
 
-          xcrun notarytool submit "${DMG_NAME}" \
+          SUBMISSION_OUTPUT="$(xcrun notarytool submit "${DMG_NAME}" \
             --apple-id "${APPLE_ID}" \
             --password "${APPLE_APP_SPECIFIC_PASSWORD}" \
             --team-id "${APPLE_TEAM_ID}" \
-            --wait
+            --wait \
+            --output-format json)"
+
+          echo "${SUBMISSION_OUTPUT}"
+
+          SUBMISSION_ID="$(echo "${SUBMISSION_OUTPUT}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+          SUBMISSION_STATUS="$(echo "${SUBMISSION_OUTPUT}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])')"
+
+          if [[ "${SUBMISSION_STATUS}" != "Accepted" ]]; then
+            echo "Notarization failed with status: ${SUBMISSION_STATUS}"
+            xcrun notarytool log "${SUBMISSION_ID}" \
+              --apple-id "${APPLE_ID}" \
+              --password "${APPLE_APP_SPECIFIC_PASSWORD}" \
+              --team-id "${APPLE_TEAM_ID}" || true
+            exit 1
+          fi
 
           xcrun stapler staple "${DMG_NAME}"
           xcrun stapler validate "${DMG_NAME}"
