@@ -7,8 +7,10 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
 using System.Windows.Input;
 using Avalonia.Media;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -18,6 +20,7 @@ using MsBox.Avalonia.Enums;
 using Companion.Events;
 using Companion.Models;
 using Companion.Services;
+using Companion.Views;
 using Serilog;
 
 namespace Companion.ViewModels;
@@ -32,6 +35,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly TimeSpan _pingInterval = TimeSpan.FromSeconds(1);
     private readonly TimeSpan _pingTimeout = TimeSpan.FromMilliseconds(500);
     private readonly IMessageBoxService _messageBoxService;
+    private readonly IHeraldDiscoveryService _heraldDiscoveryService;
     
     [ObservableProperty] private string _svgPath;
     private bool _isTabsCollapsed;
@@ -49,12 +53,20 @@ public partial class MainViewModel : ViewModelBase
     private readonly ILogger _logger;
     private UserPreferences _userPreferences;
     private bool _preferencesInitialized;
+    private WaitingForDeviceWindow? _waitingForDeviceWindow;
     
     [ObservableProperty] private bool _isWaiting;
     [ObservableProperty] private bool _isConnected;
     
     [ObservableProperty] private ObservableCollection<string> _cachedIpAddresses = new();
     [ObservableProperty] private string _selectedCachedIpAddress;
+    [ObservableProperty] private ObservableCollection<HeraldDiscoveredDevice> _discoveredDevices = new();
+    [ObservableProperty] private HeraldDiscoveredDevice? _selectedDiscoveredDevice;
+    [ObservableProperty] private bool _isDiscovering;
+    [ObservableProperty] private bool _isDiscoveryMode;
+    [ObservableProperty] private string _discoveryStatus = "Discovery idle";
+
+    public bool CanConnectNow => CanConnect && !IsDiscoveryMode;
 
 
     public MainViewModel(ILogger logger,
@@ -63,13 +75,15 @@ public partial class MainViewModel : ViewModelBase
         IServiceProvider serviceProvider,
         IGlobalSettingsService globalSettingsService,
         IPreferencesService preferencesService,
-        IMessageBoxService messageBoxService)
+        IMessageBoxService messageBoxService,
+        IHeraldDiscoveryService heraldDiscoveryService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
         
         _logger = logger?.ForContext(GetType()) ?? 
                  throw new ArgumentNullException(nameof(logger));
         _messageBoxService = messageBoxService;
+        _heraldDiscoveryService = heraldDiscoveryService;
         LoadSettings();
         
         // Initialize the ping service
@@ -95,6 +109,7 @@ public partial class MainViewModel : ViewModelBase
         EntryBoxBgColor = new SolidColorBrush(Colors.White);
 
         ConnectCommand = new AsyncRelayCommand(ConnectAsync);
+        DiscoverDevicesCommand = new AsyncRelayCommand(DiscoverDevicesAsync, () => !IsDiscovering);
 
         DeviceTypes = new ObservableCollection<DeviceType>(Enum.GetValues(typeof(DeviceType)).Cast<DeviceType>());
         
@@ -114,6 +129,11 @@ public partial class MainViewModel : ViewModelBase
         InitializeTabs(DeviceType.Camera);
         RestoreSelectedTab();
         _preferencesInitialized = true;
+
+        if (_userPreferences.AutoDiscoverOnStartup)
+        {
+            Dispatcher.UIThread.Post(() => _ = PromptAndDiscoverOnStartupAsync(), DispatcherPriority.Background);
+        }
     }
 
     private void InitializeTabs(DeviceType deviceType)
@@ -187,6 +207,7 @@ public partial class MainViewModel : ViewModelBase
     public int SelectedTabIndex { get; set; }
 
     public ICommand ConnectCommand { get; private set; }
+    public ICommand DiscoverDevicesCommand { get; }
     public ICommand ToggleTabsCommand { get; }
     
     public ICommand OpenLogFolderCommand { get; }
@@ -280,6 +301,20 @@ public partial class MainViewModel : ViewModelBase
             IpAddress = value;
         }
     }
+
+    partial void OnSelectedDiscoveredDeviceChanged(HeraldDiscoveredDevice? value)
+    {
+        if (value == null)
+            return;
+
+        _logger.Debug("Selected discovered device {InstanceName} at {IpAddress}:{Port}",
+            value.InstanceName, value.IpAddress, value.SshPort);
+
+        IpAddress = value.IpAddress;
+        Port = value.SshPort == 0 ? 22 : value.SshPort;
+        SelectedDeviceType = value.DeviceType;
+        DiscoveryStatus = $"Selected {value.DisplayName}";
+    }
     
     partial void OnIpAddressChanged(string value)
     {
@@ -311,6 +346,16 @@ public partial class MainViewModel : ViewModelBase
     partial void OnPasswordChanged(string value)
     {
         CheckIfCanConnect();
+    }
+
+    partial void OnCanConnectChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanConnectNow));
+    }
+
+    partial void OnIsDiscoveryModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanConnectNow));
     }
 
     private void SendDeviceTypeMessage(DeviceType deviceType)
@@ -469,6 +514,58 @@ public partial class MainViewModel : ViewModelBase
                 // Log the update
                 _logger.Debug($"Added IP {IpAddress} to cache. Cache now contains {CachedIpAddresses.Count} IPs.");
             }
+        }
+    }
+
+    private async Task DiscoverDevicesAsync()
+    {
+        if (IsDiscovering)
+            return;
+
+        IsDiscovering = true;
+        ((AsyncRelayCommand)DiscoverDevicesCommand).NotifyCanExecuteChanged();
+        DiscoveryStatus = $"Discovering {HeraldDiscoveredDevice.DefaultServiceType}...";
+
+        try
+        {
+            var devices = await _heraldDiscoveryService.DiscoverAsync();
+            _logger.Debug("Herald discovery returned {DeviceCount} raw device(s)", devices.Count);
+
+            devices = devices
+                .Where(device => device.Vendor.Equals("OpenIPC", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            _logger.Debug("Herald discovery retained {DeviceCount} OpenIPC device(s) after filtering", devices.Count);
+
+            DiscoveredDevices = new ObservableCollection<HeraldDiscoveredDevice>(devices);
+
+            if (devices.Count == 0)
+            {
+                DiscoveryStatus = "No Herald devices found";
+                return;
+            }
+
+            DiscoveryStatus = $"Found {devices.Count} Herald device(s)";
+            SelectedDiscoveredDevice = devices[0];
+            _waitingForDeviceWindow?.Close(true);
+            _waitingForDeviceWindow = null;
+
+            if (_userPreferences.AutoConnectOnDiscovery && !string.IsNullOrWhiteSpace(Password))
+            {
+                _logger.Debug("Auto-connect on discovery is enabled. Connecting to {IpAddress}:{Port}",
+                    SelectedDiscoveredDevice.IpAddress,
+                    SelectedDiscoveredDevice.SshPort == 0 ? 22 : SelectedDiscoveredDevice.SshPort);
+                await ConnectAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Herald discovery failed");
+            DiscoveryStatus = $"Discovery failed: {ex.Message}";
+        }
+        finally
+        {
+            IsDiscovering = false;
+            ((AsyncRelayCommand)DiscoverDevicesCommand).NotifyCanExecuteChanged();
         }
     }
     private async Task ConnectAsync()
@@ -1041,6 +1138,56 @@ public partial class MainViewModel : ViewModelBase
         _userPreferences.IsTabsCollapsed = IsTabsCollapsed;
         _userPreferences.LastSelectedTab = SelectedTab?.TabName.Trim() ?? string.Empty;
         _preferencesService.Save(_userPreferences);
+    }
+
+    private async Task PromptAndDiscoverOnStartupAsync()
+    {
+        using var startupDiscoveryCts = new CancellationTokenSource();
+        var backgroundDiscoveryTask = DiscoverUntilCancelledAsync(startupDiscoveryCts.Token);
+        var desktop = Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
+        _waitingForDeviceWindow = new WaitingForDeviceWindow();
+        IsDiscoveryMode = true;
+
+        bool? result;
+        if (desktop?.MainWindow != null)
+            result = await _waitingForDeviceWindow.ShowDialog<bool?>(desktop.MainWindow);
+        else
+            result = await _waitingForDeviceWindow.ShowDialog<bool?>(null);
+
+        startupDiscoveryCts.Cancel();
+        _waitingForDeviceWindow = null;
+        IsDiscoveryMode = false;
+
+        try
+        {
+            await backgroundDiscoveryTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when the prompt is dismissed.
+        }
+
+        if (result != true)
+        {
+            DiscoveryStatus = "Startup discovery cancelled";
+            return;
+        }
+
+        if (DiscoveredDevices.Count == 0)
+            await DiscoverDevicesAsync();
+    }
+
+    private async Task DiscoverUntilCancelledAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested && DiscoveredDevices.Count == 0)
+        {
+            await DiscoverDevicesAsync();
+
+            if (DiscoveredDevices.Count > 0 || cancellationToken.IsCancellationRequested)
+                break;
+
+            await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+        }
     }
 
     private void OpenLogFolder()

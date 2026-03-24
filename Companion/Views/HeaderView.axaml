@@ -3,10 +3,15 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Companion.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="80"
+             xmlns:converters="clr-namespace:Companion.Converters"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="100"
              x:Class="Companion.Views.HeaderView"
              x:DataType="vm:MainViewModel"
-             Height="80">
+             Height="100">
+
+    <UserControl.Resources>
+        <converters:InvertedBooleanConverter x:Key="InvertedBooleanConverter" />
+    </UserControl.Resources>
 
     <!-- Put styles in the Styles section, not in Resources -->
     <UserControl.Styles>
@@ -74,7 +79,7 @@
 </UserControl.Styles>
     
     <ScrollViewer>
-        <Grid Background="#555555" Height="80">
+        <Grid Background="#555555" Height="100">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -174,35 +179,38 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <!-- IP Address -->
-                <!-- <TextBox Width="200" Height="30" Watermark="IP Address" -->
-                <!--          Text="{Binding IpAddress, Mode=TwoWay}" -->
-                <!--          Background="{Binding EntryBoxBgColor}" -->
-                <!--          HorizontalAlignment="Left" -->
-                <!--          Classes="InputBox" Grid.Row="0" Margin="0,5,0,0" -->
-                <!--          ToolTip.Tip="Device IP Address" /> -->
-                <!-- Replace TextBox with ComboBox for IP Address -->
-                <!-- Replace TextBox with AutoCompleteBox for IP Address -->
-                <AutoCompleteBox Width="200" 
-                                 Height="30" 
-                                 Watermark="IP Address"
-                                 Text="{Binding IpAddress, Mode=TwoWay}"
-                                 ItemsSource="{Binding CachedIpAddresses}"
-                                 SelectedItem="{Binding SelectedCachedIpAddress}"
-                                 Background="{Binding EntryBoxBgColor}"
-                                 HorizontalAlignment="Left"
-                                 Classes="InputBox" 
-                                 Grid.Row="0" 
-                                 Margin="0,5,0,0"
-                                 FilterMode="Contains"
-                                 ToolTip.Tip="Device IP Address" />
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                    <AutoCompleteBox Width="200" 
+                                     Height="30" 
+                                     Watermark="IP Address"
+                                     IsEnabled="{Binding IsDiscoveryMode, Converter={StaticResource InvertedBooleanConverter}}"
+                                     Text="{Binding IpAddress, Mode=TwoWay}"
+                                     ItemsSource="{Binding CachedIpAddresses}"
+                                     SelectedItem="{Binding SelectedCachedIpAddress}"
+                                     Background="{Binding EntryBoxBgColor}"
+                                     HorizontalAlignment="Left"
+                                     Classes="InputBox" 
+                                     Margin="0,5,0,0"
+                                     FilterMode="Contains"
+                                     ToolTip.Tip="Device IP Address" />
+                    <Button Width="90"
+                            Height="30"
+                            Margin="0,5,0,0"
+                            Command="{Binding DiscoverDevicesCommand}"
+                            IsEnabled="{Binding IsDiscoveryMode, Converter={StaticResource InvertedBooleanConverter}}">
+                        Discover
+                    </Button>
+                </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Spacing="10" Grid.Row="1">
 
                     <!-- Device Type -->
                     <ComboBox Width="120" Height="30" ToolTip.Tip="Device Type"
+                              IsEnabled="{Binding IsDiscoveryMode, Converter={StaticResource InvertedBooleanConverter}}"
                               Background="{Binding EntryBoxBgColor}"
                               Margin="0,5,0,5"
                               ItemsSource="{Binding DeviceTypes}"
@@ -210,6 +218,7 @@
 
                     <!-- Port -->
                     <TextBox Width="50" Height="30" Watermark="Port"
+                             IsEnabled="{Binding IsDiscoveryMode, Converter={StaticResource InvertedBooleanConverter}}"
                              Background="{Binding EntryBoxBgColor}"
                              Margin="0,5,0,5"
                              Text="{Binding Port, Mode=TwoWay}" Classes="InputBox"
@@ -217,18 +226,32 @@
 
                     <!-- Password -->
                     <TextBox Width="100" Height="30" Watermark="Password"
+                             IsEnabled="{Binding IsDiscoveryMode, Converter={StaticResource InvertedBooleanConverter}}"
                              Background="{Binding EntryBoxBgColor}"
                              PasswordChar="*"
                              Margin="0,5,0,5"
                              Text="{Binding Password, Mode=TwoWay}" Classes="InputBox"
                              ToolTip.Tip="Password" />
                 </StackPanel>
+
+                <StackPanel Grid.Row="2" Orientation="Vertical" Spacing="4" Margin="0,0,0,5">
+                    <ComboBox Width="360"
+                              Height="30"
+                              IsEnabled="{Binding IsDiscoveryMode, Converter={StaticResource InvertedBooleanConverter}}"
+                              ItemsSource="{Binding DiscoveredDevices}"
+                              SelectedItem="{Binding SelectedDiscoveredDevice}"
+                              PlaceholderText="Discovered Herald devices" />
+                    <TextBlock Text="{Binding DiscoveryStatus}"
+                               Foreground="White"
+                               FontSize="12"
+                               Opacity="0.85" />
+                </StackPanel>
             </Grid>
 
             <!-- Circular Connect Button -->
             <StackPanel Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,0,10,0">
                 <Button Width="50" Height="50" Command="{Binding ConnectCommand}"
-                        IsEnabled="{Binding CanConnect}"
+                        IsEnabled="{Binding CanConnectNow}"
                         Classes="CircularButton"
                         Classes.RedPulse="{Binding IsWaiting}"
                         Classes.GreenGlow="{Binding IsConnected}">

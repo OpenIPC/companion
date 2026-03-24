@@ -24,7 +24,7 @@
                                FontSize="16"
                                FontWeight="SemiBold" />
 
-                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
                         <TextBlock Grid.Row="0" Grid.Column="0"
                                    Text="Check for updates on startup"
                                    VerticalAlignment="Center"
@@ -37,17 +37,39 @@
                                       OffContent="Disabled" />
 
                         <TextBlock Grid.Row="1" Grid.Column="0"
-                                   Text="Firmware focused mode"
+                                   Text="Auto discover on startup"
                                    VerticalAlignment="Center"
                                    Margin="0,0,12,12" />
                         <ToggleSwitch Grid.Row="1" Grid.Column="1"
+                                      HorizontalAlignment="Left"
+                                      Margin="0,0,0,12"
+                                      IsChecked="{Binding AutoDiscoverOnStartup, Mode=TwoWay}"
+                                      OnContent="Enabled"
+                                      OffContent="Disabled" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0"
+                                   Text="Auto connect on discovery"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,12,12" />
+                        <ToggleSwitch Grid.Row="2" Grid.Column="1"
+                                      HorizontalAlignment="Left"
+                                      Margin="0,0,0,12"
+                                      IsChecked="{Binding AutoConnectOnDiscovery, Mode=TwoWay}"
+                                      OnContent="Enabled"
+                                      OffContent="Disabled" />
+
+                        <TextBlock Grid.Row="3" Grid.Column="0"
+                                   Text="Firmware focused mode"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,12,12" />
+                        <ToggleSwitch Grid.Row="3" Grid.Column="1"
                                       HorizontalAlignment="Left"
                                       Margin="0,0,0,12"
                                       IsChecked="{Binding FirmwareFocusedMode, Mode=TwoWay}"
                                       OnContent="Enabled"
                                       OffContent="Disabled" />
 
-                        <Border Grid.Row="2"
+                        <Border Grid.Row="4"
                                 Grid.Column="1"
                                 Background="#E7E7E7"
                                 CornerRadius="6"
@@ -60,11 +82,11 @@
                                        Opacity="0.8" />
                         </Border>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0"
+                        <TextBlock Grid.Row="5" Grid.Column="0"
                                    Text="Preferred firmware source"
                                    VerticalAlignment="Center"
                                    Margin="0,0,12,0" />
-                        <ComboBox Grid.Row="3" Grid.Column="1"
+                        <ComboBox Grid.Row="5" Grid.Column="1"
                                   Width="220"
                                   HorizontalAlignment="Left"
                                   ItemsSource="{Binding FirmwareSources}"

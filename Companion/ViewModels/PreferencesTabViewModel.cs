@@ -27,6 +27,8 @@ public partial class PreferencesTabViewModel : ViewModelBase
 
     [ObservableProperty] private bool _canConnect;
     [ObservableProperty] private bool _checkForUpdatesOnStartup;
+    [ObservableProperty] private bool _autoDiscoverOnStartup;
+    [ObservableProperty] private bool _autoConnectOnDiscovery;
     [ObservableProperty] private bool _firmwareFocusedMode;
     [ObservableProperty] private string _preferredFirmwareSource = string.Empty;
     [ObservableProperty] private string _statusMessage = "Preferences are saved automatically.";
@@ -51,6 +53,8 @@ public partial class PreferencesTabViewModel : ViewModelBase
         _preferences = _preferencesService.Load();
         _isLoading = true;
         CheckForUpdatesOnStartup = _preferences.CheckForUpdatesOnStartup;
+        AutoDiscoverOnStartup = _preferences.AutoDiscoverOnStartup;
+        AutoConnectOnDiscovery = _preferences.AutoConnectOnDiscovery;
         FirmwareFocusedMode = _preferences.FirmwareFocusedMode;
         PreferredFirmwareSource = _preferences.PreferredFirmwareSource;
         EnsureValidFirmwareSource();
@@ -79,6 +83,16 @@ public partial class PreferencesTabViewModel : ViewModelBase
         SavePreferences();
     }
 
+    partial void OnAutoDiscoverOnStartupChanged(bool value)
+    {
+        SavePreferences();
+    }
+
+    partial void OnAutoConnectOnDiscoveryChanged(bool value)
+    {
+        SavePreferences();
+    }
+
     private void EnsureValidFirmwareSource()
     {
         if (FirmwareSources.Contains(PreferredFirmwareSource))
@@ -93,6 +107,8 @@ public partial class PreferencesTabViewModel : ViewModelBase
             return;
 
         _preferences.CheckForUpdatesOnStartup = CheckForUpdatesOnStartup;
+        _preferences.AutoDiscoverOnStartup = AutoDiscoverOnStartup;
+        _preferences.AutoConnectOnDiscovery = AutoConnectOnDiscovery;
         _preferences.FirmwareFocusedMode = FirmwareFocusedMode;
         _preferences.PreferredFirmwareSource = PreferredFirmwareSource;
         _preferencesService.Save(_preferences);

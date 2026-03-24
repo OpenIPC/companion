@@ -1,0 +1,46 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Companion.Views.WaitingForDeviceWindow"
+        Title="Waiting For Device"
+        Width="460"
+        Height="320"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+    <Border Padding="22">
+        <StackPanel Spacing="16">
+            <TextBlock Text="Searching For Device"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center" />
+
+            <TextBlock Text="Please connect or power up your device. Companion is searching continuously while this window is open."
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       HorizontalAlignment="Center"
+                       MaxWidth="380" />
+
+            <StackPanel Spacing="8">
+                <TextBlock Text="Waiting for device..."
+                           HorizontalAlignment="Center"
+                           Opacity="0.8" />
+                <ProgressBar IsIndeterminate="True"
+                             Height="12"
+                             MinWidth="320" />
+            </StackPanel>
+
+            <Border Background="#EDEDED"
+                    CornerRadius="8"
+                    Padding="12">
+                <TextBlock Text="Cancel to skip automatic discovery for now. The window will close automatically when a device is found."
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           Opacity="0.8" />
+            </Border>
+
+            <Button Content="Cancel"
+                    Width="120"
+                    HorizontalAlignment="Center"
+                    Click="OnCancelClick" />
+        </StackPanel>
+    </Border>
+</Window>

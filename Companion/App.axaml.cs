@@ -178,6 +178,7 @@ public class App : Application
         services.AddSingleton<IMessageBoxService, MessageBoxService>();
 
         services.AddSingleton<IYamlConfigService, YamlConfigService>();
+        services.AddSingleton<IHeraldDiscoveryService, HeraldDiscoveryService>();
         
         // Register IConfiguration
         services.AddSingleton<IConfiguration>(configuration);
