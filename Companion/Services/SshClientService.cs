@@ -393,7 +393,9 @@ public class SshClientService : ISshClientService
         Action<string> updateProgress,
         CancellationToken cancellationToken = default,
         TimeSpan? timeout = null,
-        Func<string, bool> isCommandComplete = null)
+        Func<string, bool> isCommandComplete = null,
+        bool allowDisconnectCompletion = false,
+        bool disableTimeout = false)
     {
         timeout ??= TimeSpan.FromMinutes(2); // Default timeout
         isCommandComplete ??= output => output.Contains("Unconditional reboot") || output.Contains("Arguments written");
@@ -423,11 +425,18 @@ public class SshClientService : ISshClientService
             {
                 if (!client.IsConnected)
                 {
+                    if (allowDisconnectCompletion)
+                    {
+                        updateProgress("Connection lost. Device may be flashing or rebooting.");
+                        commandCompleted = true;
+                        break;
+                    }
+
                     updateProgress("Connection lost.");
                     break;
                 }
 
-                if (DateTime.UtcNow - startTime > timeout)
+                if (!disableTimeout && DateTime.UtcNow - startTime > timeout)
                 {
                     updateProgress("Command execution timed out.");
                     break;

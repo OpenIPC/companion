@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using Companion.Models;
@@ -37,15 +38,19 @@ public class SysUpgradeService
             await ValidateRemoteFileSizeAsync(deviceConfig, rootfsPath, remoteRootfsPath, "rootfs", updateProgress, cancellationToken);
             updateProgress("Root filesystem binary uploaded successfully.");
 
-            //updateProgress("Starting sysupgrade...");
+            updateProgress("Starting sysupgrade. Do not unplug the device.");
             await _sshClientService.ExecuteCommandWithProgressAsync(
                 deviceConfig,
                 $"sysupgrade --force_ver -n --kernel={OpenIPC.RemoteTempFolder}/{kernelFilename} --rootfs={OpenIPC.RemoteTempFolder}/{rootfsFilename}",
                 updateProgress,
-                cancellationToken
+                cancellationToken,
+                timeout: TimeSpan.FromMinutes(15),
+                allowDisconnectCompletion: true,
+                disableTimeout: true
             );
 
-            updateProgress("Sysupgrade process completed.");
+            await WaitForDeviceRecoveryAsync(deviceConfig, updateProgress, cancellationToken);
+            updateProgress("Sysupgrade process completed and device reconnected.");
         }
         catch (Exception ex)
         {
@@ -78,5 +83,95 @@ public class SysUpgradeService
 
         if (remoteSize != localSize)
             throw new InvalidOperationException($"{label} upload size mismatch. Local={localSize} Remote={remoteSize}");
+    }
+
+    private async Task WaitForDeviceRecoveryAsync(
+        DeviceConfig deviceConfig,
+        Action<string> updateProgress,
+        CancellationToken cancellationToken)
+    {
+        updateProgress("Waiting for device reboot. Connection loss is expected. Do not unplug the device.");
+
+        bool sawOffline = await WaitForPingStateAsync(deviceConfig.IpAddress, expectedOnline: false,
+            TimeSpan.FromSeconds(90), TimeSpan.FromSeconds(2), cancellationToken);
+
+        if (sawOffline)
+            updateProgress("Device went offline. Waiting for it to come back...");
+        else
+            updateProgress("Did not observe disconnect. Waiting for device to become reachable...");
+
+        bool pingRecovered = await WaitForPingStateAsync(deviceConfig.IpAddress, expectedOnline: true,
+            TimeSpan.FromMinutes(10), TimeSpan.FromSeconds(3), cancellationToken);
+
+        if (!pingRecovered)
+            throw new InvalidOperationException(
+                "Unable to verify completion. Device did not return within the recovery window. Do not unplug power yet.");
+
+        updateProgress("Device is reachable again. Waiting for SSH...");
+
+        bool sshRecovered = await WaitForSshAsync(deviceConfig, TimeSpan.FromMinutes(5), TimeSpan.FromSeconds(3),
+            cancellationToken);
+
+        if (!sshRecovered)
+            throw new InvalidOperationException(
+                "Device responded to ping but SSH did not become ready in time. Do not unplug power yet.");
+
+        updateProgress("Device reconnected successfully.");
+    }
+
+    private async Task<bool> WaitForPingStateAsync(
+        string ipAddress,
+        bool expectedOnline,
+        TimeSpan timeout,
+        TimeSpan interval,
+        CancellationToken cancellationToken)
+    {
+        using var ping = new Ping();
+        var deadline = DateTime.UtcNow + timeout;
+
+        while (DateTime.UtcNow < deadline && !cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                var reply = await ping.SendPingAsync(ipAddress, 1000);
+                bool isOnline = reply.Status == IPStatus.Success;
+                if (isOnline == expectedOnline)
+                    return true;
+            }
+            catch
+            {
+                if (!expectedOnline)
+                    return true;
+            }
+
+            await Task.Delay(interval, cancellationToken);
+        }
+
+        return false;
+    }
+
+    private async Task<bool> WaitForSshAsync(
+        DeviceConfig deviceConfig,
+        TimeSpan timeout,
+        TimeSpan interval,
+        CancellationToken cancellationToken)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+
+        while (DateTime.UtcNow < deadline && !cancellationToken.IsCancellationRequested)
+        {
+            var commandResult = await _sshClientService.ExecuteCommandWithResponseAsync(
+                deviceConfig,
+                "echo ready",
+                cancellationToken);
+
+            if (commandResult != null && commandResult.ExitStatus == 0 &&
+                commandResult.Result.Trim().Equals("ready", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            await Task.Delay(interval, cancellationToken);
+        }
+
+        return false;
     }
 }
