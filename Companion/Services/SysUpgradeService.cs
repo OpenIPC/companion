@@ -93,7 +93,8 @@ public class SysUpgradeService
         updateProgress("Waiting for device reboot. Connection loss is expected. Do not unplug the device.");
 
         bool sawOffline = await WaitForPingStateAsync(deviceConfig.IpAddress, expectedOnline: false,
-            TimeSpan.FromSeconds(90), TimeSpan.FromSeconds(2), cancellationToken);
+            TimeSpan.FromSeconds(90), TimeSpan.FromSeconds(2), cancellationToken,
+            percent => updateProgress($"Recovery progress: offline {percent}%"));
 
         if (sawOffline)
             updateProgress("Device went offline. Waiting for it to come back...");
@@ -101,7 +102,8 @@ public class SysUpgradeService
             updateProgress("Did not observe disconnect. Waiting for device to become reachable...");
 
         bool pingRecovered = await WaitForPingStateAsync(deviceConfig.IpAddress, expectedOnline: true,
-            TimeSpan.FromMinutes(10), TimeSpan.FromSeconds(3), cancellationToken);
+            TimeSpan.FromMinutes(10), TimeSpan.FromSeconds(3), cancellationToken,
+            percent => updateProgress($"Recovery progress: ping {percent}%"));
 
         if (!pingRecovered)
             throw new InvalidOperationException(
@@ -110,7 +112,8 @@ public class SysUpgradeService
         updateProgress("Device is reachable again. Waiting for SSH...");
 
         bool sshRecovered = await WaitForSshAsync(deviceConfig, TimeSpan.FromMinutes(5), TimeSpan.FromSeconds(3),
-            cancellationToken);
+            cancellationToken,
+            percent => updateProgress($"Recovery progress: ssh {percent}%"));
 
         if (!sshRecovered)
             throw new InvalidOperationException(
@@ -124,24 +127,35 @@ public class SysUpgradeService
         bool expectedOnline,
         TimeSpan timeout,
         TimeSpan interval,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<int>? reportProgress = null)
     {
         using var ping = new Ping();
         var deadline = DateTime.UtcNow + timeout;
+        var startTime = DateTime.UtcNow;
+        int lastReportedProgress = -1;
 
         while (DateTime.UtcNow < deadline && !cancellationToken.IsCancellationRequested)
         {
+            ReportRecoveryProgress(startTime, timeout, reportProgress, ref lastReportedProgress);
+
             try
             {
                 var reply = await ping.SendPingAsync(ipAddress, 1000);
                 bool isOnline = reply.Status == IPStatus.Success;
                 if (isOnline == expectedOnline)
+                {
+                    reportProgress?.Invoke(100);
                     return true;
+                }
             }
             catch
             {
                 if (!expectedOnline)
+                {
+                    reportProgress?.Invoke(100);
                     return true;
+                }
             }
 
             await Task.Delay(interval, cancellationToken);
@@ -154,12 +168,17 @@ public class SysUpgradeService
         DeviceConfig deviceConfig,
         TimeSpan timeout,
         TimeSpan interval,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<int>? reportProgress = null)
     {
         var deadline = DateTime.UtcNow + timeout;
+        var startTime = DateTime.UtcNow;
+        int lastReportedProgress = -1;
 
         while (DateTime.UtcNow < deadline && !cancellationToken.IsCancellationRequested)
         {
+            ReportRecoveryProgress(startTime, timeout, reportProgress, ref lastReportedProgress);
+
             var commandResult = await _sshClientService.ExecuteCommandWithResponseAsync(
                 deviceConfig,
                 "echo ready",
@@ -167,11 +186,32 @@ public class SysUpgradeService
 
             if (commandResult != null && commandResult.ExitStatus == 0 &&
                 commandResult.Result.Trim().Equals("ready", StringComparison.OrdinalIgnoreCase))
+            {
+                reportProgress?.Invoke(100);
                 return true;
+            }
 
             await Task.Delay(interval, cancellationToken);
         }
 
         return false;
+    }
+
+    private static void ReportRecoveryProgress(
+        DateTime startTime,
+        TimeSpan timeout,
+        Action<int>? reportProgress,
+        ref int lastReportedProgress)
+    {
+        if (reportProgress is null || timeout <= TimeSpan.Zero)
+            return;
+
+        var elapsed = DateTime.UtcNow - startTime;
+        var percent = (int)Math.Clamp(Math.Round(elapsed.TotalMilliseconds / timeout.TotalMilliseconds * 100.0), 0, 99);
+        if (percent == lastReportedProgress)
+            return;
+
+        lastReportedProgress = percent;
+        reportProgress(percent);
     }
 }
