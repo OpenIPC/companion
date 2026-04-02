@@ -9,54 +9,39 @@
              x:Class="Companion.Views.LogViewer"
              x:DataType="vm:LogViewerViewModel">
     <Border Background="#F0F0F0" CornerRadius="8" Padding="0" Margin="0">
-        <Grid RowDefinitions="Auto,*">
-            <Grid Grid.Row="0"
-                  Margin="10,8,10,6"
-                  ColumnDefinitions="*,Auto">
-                <TextBlock Text="Log Output"
-                           FontSize="12"
-                           FontWeight="SemiBold"
-                           VerticalAlignment="Center" />
-                <ToggleButton Grid.Column="1"
-                              Content="Follow latest"
-                              IsChecked="{Binding FollowLatest}"
-                              VerticalAlignment="Center" />
-            </Grid>
+        <Grid>
+            <ScrollViewer x:Name="LogScrollViewer"
+                          Margin="8"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          ScrollChanged="OnScrollChanged">
+                <ItemsControl x:Name="LogItemsControl"
+                              ItemsSource="{Binding LogMessages}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="2" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="2,0">
+                                <TextBlock Text="{Binding}"
+                                           TextWrapping="Wrap"
+                                           FontSize="12" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
 
-            <Grid Grid.Row="1">
-                <ScrollViewer x:Name="LogScrollViewer"
-                              Margin="8,0,8,8"
-                              VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled"
-                              ScrollChanged="OnScrollChanged">
-                    <ItemsControl x:Name="LogItemsControl"
-                                  ItemsSource="{Binding LogMessages}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Spacing="2" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Padding="2,0">
-                                    <TextBlock Text="{Binding}"
-                                               TextWrapping="Wrap"
-                                               FontSize="12" />
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-
-                <Button x:Name="JumpToLatestButton"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Bottom"
-                        Margin="0,0,20,20"
-                        Padding="12,6"
-                        Command="{Binding JumpToLatestCommand}"
-                        Content="{Binding JumpToLatestText}"
-                        IsVisible="{Binding ShowJumpToLatest}" />
-            </Grid>
+            <Button x:Name="JumpToLatestButton"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,20,20"
+                    Padding="12,6"
+                    Command="{Binding JumpToLatestCommand}"
+                    Content="{Binding JumpToLatestText}"
+                    IsVisible="{Binding ShowJumpToLatest}" />
         </Grid>
     </Border>
 </UserControl>

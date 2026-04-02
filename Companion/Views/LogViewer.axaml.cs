@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
@@ -11,18 +12,20 @@ public partial class LogViewer : UserControl
 {
     private const double BottomThreshold = 24;
     private LogViewerViewModel? _currentViewModel;
+    private bool _isProgrammaticScroll;
 
     public LogViewer()
     {
         InitializeComponent();
 
-        //if (!Design.IsDesignMode) DataContext = new LogViewerViewModel();
-        DataContext = App.ServiceProvider.GetService<LogViewerViewModel>();
-
         DataContextChanged += OnDataContextChanged;
         AttachedToVisualTree += (_, _) => ScrollToLatest();
         DetachedFromVisualTree += (_, _) => UnsubscribeFromLogMessages(_currentViewModel);
         SizeChanged += OnSizeChanged;
+
+        //if (!Design.IsDesignMode) DataContext = new LogViewerViewModel();
+        DataContext = App.ServiceProvider.GetService<LogViewerViewModel>();
+        OnDataContextChanged(this, EventArgs.Empty);
     }
 
     private void OnDataContextChanged(object? sender, System.EventArgs e)
@@ -71,6 +74,9 @@ public partial class LogViewer : UserControl
         if (DataContext is not LogViewerViewModel viewModel)
             return;
 
+        if (_isProgrammaticScroll)
+            return;
+
         if (IsNearBottom())
             viewModel.NotifyAttachedToLatest();
         else
@@ -93,15 +99,33 @@ public partial class LogViewer : UserControl
     {
         Dispatcher.UIThread.Post(() =>
         {
-            var targetY = LogScrollViewer.Extent.Height;
-            LogScrollViewer.Offset = new Vector(LogScrollViewer.Offset.X, targetY);
+            SetScrollOffsetToLatest();
         }, DispatcherPriority.Background);
 
         Dispatcher.UIThread.Post(() =>
         {
-            var targetY = LogScrollViewer.Extent.Height;
-            LogScrollViewer.Offset = new Vector(LogScrollViewer.Offset.X, targetY);
+            SetScrollOffsetToLatest();
         }, DispatcherPriority.Loaded);
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            SetScrollOffsetToLatest();
+        }, DispatcherPriority.Render);
+    }
+
+    private void SetScrollOffsetToLatest()
+    {
+        _isProgrammaticScroll = true;
+
+        try
+        {
+            var targetY = Math.Max(0, LogScrollViewer.Extent.Height - LogScrollViewer.Viewport.Height);
+            LogScrollViewer.Offset = new Vector(LogScrollViewer.Offset.X, targetY);
+        }
+        finally
+        {
+            Dispatcher.UIThread.Post(() => _isProgrammaticScroll = false, DispatcherPriority.Background);
+        }
     }
 
     private void UnsubscribeFromLogMessages(LogViewerViewModel? viewModel)
