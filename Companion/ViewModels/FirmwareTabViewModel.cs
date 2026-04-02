@@ -41,7 +41,10 @@ public partial class FirmwareTabViewModel : ViewModelBase
         UploadRootfs,
         KernelFlash,
         RootfsFlash,
-        OverlayErase
+        OverlayErase,
+        WaitingForOffline,
+        WaitingForPing,
+        WaitingForSsh
     }
 
     #region Private Fields
@@ -70,7 +73,13 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private const int RootfsFlashStart = 60;
     private const int RootfsFlashEnd = 90;
     private const int OverlayEraseStart = 90;
-    private const int OverlayEraseEnd = 98;
+    private const int OverlayEraseEnd = 94;
+    private const int WaitForOfflineStart = 94;
+    private const int WaitForOfflineEnd = 95;
+    private const int WaitForPingStart = 95;
+    private const int WaitForPingEnd = 97;
+    private const int WaitForSshStart = 97;
+    private const int WaitForSshEnd = 99;
 
     private static readonly Regex AnsiEscapeRegex = new(@"\x1B\[[0-9;]*[mK]", RegexOptions.Compiled);
     private static readonly Regex AnsiBracketRegex = new(@"\[[0-9;]*m", RegexOptions.Compiled);
@@ -78,6 +87,9 @@ public partial class FirmwareTabViewModel : ViewModelBase
         new(@"(?:Erasing block|Writing kb|Verifying kb):.*\((?<percent>\d{1,3})%\)", RegexOptions.Compiled);
     private static readonly Regex OverlayPercentRegex =
         new(@"Erasing 64 Kibyte @ .* -\s*(?<percent>\d{1,3})%\s*complete",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex RecoveryPercentRegex =
+        new(@"Recovery progress:\s*(?<stage>offline|ping|ssh)\s+(?<percent>\d{1,3})%",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex MtdLineRegex =
         new(@"^(?<dev>mtd\d+):\s+(?<size>[0-9a-fA-F]+)\s+(?<erasesize>[0-9a-fA-F]+)\s+""(?<name>[^""]+)""",
@@ -1839,6 +1851,35 @@ public partial class FirmwareTabViewModel : ViewModelBase
             SetProgressMinimum(OverlayEraseStart);
         }
 
+        if (line.StartsWith("Waiting for device reboot", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.WaitingForOffline;
+            SetProgressMinimum(WaitForOfflineStart);
+            return;
+        }
+
+        if (line.StartsWith("Device went offline", StringComparison.OrdinalIgnoreCase) ||
+            line.StartsWith("Did not observe disconnect", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.WaitingForPing;
+            SetProgressMinimum(WaitForPingStart);
+            return;
+        }
+
+        if (line.StartsWith("Device is reachable again. Waiting for SSH", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.WaitingForSsh;
+            SetProgressMinimum(WaitForSshStart);
+            return;
+        }
+
+        if (line.StartsWith("Device reconnected successfully", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.WaitingForSsh;
+            SetProgressMinimum(99);
+            return;
+        }
+
         if (TryParseSysupgradePercent(line, out var percent))
             ApplySysupgradePercent(percent);
     }
@@ -1861,6 +1902,10 @@ public partial class FirmwareTabViewModel : ViewModelBase
             return true;
 
         match = OverlayPercentRegex.Match(line);
+        if (match.Success && int.TryParse(match.Groups["percent"].Value, out percent))
+            return true;
+
+        match = RecoveryPercentRegex.Match(line);
         if (match.Success && int.TryParse(match.Groups["percent"].Value, out percent))
             return true;
 
@@ -1889,6 +1934,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
                 break;
             case SysupgradePhase.OverlayErase:
                 SetProgressMinimum(MapPercentToRange(OverlayEraseStart, OverlayEraseEnd, percent));
+                break;
+            case SysupgradePhase.WaitingForOffline:
+                SetProgressMinimum(MapPercentToRange(WaitForOfflineStart, WaitForOfflineEnd, percent));
+                break;
+            case SysupgradePhase.WaitingForPing:
+                SetProgressMinimum(MapPercentToRange(WaitForPingStart, WaitForPingEnd, percent));
+                break;
+            case SysupgradePhase.WaitingForSsh:
+                SetProgressMinimum(MapPercentToRange(WaitForSshStart, WaitForSshEnd, percent));
                 break;
         }
     }
