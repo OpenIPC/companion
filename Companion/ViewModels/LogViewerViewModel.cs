@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Input;
 using Companion.Events;
 using Companion.Services;
 using Serilog;
@@ -20,6 +21,8 @@ public class LogViewerViewModel : ViewModelBase
     private DateTime _lastFlushTime = DateTime.Now;
     private string _lastMessage = string.Empty;
     private string _messageText;
+    private bool _followLatest = true;
+    private int _pendingMessageCount;
     #endregion
 
     #region Public Properties
@@ -36,6 +39,38 @@ public class LogViewerViewModel : ViewModelBase
         get => _messageText;
         set => SetProperty(ref _messageText, value);
     }
+
+    public bool FollowLatest
+    {
+        get => _followLatest;
+        set
+        {
+            if (SetProperty(ref _followLatest, value) && value)
+            {
+                PendingMessageCount = 0;
+            }
+        }
+    }
+
+    public int PendingMessageCount
+    {
+        get => _pendingMessageCount;
+        private set
+        {
+            if (SetProperty(ref _pendingMessageCount, value))
+            {
+                OnPropertyChanged(nameof(ShowJumpToLatest));
+                OnPropertyChanged(nameof(JumpToLatestText));
+            }
+        }
+    }
+
+    public bool ShowJumpToLatest => !FollowLatest;
+
+    public string JumpToLatestText =>
+        PendingMessageCount > 0 ? $"Jump to latest ({PendingMessageCount} new)" : "Jump to latest";
+
+    public IRelayCommand JumpToLatestCommand { get; }
     #endregion
 
     #region Constructor
@@ -50,6 +85,12 @@ public class LogViewerViewModel : ViewModelBase
     {
         _eventSubscriptionService = eventSubscriptionService ??
             throw new ArgumentNullException(nameof(eventSubscriptionService));
+
+        JumpToLatestCommand = new RelayCommand(() =>
+        {
+            FollowLatest = true;
+            PendingMessageCount = 0;
+        });
         
         SubscribeToEvents();
         
@@ -99,7 +140,7 @@ public class LogViewerViewModel : ViewModelBase
         if (message.UpdateLogView)
         {
             var formattedMessage = FormatLogMessage(message.ToString());
-            Dispatcher.UIThread.InvokeAsync(() => LogMessages.Insert(0, formattedMessage));
+            Dispatcher.UIThread.InvokeAsync(() => LogMessages.Add(formattedMessage));
         }
     }
     #endregion
@@ -143,7 +184,7 @@ public class LogViewerViewModel : ViewModelBase
         _lastMessage = message;
 
         // Add new message to log
-        Dispatcher.UIThread.InvokeAsync(() => LogMessages.Insert(0, formattedMessage));
+        Dispatcher.UIThread.InvokeAsync(() => LogMessages.Add(formattedMessage));
     }
 
     /// <summary>
@@ -156,10 +197,27 @@ public class LogViewerViewModel : ViewModelBase
             var duplicateMessage = FormatLogMessage(
                 $"[Last message repeated {_duplicateCount} times]");
 
-            Dispatcher.UIThread.InvokeAsync(() => LogMessages.Insert(0, duplicateMessage));
+            Dispatcher.UIThread.InvokeAsync(() => LogMessages.Add(duplicateMessage));
             _duplicateCount = 0;
             _lastFlushTime = DateTime.Now;
         }
+    }
+
+    public void NotifyDetachedFromLatest()
+    {
+        FollowLatest = false;
+    }
+
+    public void NotifyAttachedToLatest()
+    {
+        FollowLatest = true;
+        PendingMessageCount = 0;
+    }
+
+    public void NotifyMessageArrivedWhileDetached()
+    {
+        if (!FollowLatest)
+            PendingMessageCount++;
     }
     #endregion
 }
