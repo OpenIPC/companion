@@ -20,7 +20,9 @@ public partial class LogViewer : UserControl
         DataContext = App.ServiceProvider.GetService<LogViewerViewModel>();
 
         DataContextChanged += OnDataContextChanged;
+        AttachedToVisualTree += (_, _) => ScrollToLatest();
         DetachedFromVisualTree += (_, _) => UnsubscribeFromLogMessages(_currentViewModel);
+        SizeChanged += OnSizeChanged;
     }
 
     private void OnDataContextChanged(object? sender, System.EventArgs e)
@@ -75,6 +77,12 @@ public partial class LogViewer : UserControl
             viewModel.NotifyDetachedFromLatest();
     }
 
+    private void OnSizeChanged(object? sender, SizeChangedEventArgs e)
+    {
+        if (_currentViewModel?.FollowLatest == true)
+            ScrollToLatest();
+    }
+
     private bool IsNearBottom()
     {
         var remaining = LogScrollViewer.Extent.Height - LogScrollViewer.Viewport.Height - LogScrollViewer.Offset.Y;
@@ -88,6 +96,12 @@ public partial class LogViewer : UserControl
             var targetY = LogScrollViewer.Extent.Height;
             LogScrollViewer.Offset = new Vector(LogScrollViewer.Offset.X, targetY);
         }, DispatcherPriority.Background);
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            var targetY = LogScrollViewer.Extent.Height;
+            LogScrollViewer.Offset = new Vector(LogScrollViewer.Offset.X, targetY);
+        }, DispatcherPriority.Loaded);
     }
 
     private void UnsubscribeFromLogMessages(LogViewerViewModel? viewModel)
