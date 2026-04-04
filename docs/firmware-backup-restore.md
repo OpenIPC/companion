@@ -106,7 +106,7 @@ If the kernel or rootfs is corrupted and the device cannot reach Linux, recovery
 3. Load and flash the kernel and rootfs from your TFTP server using the addresses and sizes specific to your device.
 4. Run `reset` to reboot.
 
-The exact `sf erase`, `sf write`, and RAM load addresses vary per device. Consult the [OpenIPC documentation](https://github.com/OpenIPC/wiki) and the U-Boot startup output for your board before attempting this.
+The exact `sf erase`, `sf write`, and RAM load addresses vary per device. Consult the [OpenIPC supported hardware page](https://openipc.org/supported-hardware/featured) for your specific SoC, and cross-reference with the U-Boot startup output for your board before attempting this.
 
 ### If the bootloader (mtd0) is also corrupted
 
