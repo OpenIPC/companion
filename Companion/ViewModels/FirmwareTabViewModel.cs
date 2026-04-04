@@ -109,6 +109,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     [ObservableProperty] private bool _isFirmwareExpanded = true;
     [ObservableProperty] private bool _isBootloaderExpanded;
     [ObservableProperty] private string _selectedFirmwareSource;
+    [ObservableProperty] private int _selectedFirmwareMethod; // 0=Automatic, 1=BySoc, 2=Local
 
     #endregion
 
@@ -308,6 +309,46 @@ public partial class FirmwareTabViewModel : ViewModelBase
         _bRecursionSelectGuard = false;
         UpdateCanExecuteCommands();
     }
+
+    partial void OnSelectedFirmwareMethodChanged(int value)
+    {
+        if (_bRecursionSelectGuard)
+            return;
+
+        _bRecursionSelectGuard = true;
+
+        // Clear selections from other methods
+        if (value != 0) // Not Automatic
+        {
+            SelectedManufacturer = string.Empty;
+            SelectedDevice = string.Empty;
+            SelectedFirmware = string.Empty;
+            IsManufacturerDeviceFirmwareComboSelected = false;
+        }
+
+        if (value != 1) // Not BySoc
+        {
+            SelectedFirmwareBySoc = string.Empty;
+            IsFirmwareBySocSelected = false;
+        }
+
+        if (value != 2) // Not Local
+        {
+            ManualLocalFirmwarePackageFile = string.Empty;
+            IsLocalFirmwarePackageSelected = false;
+        }
+
+        _bRecursionSelectGuard = false;
+
+        OnPropertyChanged(nameof(IsAutomaticMethodSelected));
+        OnPropertyChanged(nameof(IsBySocMethodSelected));
+        OnPropertyChanged(nameof(IsLocalMethodSelected));
+        UpdateCanExecuteCommands();
+    }
+
+    public bool IsAutomaticMethodSelected => SelectedFirmwareMethod == 0;
+    public bool IsBySocMethodSelected => SelectedFirmwareMethod == 1;
+    public bool IsLocalMethodSelected => SelectedFirmwareMethod == 2;
 
     partial void OnSelectedFirmwareSourceChanged(string value)
     {
@@ -607,7 +648,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
         IsLocalFirmwarePackageSelected = false;
         IsManufacturerDeviceFirmwareComboSelected = false;
         IsManualUpdateEnabled = true;
-        
+        SelectedFirmwareMethod = 0;
+
         UpdateCanExecuteCommands();
     }
 
@@ -660,6 +702,9 @@ public partial class FirmwareTabViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanUseDropdownsBySoc));
         OnPropertyChanged(nameof(CanUseSelectLocalFirmwarePackage));
         OnPropertyChanged(nameof(CanReplaceBootloader));
+        OnPropertyChanged(nameof(IsAutomaticMethodSelected));
+        OnPropertyChanged(nameof(IsBySocMethodSelected));
+        OnPropertyChanged(nameof(IsLocalMethodSelected));
 
         if (IsConnected)
         {
