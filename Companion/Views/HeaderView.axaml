@@ -83,60 +83,63 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Logo and Title -->
-            <StackPanel Orientation="Vertical" Grid.Column="0">
-                <Svg Width="150" Margin="10,5,0,0" Path="/Assets/Icons/openipc-logo.svg" />
+            <!-- Logo and branding -->
+            <StackPanel Orientation="Vertical" Grid.Column="0" Margin="10,0,0,0">
+                <!-- Logo -->
+                <Svg Width="150" Margin="0,10,0,0" Path="/Assets/Icons/openipc-logo.svg" />
 
-                <StackPanel Orientation="Horizontal" Margin="10,10,0,8" MaxWidth="180">
-                    <TextBlock FontSize="11" Foreground="White" Text="COMPANION" />
-                    <TextBlock FontSize="11" Foreground="White" Opacity="0.75"
-                               Margin="4,1,0,0"
-                               TextTrimming="CharacterEllipsis"
+                <!-- Version + icon row -->
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,8" Spacing="6"
+                            Opacity="0.6">
+                    <TextBlock FontSize="10" Foreground="White"
+                               VerticalAlignment="Center"
                                Text="{Binding AppVersionText}" />
+
+                    <Button Name="TelegramButton" Padding="4,2" Click="TelegramButton_OnClick"
+                            Background="Transparent" BorderThickness="0"
+                            VerticalContentAlignment="Center"
+                            ToolTip.Tip="Telegram">
+                        <Svg Width="14" Path="/Assets/Icons/ic-telegram.svg" />
+                    </Button>
+                    <Button Name="GithubButton" Padding="4,2" Click="GithubButton_OnClick"
+                            Background="Transparent" BorderThickness="0"
+                            VerticalContentAlignment="Center"
+                            ToolTip.Tip="GitHub">
+                        <Svg Width="14" Path="/Assets/Icons/mdi-github.svg" />
+                    </Button>
+                    <Button Name="ReportBugButton" Padding="4,2" Click="ReportBugButton_OnClick"
+                            Background="Transparent" BorderThickness="0"
+                            VerticalContentAlignment="Center"
+                            ToolTip.Tip="Report a bug on GitHub">
+                        <Path Data="M8,2 L9.88,3.88 M14.12,3.88 L16,2 M12,20 C8.7,20 6,17.3 6,14 L6,11 C6,8.79 7.79,7 10,7 L14,7 C16.21,7 18,8.79 18,11 L18,14 C18,17.3 15.3,20 12,20 Z M12,20 L12,11 M6.53,9 C4.6,8.8 3,7.1 3,5 M6,13 L2,13 M6,17 L3,17 M17.47,9 C19.4,8.8 21,7.1 21,5 M18,13 L22,13 M21,17 L18,17"
+                              Stroke="White" StrokeThickness="1.5"
+                              Width="14" Height="14" Stretch="Uniform" />
+                    </Button>
+                    <Button Padding="4,2"
+                            Background="Transparent" BorderThickness="0"
+                            VerticalContentAlignment="Center"
+                            Command="{Binding ToggleThemeCommand}"
+                            ToolTip.Tip="Toggle theme">
+                        <Panel>
+                            <!-- Sun icon (light mode) -->
+                            <Path Data="M12,16 A4,4 0 1,0 12,8 A4,4 0 1,0 12,16 Z M12,2 L12,4 M12,20 L12,22 M4.93,4.93 L6.34,6.34 M17.66,17.66 L19.07,19.07 M2,12 L4,12 M20,12 L22,12 M6.34,17.66 L4.93,19.07 M19.07,4.93 L17.66,6.34"
+                                  Stroke="White" StrokeThickness="1.5"
+                                  Width="14" Height="14" Stretch="Uniform"
+                                  IsVisible="{Binding !IsDarkTheme}" />
+                            <!-- Moon icon (dark mode) -->
+                            <Path Data="M21,12.79 A9,9 0 1,1 11.21,3 A7,7 0 0,0 21,12.79 Z"
+                                  Stroke="White" StrokeThickness="1.5"
+                                  Width="14" Height="14" Stretch="Uniform"
+                                  IsVisible="{Binding IsDarkTheme}" />
+                        </Panel>
+                    </Button>
                 </StackPanel>
             </StackPanel>
 
-            <StackPanel Orientation="Vertical" Grid.Column="1" HorizontalAlignment="Left"
-                        VerticalAlignment="Center" Spacing="0" Margin="10,0,0,0">
-
-                <Button Name="TelegramButton" Padding="6,3" Click="TelegramButton_OnClick"
-                        Background="Transparent" BorderThickness="0"
-                        VerticalContentAlignment="Center">
-                    <Svg Width="18" Path="/Assets/Icons/ic-telegram.svg" />
-                </Button>
-
-                <Button Name="GithubButton" Padding="6,3" Click="GithubButton_OnClick"
-                        Background="Transparent" BorderThickness="0"
-                        VerticalContentAlignment="Center">
-                    <Svg Width="18" Path="/Assets/Icons/mdi-github.svg" />
-                </Button>
-
-                <Button Name="ReportBugButton" Padding="6,3" Click="ReportBugButton_OnClick"
-                        Background="Transparent" BorderThickness="0"
-                        VerticalContentAlignment="Center"
-                        ToolTip.Tip="Report a bug on GitHub">
-                    <StackPanel Orientation="Horizontal" Spacing="4">
-                        <Svg Width="16" Path="/Assets/Icons/mdi-github.svg" />
-                        <TextBlock Text="Report Bug" FontSize="12" Foreground="White"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-            </StackPanel>
+            <!-- Column 1 empty -->
+            <Border Grid.Column="1" />
 
             <Grid Grid.Column="2">
-                <!-- Theme toggle -->
-                <ToggleSwitch IsChecked="{Binding IsDarkTheme}"
-                              OnContent="Dark" OffContent="Light"
-                              Foreground="White"
-                              FontSize="10"
-                              Margin="10,0,0,5"
-                              Padding="0"
-                              MinHeight="0"
-                              MinWidth="0"
-                              HorizontalAlignment="Left"
-                              VerticalAlignment="Bottom"
-                              ToolTip.Tip="Toggle dark/light theme" />
-
                 <!-- Device info right-aligned -->
                 <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto"
                       ShowGridLines="False"
