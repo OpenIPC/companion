@@ -52,6 +52,31 @@
     <ScrollViewer>
         <StackPanel Orientation="Vertical">
 
+            <Border IsVisible="{Binding IsDestructiveOperationInProgress}"
+                    CornerRadius="8"
+                    Margin="8,8,8,4"
+                    Padding="16,12">
+                <Border.Styles>
+                    <Style Selector="Border.flash-on">
+                        <Setter Property="Background" Value="#CC0000" />
+                    </Style>
+                    <Style Selector="Border.flash-off">
+                        <Setter Property="Background" Value="#7A0000" />
+                    </Style>
+                </Border.Styles>
+                <Border Classes.flash-on="{Binding FlashWarning}"
+                        Classes.flash-off="{Binding !FlashWarning}"
+                        CornerRadius="8"
+                        Padding="16,12">
+                    <TextBlock Text="{Binding DestructiveOperationWarning}"
+                               Foreground="White"
+                               FontSize="15"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center" />
+                </Border>
+            </Border>
+
             <Expander IsExpanded="{Binding IsBackupExpanded}"
                       HorizontalAlignment="Stretch"
                       Margin="8,0,8,4"
@@ -61,7 +86,7 @@
                             Padding="10"
                             HorizontalAlignment="Stretch"
                             Classes="expander-header">
-                        <TextBlock Text="Backup"
+                        <TextBlock Text="Backup / Restore"
                                    FontWeight="SemiBold"
                                    Classes="expander-header-text" />
                     </Border>
@@ -91,6 +116,41 @@
                                      Maximum="100"
                                      Height="16"
                                      Value="{Binding BackupProgressValue}" />
+
+                        <Separator Margin="0,8,0,8" />
+
+                        <TextBlock Text="Restore firmware partitions to the device"
+                                   FontSize="16"
+                                   FontWeight="SemiBold" />
+
+                        <TextBlock Text="Select a backup archive created by this tool. Each MTD partition will be uploaded and flashed back to the device, then the device will reboot."
+                                   TextWrapping="Wrap" />
+
+                        <TextBlock Text="Warning: Restoring firmware will overwrite all flash partitions including bootloader, kernel, and rootfs. A power failure or incorrect backup can permanently brick the device."
+                                   TextWrapping="Wrap"
+                                   Foreground="#B00020"
+                                   FontWeight="SemiBold" />
+
+                        <CheckBox IsEnabled="{Binding CanConnect}"
+                                  IsChecked="{Binding RestoreConfirmed, Mode=TwoWay}"
+                                  Content="I accept the risk of permanently bricking this device." />
+
+                        <Button Width="220"
+                                HorizontalAlignment="Left"
+                                IsEnabled="{Binding CanRestoreFirmware}"
+                                Content="Restore from Backup"
+                                Command="{Binding RestoreFirmwareAsyncCommand}" />
+
+                        <TextBlock Text="{Binding RestoreProgressText}"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.8" />
+
+                        <ProgressBar Background="#F0F0F0"
+                                     Foreground="{Binding ProgressBarBrush}"
+                                     Minimum="0"
+                                     Maximum="100"
+                                     Height="16"
+                                     Value="{Binding RestoreProgressValue}" />
                     </StackPanel>
                 </Border>
             </Expander>

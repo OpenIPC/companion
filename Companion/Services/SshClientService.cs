@@ -39,8 +39,7 @@ public class SshClientService : ISshClientService
             try
             {
                 await client.ConnectAsync(cancellationToken);
-                //client.Connect();
-                var result = client.RunCommand(command);
+                var result = await Task.Run(() => client.RunCommand(command), cancellationToken);
                 _logger.Debug($"Command executed successfully. Result: {result.Result}, Exit code: {result.ExitStatus}");
                 return result;
             }
@@ -62,8 +61,10 @@ public class SshClientService : ISshClientService
 
         var connectionInfo = new ConnectionInfo(deviceConfig.IpAddress, deviceConfig.Port, deviceConfig.Username,
             new PasswordAuthenticationMethod(deviceConfig.Username, deviceConfig.Password));
-        using (var client = new SshClient(connectionInfo))
+
+        await Task.Run(() =>
         {
+            using var client = new SshClient(connectionInfo);
             try
             {
                 client.Connect();
@@ -79,7 +80,7 @@ public class SshClientService : ISshClientService
             {
                 client.Disconnect();
             }
-        }
+        });
     }
 
 

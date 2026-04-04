@@ -60,6 +60,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private readonly IMessageBoxService _messageBoxService;
     private SysupgradePhase _sysupgradePhase = SysupgradePhase.None;
     private bool _sysupgradeInProgress = false;
+    private DispatcherTimer _flashTimer;
     private static readonly IBrush ProgressRunningBrush = Brushes.Green;
     private static readonly IBrush ProgressErrorBrush = Brushes.Red;
     private static readonly IBrush ProgressCompleteBrush = new SolidColorBrush(Color.Parse("#4C61D8"));
@@ -124,6 +125,11 @@ public partial class FirmwareTabViewModel : ViewModelBase
     [ObservableProperty] private bool _backupInProgress;
     [ObservableProperty] private int _backupProgressValue;
     [ObservableProperty] private string _backupProgressText;
+    [ObservableProperty] private bool _restoreInProgress;
+    [ObservableProperty] private int _restoreProgressValue;
+    [ObservableProperty] private string _restoreProgressText;
+    [ObservableProperty] private bool _restoreConfirmed;
+    [ObservableProperty] private bool _flashWarning;
     [ObservableProperty] private bool _isBackupExpanded;
     [ObservableProperty] private bool _isFirmwareExpanded = true;
     [ObservableProperty] private bool _isBootloaderExpanded;
@@ -184,6 +190,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     public IAsyncRelayCommand PerformFirmwareUpgradeAsyncCommand { get; set; }
     public IAsyncRelayCommand ReplaceBootloaderAsyncCommand { get; set; }
     public IAsyncRelayCommand BackupFirmwareAsyncCommand { get; set; }
+    public IAsyncRelayCommand RestoreFirmwareAsyncCommand { get; set; }
     public ICommand ClearFormCommand { get; set; }
     public IAsyncRelayCommand DownloadFirmwareAsyncCommand { get; set; }
 
@@ -232,6 +239,10 @@ public partial class FirmwareTabViewModel : ViewModelBase
         BackupInProgress = false;
         BackupProgressValue = 0;
         BackupProgressText = string.Empty;
+        RestoreInProgress = false;
+        RestoreProgressValue = 0;
+        RestoreProgressText = string.Empty;
+        RestoreConfirmed = false;
         IsBackupExpanded = false;
         FirmwareUpgradeInProgress = false;
         IsFirmwareExpanded = true;
@@ -299,10 +310,30 @@ public partial class FirmwareTabViewModel : ViewModelBase
             BackupFirmwareAsync,
             CanExecuteBackupFirmware);
 
+        RestoreFirmwareAsyncCommand = new AsyncRelayCommand(
+            RestoreFirmwareAsync,
+            CanExecuteRestoreFirmware);
+
         SelectLocalFirmwarePackageCommand = new AsyncRelayCommand<Window>(
             SelectLocalFirmwarePackage);
 
         ClearFormCommand = new RelayCommand(ClearForm);
+    }
+
+    private void StartFlashTimer()
+    {
+        if (_flashTimer != null) return;
+        _flashTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
+        _flashTimer.Tick += (_, _) => FlashWarning = !FlashWarning;
+        _flashTimer.Start();
+    }
+
+    private void StopFlashTimer()
+    {
+        if (_flashTimer == null) return;
+        _flashTimer.Stop();
+        _flashTimer = null;
+        FlashWarning = false;
     }
 
     private void SubscribeToEvents()
@@ -345,6 +376,10 @@ public partial class FirmwareTabViewModel : ViewModelBase
             BackupProgressValue = 0;
             BackupProgressText = string.Empty;
             BackupInProgress = false;
+            RestoreProgressValue = 0;
+            RestoreProgressText = string.Empty;
+            RestoreInProgress = false;
+            RestoreConfirmed = false;
             FirmwareUpgradeInProgress = false;
         }
 
@@ -550,6 +585,16 @@ public partial class FirmwareTabViewModel : ViewModelBase
     }
 
     partial void OnBackupInProgressChanged(bool value)
+    {
+        UpdateCanExecuteCommands();
+    }
+
+    partial void OnRestoreInProgressChanged(bool value)
+    {
+        UpdateCanExecuteCommands();
+    }
+
+    partial void OnRestoreConfirmedChanged(bool value)
     {
         UpdateCanExecuteCommands();
     }
@@ -769,7 +814,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanUseSelectLocalFirmwarePackage));
         OnPropertyChanged(nameof(CanReplaceBootloader));
         OnPropertyChanged(nameof(CanBackupFirmware));
+        OnPropertyChanged(nameof(CanRestoreFirmware));
+        OnPropertyChanged(nameof(IsDestructiveOperationInProgress));
+        OnPropertyChanged(nameof(DestructiveOperationWarning));
         OnPropertyChanged(nameof(IsAutomaticMethodSelected));
+
+        if (IsDestructiveOperationInProgress)
+            StartFlashTimer();
+        else
+            StopFlashTimer();
         OnPropertyChanged(nameof(IsBySocMethodSelected));
         OnPropertyChanged(nameof(IsLocalMethodSelected));
 
@@ -780,6 +833,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
             PerformFirmwareUpgradeAsyncCommand?.NotifyCanExecuteChanged();
             ReplaceBootloaderAsyncCommand?.NotifyCanExecuteChanged();
             BackupFirmwareAsyncCommand?.NotifyCanExecuteChanged();
+            RestoreFirmwareAsyncCommand?.NotifyCanExecuteChanged();
             SelectLocalFirmwarePackageCommand?.NotifyCanExecuteChanged();
         }
     }
@@ -796,7 +850,31 @@ public partial class FirmwareTabViewModel : ViewModelBase
         IsConnected &&
         !BootloaderInProgress &&
         !FirmwareUpgradeInProgress &&
-        !BackupInProgress;
+        !BackupInProgress &&
+        !RestoreInProgress;
+
+    public bool CanRestoreFirmware =>
+        IsConnected &&
+        !BootloaderInProgress &&
+        !FirmwareUpgradeInProgress &&
+        !BackupInProgress &&
+        !RestoreInProgress &&
+        RestoreConfirmed;
+
+    public bool IsDestructiveOperationInProgress =>
+        BackupInProgress || RestoreInProgress || FirmwareUpgradeInProgress || BootloaderInProgress;
+
+    public string DestructiveOperationWarning
+    {
+        get
+        {
+            if (RestoreInProgress) return "DO NOT INTERRUPT — RESTORING FIRMWARE — DO NOT POWER OFF";
+            if (BootloaderInProgress) return "DO NOT INTERRUPT — FLASHING BOOTLOADER — DO NOT POWER OFF";
+            if (FirmwareUpgradeInProgress) return "DO NOT INTERRUPT — FIRMWARE UPGRADE IN PROGRESS — DO NOT POWER OFF";
+            if (BackupInProgress) return "DO NOT INTERRUPT — BACKUP IN PROGRESS";
+            return string.Empty;
+        }
+    }
 
     private async Task<FirmwareData> FetchFirmwareListAsync()
     {
@@ -1481,6 +1559,11 @@ public partial class FirmwareTabViewModel : ViewModelBase
         return CanBackupFirmware;
     }
 
+    private bool CanExecuteRestoreFirmware()
+    {
+        return CanRestoreFirmware;
+    }
+
     private async Task BackupFirmwareAsync()
     {
         var deviceConfig = DeviceConfig.Instance;
@@ -1498,28 +1581,14 @@ public partial class FirmwareTabViewModel : ViewModelBase
         {
             BackupInProgress = true;
             BackupProgressValue = 5;
-            BackupProgressText = "Reading /proc/mtd on device...";
+            BackupProgressText = "Stopping services on device...";
             UpdateCanExecuteCommands();
 
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var mtdResult = await SshClientService.ExecuteCommandWithResponseAsync(
+            await SshClientService.ExecuteCommandAsync(
                 deviceConfig,
-                "cat /proc/mtd",
-                cts.Token);
-
-            var mtdOutput = mtdResult?.Result ?? string.Empty;
-            var mtdIndices = ParseMtdIndices(mtdOutput);
-            if (!mtdIndices.Any())
-            {
-                BackupProgressText = "No MTD partitions found.";
-                BackupProgressValue = 0;
-                await _messageBoxService.ShowCustomMessageBox(
-                    "Backup failed",
-                    "No MTD partitions were found on the device. Please try again or open a ticket.",
-                    ButtonEnum.Ok,
-                    Icon.Error);
-                return;
-            }
+                "killall -q -3 majestic; killall -q wfb_tx; killall -q wfb_rx; " +
+                "killall -q msposd; killall -q telemetry_rx; killall -q telemetry_tx; " +
+                "sleep 1; sync; echo 3 > /proc/sys/vm/drop_caches; true");
 
             BackupProgressValue = 8;
             BackupProgressText = "Preparing backup directory on device...";
@@ -1527,28 +1596,23 @@ public partial class FirmwareTabViewModel : ViewModelBase
                 deviceConfig,
                 $"rm -rf '{remoteBaseDir}' '{remoteArchivePath}' && mkdir -p '{remoteBackupDir}'");
 
-            var progressPerPartition = Math.Max(1, 55 / mtdIndices.Count);
-            for (var i = 0; i < mtdIndices.Count; i++)
-            {
-                var index = mtdIndices[i];
-                BackupProgressText = $"Backing up /dev/mtd{index} on device...";
-                BackupProgressValue = 10 + (i * progressPerPartition);
-                await SshClientService.ExecuteCommandAsync(
-                    deviceConfig,
-                    $"dd if=/dev/mtd{index} of='{remoteBackupDir}/mtd{index}.bin' bs=64k");
-            }
+            BackupProgressValue = 12;
+            BackupProgressText = "Backing up all MTD partitions on device...";
+            await SshClientService.ExecuteCommandAsync(
+                deviceConfig,
+                $"for mtd in $(ls /dev/mtdblock*); do dd if=${{mtd}} of='{remoteBackupDir}'/${{mtd##/*/}}.bin; done");
 
             BackupProgressValue = 70;
             BackupProgressText = "Syncing and generating checksum file on device...";
             await SshClientService.ExecuteCommandAsync(
                 deviceConfig,
-                $"sync && sha256sum '{remoteBackupDir}'/mtd*.bin > '{remoteBackupDir}/sha256sums.txt'");
+                $"sync && cd '{remoteBackupDir}' && md5sum mtdblock*.bin > md5sums.txt");
 
             BackupProgressValue = 82;
             BackupProgressText = "Creating backup archive on device...";
             await SshClientService.ExecuteCommandAsync(
                 deviceConfig,
-                $"tar -czf '{remoteArchivePath}' -C '{remoteBaseDir}' '{backupName}'");
+                $"tar -cf - -C '{remoteBaseDir}' '{backupName}' | gzip > '{remoteArchivePath}'");
 
             var saveFileDialog = new SaveFileDialog
             {
@@ -1631,6 +1695,230 @@ public partial class FirmwareTabViewModel : ViewModelBase
             .Select(index => int.TryParse(index, out var parsed) ? parsed : -1)
             .Where(index => index >= 0)
             .ToList();
+    }
+
+    private async Task RestoreFirmwareAsync()
+    {
+        var deviceConfig = DeviceConfig.Instance;
+        if (!deviceConfig.CanConnect) return;
+
+        var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+
+        if (mainWindow == null)
+        {
+            RestoreProgressText = "Unable to open file dialog.";
+            return;
+        }
+
+        var dialog = new OpenFileDialog
+        {
+            Title = "Select Firmware Backup",
+            Filters = new List<FileDialogFilter>
+            {
+                new() { Name = "Firmware Backup", Extensions = { "gz", "tgz" } },
+                new() { Name = "All Files", Extensions = { "*" } }
+            }
+        };
+
+        var files = await dialog.ShowAsync(mainWindow);
+        if (files == null || files.Length == 0 || string.IsNullOrWhiteSpace(files[0]))
+        {
+            RestoreProgressText = "Restore canceled.";
+            return;
+        }
+
+        var archivePath = files[0];
+
+        var confirm = await _messageBoxService.ShowCustomMessageBox(
+            "Restore firmware?",
+            $"This will overwrite all MTD flash partitions on the device with data from:\n{Path.GetFileName(archivePath)}\n\nThis is irreversible. A power failure mid-flash can permanently brick the device. Continue?",
+            ButtonEnum.YesNo,
+            Icon.Warning);
+
+        if (confirm != ButtonResult.Yes) return;
+
+        string tempDir = null;
+        try
+        {
+            RestoreInProgress = true;
+            RestoreProgressValue = 2;
+            RestoreProgressText = "Extracting backup archive...";
+            UpdateCanExecuteCommands();
+
+            tempDir = ExtractBackupToTempDir(archivePath);
+
+            RestoreProgressValue = 8;
+            RestoreProgressText = "Verifying checksums...";
+
+            var checksumFile = Directory.GetFiles(tempDir, "md5sums.txt", SearchOption.AllDirectories).FirstOrDefault()
+                               ?? Directory.GetFiles(tempDir, "sha256sums.txt", SearchOption.AllDirectories).FirstOrDefault();
+            var mtdBinFiles = Directory.GetFiles(tempDir, "mtdblock*.bin", SearchOption.AllDirectories)
+                .Concat(Directory.GetFiles(tempDir, "mtd[0-9]*.bin", SearchOption.AllDirectories))
+                .OrderBy(f =>
+                {
+                    var m = Regex.Match(Path.GetFileNameWithoutExtension(f), @"(\d+)$");
+                    return m.Success ? int.Parse(m.Groups[1].Value) : int.MaxValue;
+                })
+                .ToList();
+
+            if (!mtdBinFiles.Any())
+            {
+                RestoreProgressText = "No MTD partition files found in the backup archive.";
+                await _messageBoxService.ShowCustomMessageBox(
+                    "Restore failed",
+                    "No MTD partition files (mtd*.bin) found in the backup archive.",
+                    ButtonEnum.Ok,
+                    Icon.Error);
+                return;
+            }
+
+            if (checksumFile != null)
+                VerifyBackupChecksums(checksumFile, mtdBinFiles);
+
+            RestoreProgressValue = 12;
+            RestoreProgressText = "Reading device partition table...";
+
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var mtdResult = await SshClientService.ExecuteCommandWithResponseAsync(deviceConfig, "cat /proc/mtd", cts.Token);
+            var deviceIndices = ParseMtdIndices(mtdResult?.Result ?? string.Empty);
+
+            if (!deviceIndices.Any())
+            {
+                RestoreProgressText = "Could not read MTD partitions from device.";
+                await _messageBoxService.ShowCustomMessageBox(
+                    "Restore failed",
+                    "Could not read /proc/mtd from device.",
+                    ButtonEnum.Ok,
+                    Icon.Error);
+                return;
+            }
+
+            var progressPerPartition = Math.Max(1, 75 / mtdBinFiles.Count);
+
+            for (var i = 0; i < mtdBinFiles.Count; i++)
+            {
+                var localPath = mtdBinFiles[i];
+                var filename = Path.GetFileName(localPath);
+                var indexMatch = Regex.Match(filename, @"mtdblock(\d+)\.bin|mtd(\d+)\.bin");
+                if (!indexMatch.Success) continue;
+
+                var partitionIndex = int.Parse(indexMatch.Groups[1].Success
+                    ? indexMatch.Groups[1].Value
+                    : indexMatch.Groups[2].Value);
+
+                if (!deviceIndices.Contains(partitionIndex))
+                {
+                    Logger.Warning($"Skipping {filename}: /dev/mtd{partitionIndex} not found on device.");
+                    continue;
+                }
+
+                var remotePath = $"{OpenIPC.RemoteTempFolder}/{filename}";
+
+                RestoreProgressValue = 15 + (i * progressPerPartition);
+                RestoreProgressText = $"Uploading {filename} ({i + 1}/{mtdBinFiles.Count})...";
+                await SshClientService.UploadFileAsync(deviceConfig, localPath, remotePath);
+
+                RestoreProgressValue = 15 + (i * progressPerPartition) + (progressPerPartition / 2);
+                RestoreProgressText = $"Flashing {filename} to /dev/mtd{partitionIndex}...";
+                await SshClientService.ExecuteCommandAsync(deviceConfig, $"flashcp -v '{remotePath}' /dev/mtd{partitionIndex}");
+
+                await SshClientService.ExecuteCommandAsync(deviceConfig, $"rm -f '{remotePath}'");
+            }
+
+            RestoreProgressValue = 95;
+            RestoreProgressText = "Rebooting device...";
+            await SshClientService.ExecuteCommandAsync(deviceConfig, "reboot");
+
+            RestoreProgressValue = 100;
+            RestoreProgressText = "Restore complete. Device is rebooting.";
+
+            await _messageBoxService.ShowCustomMessageBox(
+                "Restore complete",
+                "All MTD partitions have been restored. The device will reboot now.",
+                ButtonEnum.Ok,
+                Icon.Success);
+        }
+        catch (InvalidDataException ex)
+        {
+            Logger.Error(ex, "Checksum mismatch during restore");
+            RestoreProgressText = $"Checksum mismatch: {ex.Message}";
+            RestoreProgressValue = 0;
+            await _messageBoxService.ShowCustomMessageBox(
+                "Restore aborted",
+                $"Checksum verification failed: {ex.Message}\n\nThe backup may be corrupted. No data was written to the device.",
+                ButtonEnum.Ok,
+                Icon.Error);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error restoring firmware");
+            RestoreProgressText = $"Error: {ex.Message}";
+            RestoreProgressValue = 0;
+            await _messageBoxService.ShowCustomMessageBox(
+                "Restore failed",
+                "An error occurred during restore. Please try again or open a ticket.",
+                ButtonEnum.Ok,
+                Icon.Error);
+        }
+        finally
+        {
+            RestoreInProgress = false;
+            RestoreConfirmed = false;
+            if (tempDir != null && Directory.Exists(tempDir))
+                try { Directory.Delete(tempDir, true); } catch { /* best effort cleanup */ }
+            UpdateCanExecuteCommands();
+        }
+    }
+
+    private string ExtractBackupToTempDir(string archivePath)
+    {
+        var tarPath = DecompressTgzToTar(archivePath);
+        var tempDir = Path.Combine(Path.GetTempPath(), $"companion-restore-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        using (var archive = SharpCompress.Archives.Tar.TarArchive.Open(tarPath))
+        {
+            foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
+            {
+                var destPath = Path.Combine(tempDir, Path.GetFileName(entry.Key));
+                using var entryStream = entry.OpenEntryStream();
+                using var fileStream = File.Create(destPath);
+                entryStream.CopyTo(fileStream);
+            }
+        }
+
+        try { File.Delete(tarPath); } catch { /* best effort */ }
+        return tempDir;
+    }
+
+    private static void VerifyBackupChecksums(string checksumFile, List<string> mtdBinFiles)
+    {
+        var checksumMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var line in File.ReadAllLines(checksumFile))
+        {
+            var spaceIdx = line.IndexOf(' ');
+            if (spaceIdx < 0) continue;
+            var hash = line[..spaceIdx].Trim();
+            var name = Path.GetFileName(line[spaceIdx..].Trim());
+            if (!string.IsNullOrEmpty(name))
+                checksumMap[name] = hash;
+        }
+
+        using var md5 = System.Security.Cryptography.MD5.Create();
+        foreach (var binPath in mtdBinFiles)
+        {
+            var name = Path.GetFileName(binPath);
+            if (!checksumMap.TryGetValue(name, out var expectedHash)) continue;
+
+            using var stream = File.OpenRead(binPath);
+            var hashBytes = md5.ComputeHash(stream);
+            var actualHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+
+            if (!string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"{name}: expected {expectedHash[..8]}…, got {actualHash[..8]}…");
+        }
     }
 
     private async Task ReplaceBootloaderAsync()
