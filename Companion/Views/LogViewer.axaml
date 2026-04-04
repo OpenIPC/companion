@@ -11,7 +11,7 @@
 
 
     
-    <Border Background="#F0F0F0" CornerRadius="8" Padding="0,3,0,5" Margin="0">
+    <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="0,3,0,5" Margin="0">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid>
             <Grid.RowDefinitions>
@@ -37,7 +37,7 @@
                      Padding="0"
                      Margin="0"
                      CornerRadius="8"
-                     BorderBrush="Black"
+                     BorderBrush="{DynamicResource ThemeBorderBrush}"
                      BorderThickness="0"
                      ItemsSource="{Binding LogMessages}"
                      ScrollViewer.VerticalScrollBarVisibility="Visible"

@@ -18,7 +18,7 @@
     </UserControl.Resources>
     
     <!-- Main Layout -->
-    <Grid>
+    <Grid Background="{DynamicResource ContentBackground}">
         <!-- Define Rows -->
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /> <!-- Header -->
@@ -99,7 +99,7 @@
         
         <!-- GridSplitter -->
         <GridSplitter Grid.Row="2"
-                      Background="#CCCCCC"
+                      Background="{DynamicResource SplitterBackground}"
                       ResizeDirection="Rows"
                       ResizeBehavior="PreviousAndNext"
                       HorizontalAlignment="Stretch"
@@ -107,7 +107,7 @@
                       Cursor="SizeNorthSouth" />
 
         <!-- Log Viewer Section -->
-        <Grid Grid.Row="3" Background="LightGray">
+        <Grid Grid.Row="3" Background="{DynamicResource LogAreaBackground}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="20" MinWidth="20" />
                 <ColumnDefinition Width="*" />
@@ -132,9 +132,9 @@
                     <!--     ~1~ <TextBlock Text="Open Folder" /> @1@ -->
                     <!-- </StackPanel> -->
                     <StackPanel Orientation="Vertical" Margin="0,0,0,10" HorizontalAlignment="Center">
-                    <TextBlock Text="L" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center"  Foreground="Black"/>
-                    <TextBlock Text="O" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Foreground="Black"/>
-                    <TextBlock Text="G" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Foreground="Black"/>
+                    <TextBlock Text="L" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center"  Foreground="{DynamicResource PrimaryTextForeground}"/>
+                    <TextBlock Text="O" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryTextForeground}"/>
+                    <TextBlock Text="G" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryTextForeground}"/>
                     </StackPanel>
                 </Button>
             </StackPanel>

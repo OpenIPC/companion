@@ -20,7 +20,7 @@
     <ScrollViewer>
         <StackPanel Orientation="Vertical" Margin="10">
             <!-- Info Panel -->
-            <Border Background="#B0B0B0" CornerRadius="10" Padding="10" Margin="0,0,0,16">
+            <Border Background="{DynamicResource WarningBannerBackground}" CornerRadius="10" Padding="10" Margin="0,0,0,16">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -36,7 +36,7 @@
                         Margin="5" />
                     <TextBlock Grid.Column="1"
                                Text="This tab contains various experimental and advanced features."
-                               Foreground="Black"
+                               Foreground="{DynamicResource PrimaryTextForeground}"
                                FontSize="14"
                                TextWrapping="Wrap"
                                VerticalAlignment="Center"
@@ -54,7 +54,7 @@
 
                 <ItemsControl.Items>
                     <!-- Section 1: Adaptive Link -->
-                    <Border Background="#F0F0F0" CornerRadius="8" Padding="16">
+                    <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16">
                         <StackPanel>
                             <!-- Section Header -->
                             <Grid ColumnDefinitions="*, Auto">
@@ -110,7 +110,7 @@
 
 
                             <!-- Not Installed Message -->
-                            <Border Background="#EEEEEE" BorderBrush="#CCCCCC" BorderThickness="1" CornerRadius="4"
+                            <Border Background="{DynamicResource InputFieldBackground}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" CornerRadius="4"
                                     Padding="10" Margin="0,0,0,16"
                                     IsVisible="{Binding NotInstalled}">
                                 <TextBlock Text="Adaptive Link is not installed on this device."
@@ -130,7 +130,7 @@
                     </Border>
 
                     <!-- Section 2: Debug Tools -->
-                    <Border Background="#F0F0F0" CornerRadius="8" Padding="16">
+                    <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16">
                         <StackPanel>
                             <!-- Section Header -->
                             <TextBlock Text="Debug Tools"

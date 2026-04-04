@@ -9,6 +9,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MsBox.Avalonia;
@@ -244,6 +245,12 @@ public class App : Application
         // check for updates
         if (_ShouldCheckForUpdates)
             CheckForUpdatesAsync();
+
+        // Apply saved theme before creating window to prevent flash
+        var savedSettings = SettingsManager.LoadSettings();
+        RequestedThemeVariant = savedSettings?.IsDarkTheme == true
+            ? ThemeVariant.Dark
+            : ThemeVariant.Light;
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
