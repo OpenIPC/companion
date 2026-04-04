@@ -19,9 +19,14 @@ public class TabItemViewModel
     public object Content { get; }
 
     /// <summary>
-    /// Gets the icon path/name for the tab
+    /// Gets the icon path/name for the tab (dark variant, for unselected state)
     /// </summary>
     public string Icon { get; }
+
+    /// <summary>
+    /// Gets the light icon path/name for the tab (for selected state)
+    /// </summary>
+    public string IconLight { get; }
 
     /// <summary>
     /// Gets or sets whether the tabs are in collapsed state
@@ -45,6 +50,7 @@ public class TabItemViewModel
     {
         TabName = tabName ?? throw new ArgumentNullException(nameof(tabName));
         Icon = icon ?? throw new ArgumentNullException(nameof(icon));
+        IconLight = icon.Replace("_dark", "_light");
         Content = content ?? throw new ArgumentNullException(nameof(content));
         IsTabsCollapsed = isTabsCollapsed;
     }

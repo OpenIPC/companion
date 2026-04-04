@@ -157,7 +157,17 @@
 
 
     
-    <!-- -->
+    <!-- Tab icon swap: show dark icon normally, light icon when selected -->
+    <Style Selector="TabItem Svg.tab-icon-light">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="TabItem:selected Svg.tab-icon-dark">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="TabItem:selected Svg.tab-icon-light">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+
     <Style Selector="TabItem:selected">
         <Setter Property="Background" Value="#4C61D8" />
         <Setter Property="Foreground" Value="#FFFFFF" />
