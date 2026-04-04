@@ -52,14 +52,17 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <!-- Icon -->
-                            <Svg Grid.Column="0" Path="{Binding Icon}" Margin="0" />
+                            <!-- Icon (dark for unselected, light for selected) -->
+                            <Svg Grid.Column="0" Path="{Binding Icon}" Margin="0"
+                                 Classes="tab-icon-dark" />
+                            <Svg Grid.Column="0" Path="{Binding IconLight}" Margin="0"
+                                 Classes="tab-icon-light" />
 
                             <!-- Tab Name -->
-                            <TextBlock Text="{Binding TabName}" Grid.Column="1" 
+                            <TextBlock Text="{Binding TabName}" Grid.Column="1"
                                        VerticalAlignment="Center" HorizontalAlignment="Left"
                                        FontSize="18" Margin="10,0,10,0"
-                                       IsVisible="{Binding IsTabsCollapsed, 
+                                       IsVisible="{Binding IsTabsCollapsed,
                                Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </Grid>
                     </DataTemplate>
