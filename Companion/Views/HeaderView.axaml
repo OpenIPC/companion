@@ -89,9 +89,9 @@
                 <Svg Width="150" Margin="10,5,0,0" Path="/Assets/Icons/openipc-logo.svg" />
 
                 <StackPanel Orientation="Horizontal" Margin="10,10,0,8" MaxWidth="180">
-                    <TextBlock FontSize="14" Foreground="White" Text="COMPANION" />
-                    <TextBlock FontSize="14" Foreground="White" Opacity="0.75"
-                               Margin="6,2,0,0"
+                    <TextBlock FontSize="11" Foreground="White" Text="COMPANION" />
+                    <TextBlock FontSize="11" Foreground="White" Opacity="0.75"
+                               Margin="4,1,0,0"
                                TextTrimming="CharacterEllipsis"
                                Text="{Binding AppVersionText}" />
                 </StackPanel>
@@ -100,24 +100,30 @@
             </StackPanel>
 
             <StackPanel Orientation="Vertical" Grid.Column="1" HorizontalAlignment="Left"
-                        VerticalAlignment="Center" Spacing="3">
+                        VerticalAlignment="Center" Spacing="0" Margin="10,0,0,0">
 
-                <Button Name="TelegramButton" Margin="0" Padding="20,0,5,5" Click="TelegramButton_OnClick"
-                        Background="Transparent" BorderThickness="0">
-                    <Svg Width="16" Path="/Assets/Icons/ic-telegram.svg" HorizontalAlignment="Center"
-                         VerticalAlignment="Center" />
+                <Button Name="TelegramButton" Padding="6,3" Click="TelegramButton_OnClick"
+                        Background="Transparent" BorderThickness="0"
+                        VerticalContentAlignment="Center">
+                    <Svg Width="18" Path="/Assets/Icons/ic-telegram.svg" />
                 </Button>
 
-                <Button Name="GithubButton" Margin="0" Padding="20,0,5,5" Click="GithubButton_OnClick"
-                        Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center"
-                        HorizontalContentAlignment="Center">
-                    <Svg Width="16" Path="/Assets/Icons/mdi-github.svg" />
+                <Button Name="GithubButton" Padding="6,3" Click="GithubButton_OnClick"
+                        Background="Transparent" BorderThickness="0"
+                        VerticalContentAlignment="Center">
+                    <Svg Width="18" Path="/Assets/Icons/mdi-github.svg" />
                 </Button>
 
-                <!-- <Button Name="DiscordButton" Margin="0" Padding="20,0,5,5" Click="DiscordButton_OnClick" -->
-                <!--         Background="Transparent" BorderThickness="0"> -->
-                <!--     <Svg Width="16" Path="/Assets/Icons/ic-discord.svg" /> -->
-                <!-- </Button> -->
+                <Button Name="ReportBugButton" Padding="6,3" Click="ReportBugButton_OnClick"
+                        Background="Transparent" BorderThickness="0"
+                        VerticalContentAlignment="Center"
+                        ToolTip.Tip="Report a bug on GitHub">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Svg Width="16" Path="/Assets/Icons/mdi-github.svg" />
+                        <TextBlock Text="Report Bug" FontSize="12" Foreground="White"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
 
             <StackPanel Orientation="Vertical" Grid.Column="2" HorizontalAlignment="Right"
