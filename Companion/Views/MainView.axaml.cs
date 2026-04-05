@@ -124,4 +124,9 @@ public partial class MainView : UserControl
 
         _viewModel.LogPanelHeight = height;
     }
+
+    private void OnDrawerLinePressed(object? sender, PointerPressedEventArgs e)
+    {
+        _viewModel?.ToggleTabsCommand.Execute(null);
+    }
 }

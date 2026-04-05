@@ -42,7 +42,7 @@
                         IsEnabled="{Binding IsTabNavigationEnabled}"
                         Width="{Binding IsTabsCollapsed, 
                         Converter={StaticResource BooleanToWidthConverter},
-                        ConverterParameter='80,200'}"
+                        ConverterParameter='60,200'}"
                         Padding="0,0,10,0">
                 
                 <TabControl.ItemTemplate>
@@ -70,27 +70,12 @@
                 </TabControl.ItemTemplate>
             </TabControl>
 
-            <!-- Toggle Tabs Button -->
-            <Button Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" 
-                    VerticalAlignment="Top"
-                    Classes="DrawerButton"
-                    IsEnabled="{Binding IsTabNavigationEnabled}"
-                    Command="{Binding ToggleTabsCommand}" 
-                    BorderThickness="0"
-                    Background="Transparent">
-
-                <StackPanel Orientation="Horizontal" 
-                            Background="Transparent"
-                             Spacing="0">
-                    <Svg Path="/Assets/Icons/drawer-handle.svg"
-                         Margin="0,0,0,0"  />
-                    <Svg Path="{Binding SvgPath}"
-                         Width="10"
-                         Margin="0,0,0,0"
-                         HorizontalAlignment="Left"
-                         />
-                </StackPanel>
-            </Button>
+            <!-- Side panel divider line -->
+            <Border Grid.Column="1" Width="8" Background="#4C61D8"
+                    VerticalAlignment="Stretch"
+                    HorizontalAlignment="Center"
+                    Cursor="Hand"
+                    PointerPressed="OnDrawerLinePressed" />
             
             <!-- Tab Content -->
             <ContentControl Grid.Column="2" 
