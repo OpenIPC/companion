@@ -15,6 +15,8 @@ namespace Companion.ViewModels;
 /// </summary>
 public class LogViewerViewModel : ViewModelBase
 {
+    private const int MaxLogMessages = 1000;
+
     #region Private Fields
     private readonly IEventSubscriptionService _eventSubscriptionService;
     private int _duplicateCount;
@@ -140,7 +142,7 @@ public class LogViewerViewModel : ViewModelBase
         if (message.UpdateLogView)
         {
             var formattedMessage = FormatLogMessage(message.ToString());
-            Dispatcher.UIThread.InvokeAsync(() => LogMessages.Add(formattedMessage));
+            Dispatcher.UIThread.InvokeAsync(() => AddLogMessage(formattedMessage));
         }
     }
     #endregion
@@ -184,7 +186,7 @@ public class LogViewerViewModel : ViewModelBase
         _lastMessage = message;
 
         // Add new message to log
-        Dispatcher.UIThread.InvokeAsync(() => LogMessages.Add(formattedMessage));
+        Dispatcher.UIThread.InvokeAsync(() => AddLogMessage(formattedMessage));
     }
 
     /// <summary>
@@ -197,10 +199,18 @@ public class LogViewerViewModel : ViewModelBase
             var duplicateMessage = FormatLogMessage(
                 $"[Last message repeated {_duplicateCount} times]");
 
-            Dispatcher.UIThread.InvokeAsync(() => LogMessages.Add(duplicateMessage));
+            Dispatcher.UIThread.InvokeAsync(() => AddLogMessage(duplicateMessage));
             _duplicateCount = 0;
             _lastFlushTime = DateTime.Now;
         }
+    }
+
+    private void AddLogMessage(string message)
+    {
+        LogMessages.Add(message);
+
+        while (LogMessages.Count > MaxLogMessages)
+            LogMessages.RemoveAt(0);
     }
 
     public void NotifyDetachedFromLatest()
