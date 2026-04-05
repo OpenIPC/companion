@@ -93,6 +93,7 @@ public partial class MainViewModel : ViewModelBase
             OnDeviceTypeChangeEvent);
 
         ToggleTabsCommand = new RelayCommand(() => IsTabsCollapsed = !IsTabsCollapsed);
+        ToggleThemeCommand = new RelayCommand(() => IsDarkTheme = !IsDarkTheme);
 
         EntryBoxBgColor = new SolidColorBrush(Colors.White);
 
@@ -190,6 +191,7 @@ public partial class MainViewModel : ViewModelBase
 
     public ICommand ConnectCommand { get; private set; }
     public ICommand ToggleTabsCommand { get; }
+    public ICommand ToggleThemeCommand { get; }
     
     public ICommand OpenLogFolderCommand { get; }
 
