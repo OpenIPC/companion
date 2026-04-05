@@ -68,10 +68,32 @@ public partial class PreferencesTabViewModel : ViewModelBase
 
     partial void OnPreferredFirmwareSourceChanged(string value)
     {
+        Logger.Debug("[PreferencesTab] OnPreferredFirmwareSourceChanged: '{Value}', isLoading={IsLoading}", value, _isLoading);
+
         if (string.IsNullOrWhiteSpace(value))
+        {
+            // TwoWay binding wrote null/empty (e.g., during view teardown).
+            // Restore the last valid saved value so SavePreferences never persists null.
+            var saved = _preferences?.PreferredFirmwareSource;
+            if (!string.IsNullOrWhiteSpace(saved))
+                PreferredFirmwareSource = saved;
             return;
+        }
 
         SavePreferences();
+
+        if (!_isLoading)
+            EventSubscriptionService.Publish<FirmwareSourceChangedEvent, string>(value);
+    }
+
+    private void OnFirmwareSourceChangedFromFirmwareTab(string source)
+    {
+        Logger.Debug("[PreferencesTab] OnFirmwareSourceChangedFromFirmwareTab: '{Source}', current='{Current}'", source, PreferredFirmwareSource);
+
+        if (string.IsNullOrWhiteSpace(source) || string.Equals(source, PreferredFirmwareSource, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        PreferredFirmwareSource = source;
     }
 
     partial void OnFirmwareFocusedModeChanged(bool value)
@@ -94,7 +116,10 @@ public partial class PreferencesTabViewModel : ViewModelBase
 
         _preferences.CheckForUpdatesOnStartup = CheckForUpdatesOnStartup;
         _preferences.FirmwareFocusedMode = FirmwareFocusedMode;
-        _preferences.PreferredFirmwareSource = PreferredFirmwareSource;
+        if (!string.IsNullOrWhiteSpace(PreferredFirmwareSource))
+            _preferences.PreferredFirmwareSource = PreferredFirmwareSource;
+        Logger.Debug("[PreferencesTab] SavePreferences: source='{Source}', checkUpdates={CheckUpdates}, focusedMode={FocusedMode}",
+            _preferences.PreferredFirmwareSource, CheckForUpdatesOnStartup, FirmwareFocusedMode);
         _preferencesService.Save(_preferences);
         StatusMessage = $"Saved {DateTime.Now:t}";
     }
@@ -102,6 +127,7 @@ public partial class PreferencesTabViewModel : ViewModelBase
     private void SubscribeToEvents()
     {
         EventSubscriptionService.Subscribe<AppMessageEvent, AppMessage>(OnAppMessage);
+        EventSubscriptionService.Subscribe<FirmwareSourceChangedEvent, string>(OnFirmwareSourceChangedFromFirmwareTab);
     }
 
     private async Task GenerateSystemReportAsync()

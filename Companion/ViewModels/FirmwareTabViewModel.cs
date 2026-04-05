@@ -248,10 +248,11 @@ public partial class FirmwareTabViewModel : ViewModelBase
         IsFirmwareExpanded = true;
         IsBootloaderExpanded = false;
         var preferences = _preferencesService.Load();
-        SelectedFirmwareSource = string.Equals(preferences.PreferredFirmwareSource, GregApfpvFirmwareSource,
-            StringComparison.OrdinalIgnoreCase)
-            ? GregApfpvFirmwareSource
-            : OpenIpcFirmwareSource;
+        var isGreg = string.Equals(preferences.PreferredFirmwareSource, GregApfpvFirmwareSource,
+            StringComparison.OrdinalIgnoreCase);
+        SelectedFirmwareSource = isGreg ? GregApfpvFirmwareSource : OpenIpcFirmwareSource;
+        if (isGreg)
+            SelectedFirmwareMethod = 1;
     }
 
     partial void OnIsFirmwareExpandedChanged(bool value)
@@ -339,6 +340,17 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private void SubscribeToEvents()
     {
         EventSubscriptionService.Subscribe<AppMessageEvent, AppMessage>(OnAppMessage);
+        EventSubscriptionService.Subscribe<FirmwareSourceChangedEvent, string>(OnFirmwareSourceChanged);
+    }
+
+    private void OnFirmwareSourceChanged(string source)
+    {
+        Logger.Debug("[FirmwareTab] OnFirmwareSourceChanged received: '{Source}', current='{Current}'", source, SelectedFirmwareSource);
+
+        if (string.IsNullOrWhiteSpace(source) || string.Equals(source, SelectedFirmwareSource, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        SelectedFirmwareSource = source;
     }
 
     #endregion
@@ -444,13 +456,32 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     partial void OnSelectedFirmwareSourceChanged(string value)
     {
-        if (string.IsNullOrWhiteSpace(value) || _bRecursionSelectGuard)
+        Logger.Debug("[FirmwareTab] OnSelectedFirmwareSourceChanged: '{Value}', guard={Guard}", value, _bRecursionSelectGuard);
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            // TwoWay binding wrote null/empty (e.g., during view teardown or binding init).
+            // Restore from preferences so the ViewModel stays consistent for the next view attachment.
+            var saved = _preferencesService.Load().PreferredFirmwareSource;
+            if (!string.IsNullOrWhiteSpace(saved))
+            {
+                _bRecursionSelectGuard = true;
+                SelectedFirmwareSource = saved;
+                _bRecursionSelectGuard = false;
+            }
+            return;
+        }
+
+        if (_bRecursionSelectGuard)
             return;
 
-        var preferences = _preferencesService.Load();
-        preferences.PreferredFirmwareSource = value;
-        _preferencesService.Save(preferences);
+        EventSubscriptionService.Publish<FirmwareSourceChangedEvent, string>(value);
         ClearFirmwareSelectionsAndCollections();
+
+        // Card 1 (by manufacturer) is not applicable for Greg APFPV — switch to Card 2
+        if (IsGregApfpvSourceSelected() && SelectedFirmwareMethod == 0)
+            SelectedFirmwareMethod = 1;
+
         _ = LoadManufacturersAsync();
     }
     
@@ -812,6 +843,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanUseDropdowns));
         OnPropertyChanged(nameof(CanUseDropdownsBySoc));
         OnPropertyChanged(nameof(CanUseSelectLocalFirmwarePackage));
+        OnPropertyChanged(nameof(IsGregApfpvSelected));
         OnPropertyChanged(nameof(CanReplaceBootloader));
         OnPropertyChanged(nameof(CanBackupFirmware));
         OnPropertyChanged(nameof(CanRestoreFirmware));
@@ -2429,6 +2461,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
     {
         return string.Equals(SelectedFirmwareSource, GregApfpvFirmwareSource, StringComparison.OrdinalIgnoreCase);
     }
+
+    public bool IsGregApfpvSelected => IsGregApfpvSourceSelected();
 
     private string BuildFirmwareDownloadUrl(string firmwareFilename)
     {

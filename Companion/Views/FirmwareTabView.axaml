@@ -264,35 +264,38 @@
                     </Border>
 
                     <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
-                        <StackPanel Orientation="Vertical" Spacing="4">
+                        <StackPanel Orientation="Vertical" Spacing="8">
 
-                            <!-- === Card 1: Automatic (by manufacturer) === -->
+                            <!-- Firmware Source (global — applies to all methods below) -->
+                            <Grid ColumnDefinitions="Auto,*">
+                                <TextBlock Text="Firmware Source" Grid.Column="0" VerticalAlignment="Center" />
+                                <ComboBox Grid.Column="1"
+                                          Classes="firmware-combo"
+                                          IsEnabled="{Binding CanUseDropdownsBySoc}"
+                                          SelectedItem="{Binding SelectedFirmwareSource, Mode=TwoWay}"
+                                          ItemsSource="{Binding FirmwareSources}"
+                                          HorizontalAlignment="Left"
+                                          Margin="10,0,0,0"
+                                          Background="#E7E7E7" />
+                            </Grid>
+
+                            <Separator />
+
+                            <!-- === Card 1: Automatic (by manufacturer) — OpenIPC Builder only === -->
                             <Border Classes.fw-card-active="{Binding IsAutomaticMethodSelected}"
-                                    Classes.fw-card="{Binding !IsAutomaticMethodSelected}">
+                                    Classes.fw-card="{Binding !IsAutomaticMethodSelected}"
+                                    IsVisible="{Binding !IsGregApfpvSelected}">
                                 <StackPanel Orientation="Vertical" Spacing="8">
                                     <RadioButton GroupName="FirmwareMethod"
                                                  FontWeight="SemiBold"
                                                  Content="Automatic — by manufacturer"
                                                  IsChecked="{Binding SelectedFirmwareMethod, Converter={StaticResource IntToBoolConverter}, ConverterParameter=0}" />
-                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                                    <Grid RowDefinitions="Auto,Auto,Auto"
                                           ColumnDefinitions="Auto,*"
                                           HorizontalAlignment="Stretch"
-                                          ShowGridLines="False"
                                           IsVisible="{Binding IsAutomaticMethodSelected}">
-                                        <!-- Firmware Source -->
-                                        <TextBlock Text="Firmware Source" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
+                                        <TextBlock Text="Manufacturer" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
                                         <ComboBox Grid.Row="0" Grid.Column="1"
-                                                  Classes="firmware-combo"
-                                                  IsEnabled="{Binding CanUseDropdownsBySoc}"
-                                                  SelectedItem="{Binding SelectedFirmwareSource, Mode=TwoWay}"
-                                                  ItemsSource="{Binding FirmwareSources}"
-                                                  HorizontalAlignment="Left"
-                                                  Margin="10,0,0,0"
-                                                  Background="#E7E7E7" />
-
-                                        <!-- Manufacturer -->
-                                        <TextBlock Text="Manufacturer" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Row="1" Grid.Column="1"
                                                   Classes="firmware-combo"
                                                   IsEnabled="{Binding CanUseDropdowns}"
                                                   SelectedItem="{Binding SelectedManufacturer, Mode=TwoWay}"
@@ -301,9 +304,8 @@
                                                   Margin="10,0,0,0"
                                                   Background="#E7E7E7" />
 
-                                        <!-- Device -->
-                                        <TextBlock Text="Device" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Row="2" Grid.Column="1"
+                                        <TextBlock Text="Device" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                                        <ComboBox Grid.Row="1" Grid.Column="1"
                                                   Classes="firmware-combo"
                                                   IsEnabled="{Binding CanUseDropdowns}"
                                                   SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
@@ -312,9 +314,8 @@
                                                   Margin="10,0,0,0"
                                                   Background="#E7E7E7" />
 
-                                        <!-- WFB/Ruby -->
-                                        <TextBlock Text="WFB/Ruby" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Row="3" Grid.Column="1"
+                                        <TextBlock Text="WFB/Ruby" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
+                                        <ComboBox Grid.Row="2" Grid.Column="1"
                                                   Classes="firmware-combo"
                                                   IsEnabled="{Binding CanUseDropdowns}"
                                                   SelectedItem="{Binding SelectedFirmware, Mode=TwoWay}"

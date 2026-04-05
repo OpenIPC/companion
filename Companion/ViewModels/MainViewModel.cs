@@ -1038,6 +1038,9 @@ public partial class MainViewModel : ViewModelBase
         if (!_preferencesInitialized)
             return;
 
+        // Reload first so tab-state saves do not overwrite newer values
+        // written by the Preferences or Firmware tabs.
+        _userPreferences = _preferencesService.Load();
         _userPreferences.IsTabsCollapsed = IsTabsCollapsed;
         _userPreferences.LastSelectedTab = SelectedTab?.TabName.Trim() ?? string.Empty;
         _preferencesService.Save(_userPreferences);

@@ -1,4 +1,4 @@
-# Firmware Backup and Restore
+ryou con# Firmware Backup and Restore
 
 > **WARNING: Restoring firmware is a destructive, irreversible operation. Flashing incorrect data or losing power mid-flash can permanently brick your device. Proceed only if you understand the risks and have a verified backup.**
 
