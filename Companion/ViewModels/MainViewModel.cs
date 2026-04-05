@@ -846,7 +846,7 @@ public partial class MainViewModel : ViewModelBase
 
         _logger.Information("Done reading files from device.");
 
-        _messageBoxService.ShowMessageBox("Read Device", "Done reading from device!");
+        _messageBoxService.ShowMessageBox("Read Device", "Done reading from device!", icon: Icon.None);
 
     }
 

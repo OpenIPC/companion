@@ -23,13 +23,13 @@ namespace Companion.Services;
             _logger = logger;
         }
         
-        public async Task ShowMessageBox(string title, string message, Window? owner = null)
+        public async Task ShowMessageBox(string title, string message, Window? owner = null, Icon icon = Icon.Info)
         {
             var msgBox = MessageBoxManager.GetMessageBoxStandard(
                 title,
                 message,
                 ButtonEnum.Ok,
-                Icon.Info,
+                icon,
                 WindowStartupLocation.CenterScreen
             );
 
@@ -94,7 +94,7 @@ namespace Companion.Services;
                     _logger.Error(ex, "Error opening folder");
                     
                     // Show an error message if the folder couldn't be opened
-                    await ShowMessageBox("Error", $"Could not open folder: {ex.Message}", owner);
+                    await ShowMessageBox("Error", $"Could not open folder: {ex.Message}", owner, Icon.Error);
                 }
             }
             
