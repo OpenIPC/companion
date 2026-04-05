@@ -287,7 +287,11 @@
                         </Grid>
                     </Border>
 
-                    <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16" Margin="8">
+                    <Border Background="{DynamicResource CardBackground}"
+                            CornerRadius="8"
+                            Padding="16"
+                            Margin="8"
+                            IsEnabled="{Binding IsDestructiveOperationInProgress, Converter={StaticResource InvertedBooleanConverter}}">
                         <StackPanel Orientation="Vertical" Spacing="8">
                             <Grid ColumnDefinitions="Auto,*">
                                 <TextBlock Text="Firmware Source" Grid.Column="0" VerticalAlignment="Center" />

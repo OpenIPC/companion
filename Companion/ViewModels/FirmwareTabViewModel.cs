@@ -61,6 +61,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private SysupgradePhase _sysupgradePhase = SysupgradePhase.None;
     private bool _sysupgradeInProgress = false;
     private DispatcherTimer _flashTimer;
+    private bool _lastPublishedDestructiveOperationState;
     private static readonly IBrush ProgressRunningBrush = Brushes.Green;
     private static readonly IBrush ProgressErrorBrush = Brushes.Red;
     private static readonly IBrush ProgressCompleteBrush = new SolidColorBrush(Color.Parse("#4C61D8"));
@@ -370,13 +371,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     private void HandleAppMessage(AppMessage message)
     {
+        var wasOperationInProgress = IsDestructiveOperationInProgress;
+
         CanConnect = message.CanConnect;
         IsConnected = message.CanConnect;
 
         _ = LoadManufacturersAsync();
         _ = LoadBootloadersAsync();
 
-        if (!IsConnected)
+        if (!IsConnected && !wasOperationInProgress)
         {
             IsLocalFirmwarePackageSelected = false;
             IsManufacturerDeviceFirmwareComboSelected = false;
@@ -855,6 +858,13 @@ public partial class FirmwareTabViewModel : ViewModelBase
             StartFlashTimer();
         else
             StopFlashTimer();
+
+        if (_lastPublishedDestructiveOperationState != IsDestructiveOperationInProgress)
+        {
+            _lastPublishedDestructiveOperationState = IsDestructiveOperationInProgress;
+            EventSubscriptionService.Publish<FirmwareOperationStateChangedEvent, bool>(IsDestructiveOperationInProgress);
+        }
+
         OnPropertyChanged(nameof(IsBySocMethodSelected));
         OnPropertyChanged(nameof(IsLocalMethodSelected));
 

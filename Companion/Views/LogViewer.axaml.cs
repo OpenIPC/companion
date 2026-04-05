@@ -13,6 +13,7 @@ public partial class LogViewer : UserControl
     private const double BottomThreshold = 24;
     private LogViewerViewModel? _currentViewModel;
     private bool _isProgrammaticScroll;
+    private bool _scrollToLatestQueued;
 
     public LogViewer()
     {
@@ -97,20 +98,22 @@ public partial class LogViewer : UserControl
 
     private void ScrollToLatest()
     {
+        if (_scrollToLatestQueued)
+            return;
+
+        _scrollToLatestQueued = true;
+
         Dispatcher.UIThread.Post(() =>
         {
-            SetScrollOffsetToLatest();
+            try
+            {
+                SetScrollOffsetToLatest();
+            }
+            finally
+            {
+                _scrollToLatestQueued = false;
+            }
         }, DispatcherPriority.Background);
-
-        Dispatcher.UIThread.Post(() =>
-        {
-            SetScrollOffsetToLatest();
-        }, DispatcherPriority.Loaded);
-
-        Dispatcher.UIThread.Post(() =>
-        {
-            SetScrollOffsetToLatest();
-        }, DispatcherPriority.Render);
     }
 
     private void SetScrollOffsetToLatest()

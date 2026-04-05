@@ -31,6 +31,24 @@
         <Setter Property="Fill" Value="{DynamicResource CircularButtonHoverFill}" />
     </Style>
 
+    <Style Selector="Button.CircularButton:disabled /template/ Ellipse#ButtonBackground">
+        <Setter Property="Fill" Value="#5C5C5C" />
+        <Setter Property="Opacity" Value="0.75" />
+    </Style>
+
+    <Style Selector="Button.CircularButton:disabled">
+        <Setter Property="Opacity" Value="0.6" />
+    </Style>
+
+    <Style Selector="Button.CircularButton:disabled Path#IconPath">
+        <Setter Property="Fill" Value="#BFBFBF" />
+        <Setter Property="Opacity" Value="0.85" />
+    </Style>
+
+    <Style Selector="Button.CircularButton:disabled /template/ Ellipse#GlowEffect">
+        <Setter Property="Opacity" Value="0" />
+    </Style>
+
     <!-- Red pulse animation -->
     <Style Selector="Button.CircularButton.RedPulse /template/ Ellipse#GlowEffect">
         <Style.Animations>
@@ -187,7 +205,10 @@
             </Grid>
 
             <!-- Connection Fields -->
-            <Grid Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+            <Grid Grid.Column="3"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Center"
+                  IsEnabled="{Binding IsTabNavigationEnabled}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -249,7 +270,7 @@
             <!-- Circular Connect Button -->
             <StackPanel Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,0,10,0">
                 <Button Width="50" Height="50" Command="{Binding ConnectCommand}"
-                        IsEnabled="{Binding CanConnect}"
+                        IsEnabled="{Binding IsConnectEnabled}"
                         Classes="CircularButton"
                         Classes.RedPulse="{Binding IsWaiting}"
                         Classes.GreenGlow="{Binding IsConnected}">

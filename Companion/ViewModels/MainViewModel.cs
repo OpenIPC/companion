@@ -58,6 +58,7 @@ public partial class MainViewModel : ViewModelBase
     
     [ObservableProperty] private ObservableCollection<string> _cachedIpAddresses = new();
     [ObservableProperty] private string _selectedCachedIpAddress;
+    [ObservableProperty] private bool _isTabNavigationEnabled = true;
 
 
     public MainViewModel(ILogger logger,
@@ -92,6 +93,7 @@ public partial class MainViewModel : ViewModelBase
         // Subscribe to device type change events
         EventSubscriptionService.Subscribe<DeviceTypeChangeEvent, DeviceType>(
             OnDeviceTypeChangeEvent);
+        EventSubscriptionService.Subscribe<FirmwareOperationStateChangedEvent, bool>(OnFirmwareOperationStateChanged);
 
         ToggleTabsCommand = new RelayCommand(() => IsTabsCollapsed = !IsTabsCollapsed);
         ToggleThemeCommand = new RelayCommand(() => IsDarkTheme = !IsDarkTheme);
@@ -195,6 +197,8 @@ public partial class MainViewModel : ViewModelBase
     public ICommand ToggleThemeCommand { get; }
     
     public ICommand OpenLogFolderCommand { get; }
+
+    public bool IsConnectEnabled => CanConnect && IsTabNavigationEnabled;
 
     public WfbTabViewModel WfbTabViewModel { get; }
     public WfbGSTabViewModel WfbGSTabViewModel { get; }
@@ -1192,6 +1196,27 @@ public partial class MainViewModel : ViewModelBase
 
         // Notify the view of tab changes
         //EventSubscriptionService.Publish<TabSelectionChangeEvent, string>(SelectedTab);
+    }
+
+    private void OnFirmwareOperationStateChanged(bool isInProgress)
+    {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => OnFirmwareOperationStateChanged(isInProgress));
+            return;
+        }
+
+        IsTabNavigationEnabled = !isInProgress;
+    }
+
+    partial void OnCanConnectChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsConnectEnabled));
+    }
+
+    partial void OnIsTabNavigationEnabledChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsConnectEnabled));
     }
 
     #region Observable Properties
