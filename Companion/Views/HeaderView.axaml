@@ -15,7 +15,7 @@
         <Setter Property="Template">
             <ControlTemplate>
                 <Grid>
-                    <Ellipse x:Name="ButtonBackground" Fill="#333333" />
+                    <Ellipse x:Name="ButtonBackground" Fill="{DynamicResource CircularButtonFill}" />
                     <Ellipse x:Name="GlowEffect" Fill="Transparent" Margin="0" Opacity="0" />
                     <ContentPresenter Content="{TemplateBinding Content}"
                                      ContentTemplate="{TemplateBinding ContentTemplate}"
@@ -28,7 +28,7 @@
 
     <!-- Hover style -->
     <Style Selector="Button.CircularButton:pointerover /template/ Ellipse#ButtonBackground">
-        <Setter Property="Fill" Value="#444444" />
+        <Setter Property="Fill" Value="{DynamicResource CircularButtonHoverFill}" />
     </Style>
 
     <!-- Red pulse animation -->
@@ -53,7 +53,7 @@
 
     <!-- Blue glow style -->
     <Style Selector="Button.CircularButton.GreenGlow /template/ Ellipse#GlowEffect">
-        <Setter Property="Fill" Value="#4C61D8" />
+        <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
         <Setter Property="Opacity" Value="0.7" />
     </Style>
     
@@ -74,7 +74,7 @@
 </UserControl.Styles>
     
     <ScrollViewer>
-        <Grid Background="#555555" Height="80">
+        <Grid Background="{DynamicResource HeaderBackground}" Height="80">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -85,7 +85,6 @@
 
             <!-- Logo and Title -->
             <StackPanel Orientation="Vertical" Grid.Column="0">
-                <!-- <Image Source="/Assets/Icons/OpenIPC.png" Width="40" Height="40" Margin="0,0,10,0" /> -->
                 <Svg Width="150" Margin="10,5,0,0" Path="/Assets/Icons/openipc-logo.svg" />
 
                 <StackPanel Orientation="Horizontal" Margin="10,10,0,8" MaxWidth="180">
@@ -95,8 +94,6 @@
                                TextTrimming="CharacterEllipsis"
                                Text="{Binding AppVersionText}" />
                 </StackPanel>
-
-
             </StackPanel>
 
             <StackPanel Orientation="Vertical" Grid.Column="1" HorizontalAlignment="Left"
@@ -126,12 +123,26 @@
                 </Button>
             </StackPanel>
 
-            <StackPanel Orientation="Vertical" Grid.Column="2" HorizontalAlignment="Right"
-                        VerticalAlignment="Center" Spacing="3">
+            <Grid Grid.Column="2">
+                <!-- Theme toggle -->
+                <ToggleSwitch IsChecked="{Binding IsDarkTheme}"
+                              OnContent="Dark" OffContent="Light"
+                              Foreground="White"
+                              FontSize="10"
+                              Margin="10,0,0,5"
+                              Padding="0"
+                              MinHeight="0"
+                              MinWidth="0"
+                              HorizontalAlignment="Left"
+                              VerticalAlignment="Bottom"
+                              ToolTip.Tip="Toggle dark/light theme" />
 
-                <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto, Auto"
+                <!-- Device info right-aligned -->
+                <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto"
                       ShowGridLines="False"
-                      Margin="5">
+                      Margin="5"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Center">
                     <!-- SOC -->
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="SOC:"
                                Margin="5,0,0,5"
@@ -169,11 +180,8 @@
                                HorizontalAlignment="Left"
                                VerticalAlignment="Center"
                                Foreground="White" />
-
                 </Grid>
-
-
-            </StackPanel>
+            </Grid>
 
             <!-- Connection Fields -->
             <Grid Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -185,22 +193,23 @@
                 <!-- IP Address -->
                 <!-- <TextBox Width="200" Height="30" Watermark="IP Address" -->
                 <!--          Text="{Binding IpAddress, Mode=TwoWay}" -->
-                <!--          Background="{Binding EntryBoxBgColor}" -->
+                <!--          Background="{DynamicResource HeaderInputBackground}" -->
                 <!--          HorizontalAlignment="Left" -->
                 <!--          Classes="InputBox" Grid.Row="0" Margin="0,5,0,0" -->
                 <!--          ToolTip.Tip="Device IP Address" /> -->
                 <!-- Replace TextBox with ComboBox for IP Address -->
                 <!-- Replace TextBox with AutoCompleteBox for IP Address -->
-                <AutoCompleteBox Width="200" 
-                                 Height="30" 
+                <AutoCompleteBox Width="200"
+                                 Height="30"
                                  Watermark="IP Address"
                                  Text="{Binding IpAddress, Mode=TwoWay}"
                                  ItemsSource="{Binding CachedIpAddresses}"
                                  SelectedItem="{Binding SelectedCachedIpAddress}"
-                                 Background="{Binding EntryBoxBgColor}"
+                                 Background="{DynamicResource HeaderInputBackground}"
+                                 Foreground="{DynamicResource PrimaryTextForeground}"
                                  HorizontalAlignment="Left"
-                                 Classes="InputBox" 
-                                 Grid.Row="0" 
+                                 Classes="InputBox"
+                                 Grid.Row="0"
                                  Margin="0,5,0,0"
                                  FilterMode="Contains"
                                  ToolTip.Tip="Device IP Address" />
@@ -209,21 +218,24 @@
 
                     <!-- Device Type -->
                     <ComboBox Width="120" Height="30" ToolTip.Tip="Device Type"
-                              Background="{Binding EntryBoxBgColor}"
+                              Background="{DynamicResource HeaderInputBackground}"
+                              Foreground="{DynamicResource PrimaryTextForeground}"
                               Margin="0,5,0,5"
                               ItemsSource="{Binding DeviceTypes}"
                               SelectedItem="{Binding SelectedDeviceType, Mode=TwoWay}" />
 
                     <!-- Port -->
                     <TextBox Width="50" Height="30" Watermark="Port"
-                             Background="{Binding EntryBoxBgColor}"
+                             Background="{DynamicResource HeaderInputBackground}"
+                             Foreground="{DynamicResource PrimaryTextForeground}"
                              Margin="0,5,0,5"
                              Text="{Binding Port, Mode=TwoWay}" Classes="InputBox"
                              ToolTip.Tip="Port" />
 
                     <!-- Password -->
                     <TextBox Width="100" Height="30" Watermark="Password"
-                             Background="{Binding EntryBoxBgColor}"
+                             Background="{DynamicResource HeaderInputBackground}"
+                             Foreground="{DynamicResource PrimaryTextForeground}"
                              PasswordChar="*"
                              Margin="0,5,0,5"
                              Text="{Binding Password, Mode=TwoWay}" Classes="InputBox"

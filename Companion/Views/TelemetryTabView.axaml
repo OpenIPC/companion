@@ -12,7 +12,7 @@
 
     <Panel>
 
-        <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
+        <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16" Margin="8">
             
             <!-- Labels for the left side -->
             <Grid ShowGridLines="False">

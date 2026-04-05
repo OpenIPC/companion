@@ -20,7 +20,7 @@
     <Grid RowDefinitions="Auto, Auto, Auto, *"
           ColumnDefinitions="*" Margin="10">
         <!-- Header with Information -->
-        <Border Background="#B0B0B0" CornerRadius="10" Padding="10" Margin="10">
+        <Border Background="{DynamicResource WarningBannerBackground}" CornerRadius="10" Padding="10" Margin="10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -36,7 +36,7 @@
                     Margin="5" />
                 <TextBlock Grid.Column="1"
                            Text="Presets are predefined configuration sets for camera settings that can be downloaded from GitHub repositories, loaded locally, and applied to customize camera parameters with a single click, allowing users to quickly configure their camera with specific optimized settings."
-                           Foreground="Black"
+                           Foreground="{DynamicResource PrimaryTextForeground}"
                            FontSize="14"
                            TextWrapping="Wrap"
                            VerticalAlignment="Center"
@@ -115,15 +115,15 @@
     <DataTemplate x:DataType="models:Preset">
         <!-- Main card border with blue outline -->
         <Border Width="350" Height="180" 
-                BorderBrush="#4169E1" 
+                BorderBrush="{DynamicResource AccentBrush}" 
                 BorderThickness="1" 
                 CornerRadius="10" 
                 Margin="10,10"
-                Background="White">
+                Background="{DynamicResource ContentBackground}">
             <Grid RowDefinitions="Auto,*">
                 <!-- Header section with blue background - FULL WIDTH -->
                 <Border Grid.Row="0" 
-                        Background="#4169E1" 
+                        Background="{DynamicResource AccentBrush}" 
                         CornerRadius="9,9,0,0"
                         Height="40">
                     <Grid>
@@ -151,7 +151,7 @@
 
                 <!-- Completely separate content areas for enabled/disabled states to ensure full control -->
                 <Border Grid.Row="1" 
-                        Background="#707070"
+                        Background="{DynamicResource SecondaryButtonBackground}"
                         CornerRadius="0,0,9,9"
                         IsVisible="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}, Path=IsEnabled, Converter={x:Static BoolConverters.Not}}">
                     <Grid>
@@ -232,9 +232,9 @@
                                 VerticalAlignment="Bottom"
                                 HorizontalContentAlignment="Center"
                                 VerticalContentAlignment="Center"
-                                Background="#707070"
+                                Background="{DynamicResource SecondaryButtonBackground}"
                                 Foreground="White"
-                                BorderBrush="#707070"
+                                BorderBrush="{DynamicResource SecondaryButtonBackground}"
                                 BorderThickness="1"
                                 CornerRadius="10"
                                 IsEnabled="False"
@@ -245,7 +245,7 @@
                 
                 <!-- Enabled state content - only visible when ItemsControl is enabled -->
                 <Border Grid.Row="1" 
-                        Background="White"
+                        Background="{DynamicResource ContentBackground}"
                         CornerRadius="0,0,9,9"
                         IsVisible="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}, Path=IsEnabled}">
                     <Grid>
@@ -268,7 +268,7 @@
                                            Text="{Binding Description}"
                                            FontSize="14" 
                                            TextWrapping="Wrap"
-                                           Foreground="#333333"
+                                           Foreground="{DynamicResource PrimaryTextForeground}"
                                            MaxHeight="40"
                                            TextTrimming="CharacterEllipsis" 
                                            Margin="0,0,0,5"/>
@@ -284,10 +284,10 @@
                                         <TextBlock Grid.Column="0" 
                                                    Text="Category: "
                                                    FontWeight="Bold" 
-                                                   Foreground="#4169E1" />
+                                                   Foreground="{DynamicResource LinkForeground}" />
                                         <TextBlock Grid.Column="1" 
                                                    Text="{Binding Category}"
-                                                   Foreground="#333333" 
+                                                   Foreground="{DynamicResource PrimaryTextForeground}" 
                                                    TextTrimming="CharacterEllipsis" />
                                     </Grid>
                                     
@@ -300,10 +300,10 @@
                                         <TextBlock Grid.Column="0" 
                                                    Text="Author: "
                                                    FontWeight="Bold" 
-                                                   Foreground="#4169E1" />
+                                                   Foreground="{DynamicResource LinkForeground}" />
                                         <TextBlock Grid.Column="1" 
                                                    Text="{Binding Author}"
-                                                   Foreground="#333333" 
+                                                   Foreground="{DynamicResource PrimaryTextForeground}" 
                                                    TextTrimming="CharacterEllipsis" />
                                     </Grid>
                                     
@@ -316,10 +316,10 @@
                                         <TextBlock Grid.Column="0" 
                                                    Text="Status: "
                                                    FontWeight="Bold" 
-                                                   Foreground="#4169E1" />
+                                                   Foreground="{DynamicResource LinkForeground}" />
                                         <TextBlock Grid.Column="1" 
                                                    Text="{Binding Status}"
-                                                   Foreground="#333333" 
+                                                   Foreground="{DynamicResource PrimaryTextForeground}" 
                                                    TextTrimming="CharacterEllipsis" />
                                     </Grid>
                                 </StackPanel>
@@ -334,7 +334,7 @@
                                 VerticalAlignment="Bottom"
                                 HorizontalContentAlignment="Center"
                                 VerticalContentAlignment="Center"
-                                Background="#4169E1"
+                                Background="{DynamicResource AccentBrush}"
                                 Foreground="White"
                                 CornerRadius="10"
                                 CommandParameter="{Binding}"

@@ -5,10 +5,9 @@
              xmlns:vm="clr-namespace:Companion.ViewModels"
              mc:Ignorable="d"
              d:DesignHeight="80"
-             
              x:Class="Companion.Views.LogViewer"
              x:DataType="vm:LogViewerViewModel">
-    <Border Background="#F0F0F0" CornerRadius="8" Padding="0" Margin="0">
+    <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="0" Margin="0">
         <Grid>
             <ScrollViewer x:Name="LogScrollViewer"
                           Margin="8"

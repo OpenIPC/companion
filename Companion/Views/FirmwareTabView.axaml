@@ -16,10 +16,10 @@
 
     <UserControl.Styles>
         <Style Selector="Expander Border.expander-header">
-            <Setter Property="Background" Value="#F0F0F0" />
+            <Setter Property="Background" Value="{DynamicResource CardBackground}" />
         </Style>
         <Style Selector="Expander TextBlock.expander-header-text">
-            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextForeground}" />
         </Style>
         <Style Selector="Expander[IsExpanded=true] Border.expander-header">
             <Setter Property="Background" Value="{StaticResource OpenIPCBlueBrush}" />
@@ -30,9 +30,8 @@
         <Style Selector="ComboBox.firmware-combo">
             <Setter Property="Width" Value="{x:Static sys:Double.NaN}" />
         </Style>
-        <!-- Firmware method card styles -->
         <Style Selector="Border.fw-card">
-            <Setter Property="Background" Value="#E7E7E7" />
+            <Setter Property="Background" Value="{DynamicResource InputFieldBackground}" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="12" />
             <Setter Property="BorderThickness" Value="2" />
@@ -40,7 +39,7 @@
             <Setter Property="Margin" Value="0,0,0,4" />
         </Style>
         <Style Selector="Border.fw-card-active">
-            <Setter Property="Background" Value="#E7E7E7" />
+            <Setter Property="Background" Value="{DynamicResource InputFieldBackground}" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="12" />
             <Setter Property="BorderThickness" Value="2" />
@@ -91,7 +90,7 @@
                                    Classes="expander-header-text" />
                     </Border>
                 </Expander.Header>
-                <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
+                <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16" Margin="8">
                     <StackPanel Orientation="Vertical" Spacing="10">
                         <TextBlock Text="Backup firmware partitions from the device"
                                    FontSize="16"
@@ -110,7 +109,7 @@
                                    TextWrapping="Wrap"
                                    Opacity="0.8" />
 
-                        <ProgressBar Background="#F0F0F0"
+                        <ProgressBar Background="{DynamicResource CardBackground}"
                                      Foreground="{Binding ProgressBarBrush}"
                                      Minimum="0"
                                      Maximum="100"
@@ -145,7 +144,7 @@
                                    TextWrapping="Wrap"
                                    Opacity="0.8" />
 
-                        <ProgressBar Background="#F0F0F0"
+                        <ProgressBar Background="{DynamicResource CardBackground}"
                                      Foreground="{Binding ProgressBarBrush}"
                                      Minimum="0"
                                      Maximum="100"
@@ -154,7 +153,7 @@
                     </StackPanel>
                 </Border>
             </Expander>
-            
+
             <Expander IsExpanded="{Binding IsBootloaderExpanded}"
                       HorizontalAlignment="Stretch"
                       Margin="8,0,8,4"
@@ -169,7 +168,7 @@
                                    Classes="expander-header-text" />
                     </Border>
                 </Expander.Header>
-                <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
+                <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16" Margin="8">
                     <StackPanel Orientation="Vertical" Spacing="10">
                         <TextBlock Text="Replace bootloader from Linux"
                                    FontSize="16"
@@ -196,7 +195,7 @@
                                       IsEnabled="{Binding CanConnect}"
                                       SelectedItem="{Binding SelectedBootloader, Mode=TwoWay}"
                                       ItemsSource="{Binding Bootloaders}"
-                                      Background="#E7E7E7" />
+                                      Background="{DynamicResource InputFieldBackground}" />
 
                             <CheckBox Grid.Row="1" Grid.Column="1"
                                       IsEnabled="{Binding CanConnect}"
@@ -216,15 +215,16 @@
                                    TextWrapping="Wrap"
                                    Opacity="0.8" />
 
-                        <ProgressBar Background="#F0F0F0"
+                        <ProgressBar Background="{DynamicResource CardBackground}"
                                      Foreground="{Binding ProgressBarBrush}"
-                                     Minimum="0" Maximum="100"
+                                     Minimum="0"
+                                     Maximum="100"
                                      Height="16"
                                      Value="{Binding BootloaderProgressValue}" />
                     </StackPanel>
                 </Border>
             </Expander>
-            
+
             <Expander IsExpanded="{Binding IsFirmwareExpanded}"
                       HorizontalAlignment="Stretch"
                       Margin="8,0,8,4"
@@ -240,7 +240,7 @@
                     </Border>
                 </Expander.Header>
                 <StackPanel Orientation="Vertical">
-                    <Border Background="#B0B0B0" CornerRadius="10" Padding="10" Margin="10">
+                    <Border Background="{DynamicResource WarningBannerBackground}" CornerRadius="10" Padding="10" Margin="10">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -255,7 +255,7 @@
                                   Margin="5" />
                             <TextBlock Grid.Column="1"
                                        Text="Select a firmware source below. Choose one method — the selected card will highlight."
-                                       Foreground="Black"
+                                       Foreground="{DynamicResource PrimaryTextForeground}"
                                        FontSize="14"
                                        TextWrapping="Wrap"
                                        VerticalAlignment="Center"
@@ -263,10 +263,8 @@
                         </Grid>
                     </Border>
 
-                    <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
+                    <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16" Margin="8">
                         <StackPanel Orientation="Vertical" Spacing="8">
-
-                            <!-- Firmware Source (global — applies to all methods below) -->
                             <Grid ColumnDefinitions="Auto,*">
                                 <TextBlock Text="Firmware Source" Grid.Column="0" VerticalAlignment="Center" />
                                 <ComboBox Grid.Column="1"
@@ -276,12 +274,11 @@
                                           ItemsSource="{Binding FirmwareSources}"
                                           HorizontalAlignment="Left"
                                           Margin="10,0,0,0"
-                                          Background="#E7E7E7" />
+                                          Background="{DynamicResource InputFieldBackground}" />
                             </Grid>
 
                             <Separator />
 
-                            <!-- === Card 1: Automatic (by manufacturer) — OpenIPC Builder only === -->
                             <Border Classes.fw-card-active="{Binding IsAutomaticMethodSelected}"
                                     Classes.fw-card="{Binding !IsAutomaticMethodSelected}"
                                     IsVisible="{Binding !IsGregApfpvSelected}">
@@ -302,7 +299,7 @@
                                                   ItemsSource="{Binding Manufacturers}"
                                                   HorizontalAlignment="Left"
                                                   Margin="10,0,0,0"
-                                                  Background="#E7E7E7" />
+                                                  Background="{DynamicResource InputFieldBackground}" />
 
                                         <TextBlock Text="Device" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
                                         <ComboBox Grid.Row="1" Grid.Column="1"
@@ -312,7 +309,7 @@
                                                   ItemsSource="{Binding Devices}"
                                                   HorizontalAlignment="Left"
                                                   Margin="10,0,0,0"
-                                                  Background="#E7E7E7" />
+                                                  Background="{DynamicResource InputFieldBackground}" />
 
                                         <TextBlock Text="WFB/Ruby" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
                                         <ComboBox Grid.Row="2" Grid.Column="1"
@@ -322,12 +319,11 @@
                                                   ItemsSource="{Binding Firmwares}"
                                                   HorizontalAlignment="Left"
                                                   Margin="10,0,0,0"
-                                                  Background="#E7E7E7" />
+                                                  Background="{DynamicResource InputFieldBackground}" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
 
-                            <!-- === Card 2: Select by SoC === -->
                             <Border Classes.fw-card-active="{Binding IsBySocMethodSelected}"
                                     Classes.fw-card="{Binding !IsBySocMethodSelected}">
                                 <StackPanel Orientation="Vertical" Spacing="8">
@@ -348,12 +344,11 @@
                                                   IsEnabled="{Binding CanUseDropdownsBySoc}"
                                                   SelectedItem="{Binding SelectedFirmwareBySoc, Mode=TwoWay}"
                                                   ItemsSource="{Binding FirmwareBySoc}"
-                                                  Background="#E7E7E7" />
+                                                  Background="{DynamicResource InputFieldBackground}" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
 
-                            <!-- === Card 3: Local file === -->
                             <Border Classes.fw-card-active="{Binding IsLocalMethodSelected}"
                                     Classes.fw-card="{Binding !IsLocalMethodSelected}">
                                 <StackPanel Orientation="Vertical" Spacing="8">
@@ -373,7 +368,7 @@
                                         <TextBlock Grid.Row="0" Grid.Column="1"
                                                    Margin="5,0,0,0"
                                                    Padding="5"
-                                                   Background="#F0F0F0"
+                                                   Background="{DynamicResource CardBackground}"
                                                    Width="400"
                                                    Height="25"
                                                    IsEnabled="{Binding CanUseSelectLocalFirmwarePackage}"
@@ -382,7 +377,7 @@
                                         <Button Grid.Row="0" Grid.Column="2" Content="..."
                                                 Margin="5,0,0,0"
                                                 VerticalAlignment="Center"
-                                                Background="LightGray"
+                                                Background="{DynamicResource LogAreaBackground}"
                                                 IsEnabled="{Binding CanUseSelectLocalFirmwarePackage}"
                                                 Command="{Binding SelectLocalFirmwarePackageCommand}"
                                                 CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" />
@@ -390,12 +385,11 @@
                                 </StackPanel>
                             </Border>
 
-                            <!-- Buttons -->
                             <Grid ColumnDefinitions="*,*" Margin="0,8,0,0">
                                 <Button Content="Clear"
                                         Grid.Column="0"
                                         HorizontalAlignment="Left"
-                                        Background="LightGray"
+                                        Background="{DynamicResource LogAreaBackground}"
                                         IsDefault="False"
                                         Width="100"
                                         Command="{Binding ClearFormCommand}"
@@ -409,30 +403,27 @@
                                         Command="{Binding PerformFirmwareUpgradeAsyncCommand}"
                                         IsEnabled="{Binding CanConnect}" />
                             </Grid>
-
                         </StackPanel>
                     </Border>
 
-                    <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
+                    <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16" Margin="8">
                         <StackPanel Orientation="Vertical">
-                        <TextBlock Margin="10,0,10,0"
-                                   Text="Firmware Upgrade Progress" FontWeight="Medium" />
+                            <TextBlock Margin="10,0,10,0"
+                                       Text="Firmware Upgrade Progress"
+                                       FontWeight="Medium" />
 
-                        <ProgressBar Background="#F0F0F0"
-                                     Margin="10,0,10,0"
-                                     Foreground="{Binding ProgressBarBrush}"
-                                     ShowProgressText="True"
-                                     Minimum="0" Maximum="100"
-                                     Height="18"
-                                     Value="{Binding ProgressValue}"
-
-                        />
+                            <ProgressBar Background="{DynamicResource CardBackground}"
+                                         Margin="10,0,10,0"
+                                         Foreground="{Binding ProgressBarBrush}"
+                                         ShowProgressText="True"
+                                         Minimum="0"
+                                         Maximum="100"
+                                         Height="18"
+                                         Value="{Binding ProgressValue}" />
                         </StackPanel>
                     </Border>
                 </StackPanel>
             </Expander>
-
-            
         </StackPanel>
     </ScrollViewer>
 </UserControl>

@@ -10,7 +10,7 @@
              x:DataType="vm:SetupTabViewModel">
 
 
-    <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
+    <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16" Margin="8">
     <!-- Main Content -->
     <!-- <Border BorderThickness="1"  BorderBrush="blue"> -->
     <Grid Margin="3">

@@ -8,7 +8,9 @@ using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Avalonia;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -998,6 +1000,10 @@ public partial class MainViewModel : ViewModelBase
         // Load cached IP addresses first
         CachedIpAddresses = new ObservableCollection<string>(settings.CachedIpAddresses ?? new List<string>());
 
+        // Load theme preference
+        IsDarkTheme = settings.IsDarkTheme;
+        ApplyTheme();
+
         // Publish the initial device type
         EventSubscriptionService.Publish<DeviceTypeChangeEvent, DeviceType>(settings.DeviceType);
     }
@@ -1136,6 +1142,26 @@ public partial class MainViewModel : ViewModelBase
     }
 }
     
+    partial void OnIsDarkThemeChanged(bool value)
+    {
+        ApplyTheme();
+        if (_deviceConfig != null)
+        {
+            _deviceConfig.IsDarkTheme = value;
+            SettingsManager.SaveSettings(_deviceConfig);
+        }
+    }
+
+    private void ApplyTheme()
+    {
+        if (Application.Current != null)
+        {
+            Application.Current.RequestedThemeVariant = IsDarkTheme
+                ? ThemeVariant.Dark
+                : ThemeVariant.Light;
+        }
+    }
+
     private void OnDeviceTypeChangeEvent(DeviceType deviceTypeEvent)
     {
         _logger.Debug($"Device type changed to: {deviceTypeEvent}");
@@ -1168,6 +1194,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private bool isVRXEnabled;
     [ObservableProperty] private DeviceConfig _deviceConfig;
     [ObservableProperty] private TabItemViewModel _selectedTab;
+    [ObservableProperty] private bool _isDarkTheme;
 
     partial void OnSelectedTabChanged(TabItemViewModel value)
     {
