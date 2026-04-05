@@ -51,6 +51,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly ILogger _logger;
     private UserPreferences _userPreferences;
     private bool _preferencesInitialized;
+    private bool _isLoadingSettings;
     
     [ObservableProperty] private bool _isWaiting;
     [ObservableProperty] private bool _isConnected;
@@ -991,23 +992,28 @@ public partial class MainViewModel : ViewModelBase
     private void LoadSettings()
     {
         IsWaiting = true;
-        // Load settings via the SettingsManager
-        var settings = SettingsManager.LoadSettings();
-        _deviceConfig = DeviceConfig.Instance;
-        IpAddress = settings.IpAddress;
-        Password = settings.Password;
-        Port = settings.Port == 0 ? 22 : settings.Port;
-        SelectedDeviceType = settings.DeviceType;
-        
-        // Load cached IP addresses first
-        CachedIpAddresses = new ObservableCollection<string>(settings.CachedIpAddresses ?? new List<string>());
+        _isLoadingSettings = true;
 
-        // Load theme preference
-        IsDarkTheme = settings.IsDarkTheme;
-        ApplyTheme();
+        try
+        {
+            var settings = SettingsManager.LoadSettings();
+            DeviceConfig.SetInstance(settings);
+            _deviceConfig = DeviceConfig.Instance;
 
-        // Publish the initial device type
-        EventSubscriptionService.Publish<DeviceTypeChangeEvent, DeviceType>(settings.DeviceType);
+            IpAddress = _deviceConfig.IpAddress;
+            Password = _deviceConfig.Password;
+            Port = _deviceConfig.Port == 0 ? 22 : _deviceConfig.Port;
+            SelectedDeviceType = _deviceConfig.DeviceType;
+            CachedIpAddresses = new ObservableCollection<string>(_deviceConfig.CachedIpAddresses ?? new List<string>());
+            IsDarkTheme = _deviceConfig.IsDarkTheme;
+            ApplyTheme();
+
+            EventSubscriptionService.Publish<DeviceTypeChangeEvent, DeviceType>(_deviceConfig.DeviceType);
+        }
+        finally
+        {
+            _isLoadingSettings = false;
+        }
     }
 
     private void RestoreSelectedTab()
@@ -1147,6 +1153,9 @@ public partial class MainViewModel : ViewModelBase
     partial void OnIsDarkThemeChanged(bool value)
     {
         ApplyTheme();
+        if (_isLoadingSettings)
+            return;
+
         if (_deviceConfig != null)
         {
             _deviceConfig.IsDarkTheme = value;

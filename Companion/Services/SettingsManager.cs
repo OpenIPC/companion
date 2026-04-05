@@ -9,6 +9,9 @@ namespace Companion.Services;
 public static class SettingsManager
 {
     private static readonly string AppSettingsName = "openipc_settings.json";
+    private const string DefaultIpAddress = "192.168.1.10";
+    private const string DefaultUsername = "root";
+    private const string DefaultPassword = "12345";
 
     public static string AppSettingFilename
     {
@@ -28,19 +31,14 @@ public static class SettingsManager
     /// </returns>
     public static DeviceConfig? LoadSettings()
     {
-        DeviceConfig deviceConfig;
-
         if (File.Exists(AppSettingFilename))
             try
             {
                 var json = File.ReadAllText(AppSettingFilename);
-                deviceConfig = JsonConvert.DeserializeObject<DeviceConfig>(json);
+                var deviceConfig = JsonConvert.DeserializeObject<DeviceConfig>(json);
 
                 if (deviceConfig != null)
-                    // Optionally publish an event if needed
-                    // eventAggregator?.GetEvent<DeviceStateUpdatedEvent>()?.Publish(
-                    //     new DeviceStateUpdatedMessage(true, deviceConfig));
-                    return deviceConfig;
+                    return NormalizeSettings(deviceConfig);
 
                 Log.Error("LoadSettings: deviceConfig is null. The file content might be corrupted.");
             }
@@ -58,13 +56,7 @@ public static class SettingsManager
             }
 
         // Default values if no settings file exists or an error occurs
-        return new DeviceConfig
-        {
-            IpAddress = "192.168.1.10",
-            Username = "root",
-            Password = "12345",
-            DeviceType = DeviceType.Camera,
-        };
+        return CreateDefaultSettings();
     }
 
 
@@ -77,7 +69,40 @@ public static class SettingsManager
     /// </remarks>
     public static void SaveSettings(DeviceConfig settings)
     {
-        var json = JsonConvert.SerializeObject(settings, Formatting.Indented);
+        var normalizedSettings = NormalizeSettings(settings);
+        var json = JsonConvert.SerializeObject(normalizedSettings, Formatting.Indented);
         File.WriteAllText(AppSettingFilename, json);
+    }
+
+    private static DeviceConfig CreateDefaultSettings()
+    {
+        return new DeviceConfig
+        {
+            IpAddress = DefaultIpAddress,
+            Username = DefaultUsername,
+            Password = DefaultPassword,
+            DeviceType = DeviceType.Camera,
+        };
+    }
+
+    private static DeviceConfig NormalizeSettings(DeviceConfig settings)
+    {
+        settings.IpAddress = string.IsNullOrWhiteSpace(settings.IpAddress)
+            ? DefaultIpAddress
+            : settings.IpAddress;
+
+        settings.Username = string.IsNullOrWhiteSpace(settings.Username)
+            ? DefaultUsername
+            : settings.Username;
+
+        settings.Password = string.IsNullOrWhiteSpace(settings.Password)
+            ? DefaultPassword
+            : settings.Password;
+
+        if (settings.DeviceType == DeviceType.None)
+            settings.DeviceType = DeviceType.Camera;
+
+        settings.CachedIpAddresses ??= new();
+        return settings;
     }
 }
