@@ -52,6 +52,31 @@
     <ScrollViewer>
         <StackPanel Orientation="Vertical">
 
+            <Border IsVisible="{Binding IsDestructiveOperationInProgress}"
+                    CornerRadius="8"
+                    Margin="8,8,8,4"
+                    Padding="16,12">
+                <Border.Styles>
+                    <Style Selector="Border.flash-on">
+                        <Setter Property="Background" Value="#CC0000" />
+                    </Style>
+                    <Style Selector="Border.flash-off">
+                        <Setter Property="Background" Value="#7A0000" />
+                    </Style>
+                </Border.Styles>
+                <Border Classes.flash-on="{Binding FlashWarning}"
+                        Classes.flash-off="{Binding !FlashWarning}"
+                        CornerRadius="8"
+                        Padding="16,12">
+                    <TextBlock Text="{Binding DestructiveOperationWarning}"
+                               Foreground="White"
+                               FontSize="15"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center" />
+                </Border>
+            </Border>
+
             <Expander IsExpanded="{Binding IsBackupExpanded}"
                       HorizontalAlignment="Stretch"
                       Margin="8,0,8,4"
@@ -61,7 +86,7 @@
                             Padding="10"
                             HorizontalAlignment="Stretch"
                             Classes="expander-header">
-                        <TextBlock Text="Backup"
+                        <TextBlock Text="Backup / Restore"
                                    FontWeight="SemiBold"
                                    Classes="expander-header-text" />
                     </Border>
@@ -91,6 +116,41 @@
                                      Maximum="100"
                                      Height="16"
                                      Value="{Binding BackupProgressValue}" />
+
+                        <Separator Margin="0,8,0,8" />
+
+                        <TextBlock Text="Restore firmware partitions to the device"
+                                   FontSize="16"
+                                   FontWeight="SemiBold" />
+
+                        <TextBlock Text="Select a backup archive created by this tool. Each MTD partition will be uploaded and flashed back to the device, then the device will reboot."
+                                   TextWrapping="Wrap" />
+
+                        <TextBlock Text="Warning: Restoring firmware will overwrite all flash partitions including bootloader, kernel, and rootfs. A power failure or incorrect backup can permanently brick the device."
+                                   TextWrapping="Wrap"
+                                   Foreground="#B00020"
+                                   FontWeight="SemiBold" />
+
+                        <CheckBox IsEnabled="{Binding CanConnect}"
+                                  IsChecked="{Binding RestoreConfirmed, Mode=TwoWay}"
+                                  Content="I accept the risk of permanently bricking this device." />
+
+                        <Button Width="220"
+                                HorizontalAlignment="Left"
+                                IsEnabled="{Binding CanRestoreFirmware}"
+                                Content="Restore from Backup"
+                                Command="{Binding RestoreFirmwareAsyncCommand}" />
+
+                        <TextBlock Text="{Binding RestoreProgressText}"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.8" />
+
+                        <ProgressBar Background="#F0F0F0"
+                                     Foreground="{Binding ProgressBarBrush}"
+                                     Minimum="0"
+                                     Maximum="100"
+                                     Height="16"
+                                     Value="{Binding RestoreProgressValue}" />
                     </StackPanel>
                 </Border>
             </Expander>
@@ -204,35 +264,38 @@
                     </Border>
 
                     <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
-                        <StackPanel Orientation="Vertical" Spacing="4">
+                        <StackPanel Orientation="Vertical" Spacing="8">
 
-                            <!-- === Card 1: Automatic (by manufacturer) === -->
+                            <!-- Firmware Source (global — applies to all methods below) -->
+                            <Grid ColumnDefinitions="Auto,*">
+                                <TextBlock Text="Firmware Source" Grid.Column="0" VerticalAlignment="Center" />
+                                <ComboBox Grid.Column="1"
+                                          Classes="firmware-combo"
+                                          IsEnabled="{Binding CanUseDropdownsBySoc}"
+                                          SelectedItem="{Binding SelectedFirmwareSource, Mode=TwoWay}"
+                                          ItemsSource="{Binding FirmwareSources}"
+                                          HorizontalAlignment="Left"
+                                          Margin="10,0,0,0"
+                                          Background="#E7E7E7" />
+                            </Grid>
+
+                            <Separator />
+
+                            <!-- === Card 1: Automatic (by manufacturer) — OpenIPC Builder only === -->
                             <Border Classes.fw-card-active="{Binding IsAutomaticMethodSelected}"
-                                    Classes.fw-card="{Binding !IsAutomaticMethodSelected}">
+                                    Classes.fw-card="{Binding !IsAutomaticMethodSelected}"
+                                    IsVisible="{Binding !IsGregApfpvSelected}">
                                 <StackPanel Orientation="Vertical" Spacing="8">
                                     <RadioButton GroupName="FirmwareMethod"
                                                  FontWeight="SemiBold"
                                                  Content="Automatic — by manufacturer"
                                                  IsChecked="{Binding SelectedFirmwareMethod, Converter={StaticResource IntToBoolConverter}, ConverterParameter=0}" />
-                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                                    <Grid RowDefinitions="Auto,Auto,Auto"
                                           ColumnDefinitions="Auto,*"
                                           HorizontalAlignment="Stretch"
-                                          ShowGridLines="False"
                                           IsVisible="{Binding IsAutomaticMethodSelected}">
-                                        <!-- Firmware Source -->
-                                        <TextBlock Text="Firmware Source" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
+                                        <TextBlock Text="Manufacturer" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
                                         <ComboBox Grid.Row="0" Grid.Column="1"
-                                                  Classes="firmware-combo"
-                                                  IsEnabled="{Binding CanUseDropdownsBySoc}"
-                                                  SelectedItem="{Binding SelectedFirmwareSource, Mode=TwoWay}"
-                                                  ItemsSource="{Binding FirmwareSources}"
-                                                  HorizontalAlignment="Left"
-                                                  Margin="10,0,0,0"
-                                                  Background="#E7E7E7" />
-
-                                        <!-- Manufacturer -->
-                                        <TextBlock Text="Manufacturer" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Row="1" Grid.Column="1"
                                                   Classes="firmware-combo"
                                                   IsEnabled="{Binding CanUseDropdowns}"
                                                   SelectedItem="{Binding SelectedManufacturer, Mode=TwoWay}"
@@ -241,9 +304,8 @@
                                                   Margin="10,0,0,0"
                                                   Background="#E7E7E7" />
 
-                                        <!-- Device -->
-                                        <TextBlock Text="Device" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Row="2" Grid.Column="1"
+                                        <TextBlock Text="Device" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                                        <ComboBox Grid.Row="1" Grid.Column="1"
                                                   Classes="firmware-combo"
                                                   IsEnabled="{Binding CanUseDropdowns}"
                                                   SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
@@ -252,9 +314,8 @@
                                                   Margin="10,0,0,0"
                                                   Background="#E7E7E7" />
 
-                                        <!-- WFB/Ruby -->
-                                        <TextBlock Text="WFB/Ruby" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Row="3" Grid.Column="1"
+                                        <TextBlock Text="WFB/Ruby" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
+                                        <ComboBox Grid.Row="2" Grid.Column="1"
                                                   Classes="firmware-combo"
                                                   IsEnabled="{Binding CanUseDropdowns}"
                                                   SelectedItem="{Binding SelectedFirmware, Mode=TwoWay}"
