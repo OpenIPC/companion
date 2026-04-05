@@ -15,16 +15,29 @@
     </UserControl.Resources>
 
     <UserControl.Styles>
-        <Style Selector="Expander Border.expander-header">
+        <Style Selector="Border.section-shell">
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Margin" Value="8,0,8,4" />
+        </Style>
+        <Style Selector="ToggleButton.section-toggle">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="ToggleButton.section-toggle Border.section-header">
             <Setter Property="Background" Value="{DynamicResource CardBackground}" />
         </Style>
-        <Style Selector="Expander TextBlock.expander-header-text">
+        <Style Selector="ToggleButton.section-toggle TextBlock.section-header-text">
             <Setter Property="Foreground" Value="{DynamicResource PrimaryTextForeground}" />
         </Style>
-        <Style Selector="Expander[IsExpanded=true] Border.expander-header">
+        <Style Selector="ToggleButton.section-toggle:checked Border.section-header">
             <Setter Property="Background" Value="{StaticResource OpenIPCBlueBrush}" />
         </Style>
-        <Style Selector="Expander[IsExpanded=true] TextBlock.expander-header-text">
+        <Style Selector="ToggleButton.section-toggle:checked TextBlock.section-header-text">
             <Setter Property="Foreground" Value="White" />
         </Style>
         <Style Selector="ComboBox.firmware-combo">
@@ -76,21 +89,26 @@
                 </Border>
             </Border>
 
-            <Expander IsExpanded="{Binding IsBackupExpanded}"
-                      HorizontalAlignment="Stretch"
-                      Margin="8,0,8,4"
-                      IsEnabled="{Binding FirmwareUpgradeInProgress, Converter={StaticResource InvertedBooleanConverter}}">
-                <Expander.Header>
-                    <Border CornerRadius="8"
-                            Padding="10"
-                            HorizontalAlignment="Stretch"
-                            Classes="expander-header">
-                        <TextBlock Text="Backup / Restore"
-                                   FontWeight="SemiBold"
-                                   Classes="expander-header-text" />
-                    </Border>
-                </Expander.Header>
-                <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16" Margin="8">
+            <Border Classes="section-shell">
+                <StackPanel Orientation="Vertical">
+                    <ToggleButton Classes="section-toggle"
+                                  IsChecked="{Binding IsBackupExpanded, Mode=TwoWay}"
+                                  IsEnabled="{Binding FirmwareUpgradeInProgress, Converter={StaticResource InvertedBooleanConverter}}">
+                        <Border CornerRadius="8"
+                                Padding="10"
+                                HorizontalAlignment="Stretch"
+                                Width="{x:Static sys:Double.NaN}"
+                                Classes="section-header">
+                            <TextBlock Text="Backup / Restore"
+                                       FontWeight="SemiBold"
+                                       Classes="section-header-text" />
+                        </Border>
+                    </ToggleButton>
+                    <Border Background="{DynamicResource CardBackground}"
+                            CornerRadius="8"
+                            Padding="16"
+                            Margin="8"
+                            IsVisible="{Binding IsBackupExpanded}">
                     <StackPanel Orientation="Vertical" Spacing="10">
                         <TextBlock Text="Backup firmware partitions from the device"
                                    FontSize="16"
@@ -151,24 +169,27 @@
                                      Height="16"
                                      Value="{Binding RestoreProgressValue}" />
                     </StackPanel>
-                </Border>
-            </Expander>
-
-            <Expander IsExpanded="{Binding IsBootloaderExpanded}"
-                      HorizontalAlignment="Stretch"
-                      Margin="8,0,8,4"
-                      IsEnabled="{Binding FirmwareUpgradeInProgress, Converter={StaticResource InvertedBooleanConverter}}">
-                <Expander.Header>
-                    <Border CornerRadius="8"
-                            Padding="10"
-                            HorizontalAlignment="Stretch"
-                            Classes="expander-header">
-                        <TextBlock Text="Bootloader"
-                                   FontWeight="SemiBold"
-                                   Classes="expander-header-text" />
                     </Border>
-                </Expander.Header>
-                <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16" Margin="8">
+                </StackPanel>
+            </Border>
+
+            <Border Classes="section-shell">
+                <StackPanel Orientation="Vertical">
+                    <ToggleButton Classes="section-toggle"
+                                  IsChecked="{Binding IsBootloaderExpanded, Mode=TwoWay}"
+                                  IsEnabled="{Binding FirmwareUpgradeInProgress, Converter={StaticResource InvertedBooleanConverter}}">
+                        <Border CornerRadius="8"
+                                Padding="10"
+                                HorizontalAlignment="Stretch"
+                                Width="{x:Static sys:Double.NaN}"
+                                Classes="section-header">
+                            <TextBlock Text="Bootloader"
+                                       FontWeight="SemiBold"
+                                       Classes="section-header-text" />
+                        </Border>
+                    </ToggleButton>
+                    <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16" Margin="8"
+                            IsVisible="{Binding IsBootloaderExpanded}">
                     <StackPanel Orientation="Vertical" Spacing="10">
                         <TextBlock Text="Replace bootloader from Linux"
                                    FontSize="16"
@@ -222,24 +243,27 @@
                                      Height="16"
                                      Value="{Binding BootloaderProgressValue}" />
                     </StackPanel>
-                </Border>
-            </Expander>
-
-            <Expander IsExpanded="{Binding IsFirmwareExpanded}"
-                      HorizontalAlignment="Stretch"
-                      Margin="8,0,8,4"
-                      IsEnabled="{Binding BootloaderInProgress, Converter={StaticResource InvertedBooleanConverter}}">
-                <Expander.Header>
-                    <Border CornerRadius="8"
-                            Padding="10"
-                            HorizontalAlignment="Stretch"
-                            Classes="expander-header">
-                        <TextBlock Text="Firmware"
-                                   FontWeight="SemiBold"
-                                   Classes="expander-header-text" />
                     </Border>
-                </Expander.Header>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="section-shell">
                 <StackPanel Orientation="Vertical">
+                    <ToggleButton Classes="section-toggle"
+                                  IsChecked="{Binding IsFirmwareExpanded, Mode=TwoWay}"
+                                  IsEnabled="{Binding BootloaderInProgress, Converter={StaticResource InvertedBooleanConverter}}">
+                        <Border CornerRadius="8"
+                                Padding="10"
+                                HorizontalAlignment="Stretch"
+                                Width="{x:Static sys:Double.NaN}"
+                                Classes="section-header">
+                            <TextBlock Text="Firmware"
+                                       FontWeight="SemiBold"
+                                       Classes="section-header-text" />
+                        </Border>
+                    </ToggleButton>
+                    <StackPanel Orientation="Vertical"
+                                IsVisible="{Binding IsFirmwareExpanded}">
                     <Border Background="{DynamicResource WarningBannerBackground}" CornerRadius="10" Padding="10" Margin="10">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -422,8 +446,9 @@
                                          Value="{Binding ProgressValue}" />
                         </StackPanel>
                     </Border>
+                    </StackPanel>
                 </StackPanel>
-            </Expander>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>
