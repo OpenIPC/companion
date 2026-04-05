@@ -37,6 +37,10 @@ public partial class MainViewModel : ViewModelBase
     
     [ObservableProperty] private string _svgPath;
     private bool _isTabsCollapsed;
+    private bool _isLogPanelCollapsed;
+    private double _logPanelHeight = 60;
+    private double _logPanelHeightBeforeCollapse = 60;
+    private const double DefaultLogHeight = 60;
 
     [ObservableProperty] private bool _isMobile;
     private DeviceType _selectedDeviceType;
@@ -87,6 +91,9 @@ public partial class MainViewModel : ViewModelBase
         _preferencesService = preferencesService;
         _userPreferences = _preferencesService.Load();
         _isTabsCollapsed = _userPreferences.IsTabsCollapsed;
+        _isLogPanelCollapsed = _userPreferences.IsLogPanelCollapsed;
+        _logPanelHeight = Math.Max(DefaultLogHeight, _userPreferences.LogPanelHeight);
+        _logPanelHeightBeforeCollapse = _logPanelHeight;
 
         Tabs = new ObservableCollection<TabItemViewModel> { };
         
@@ -105,6 +112,7 @@ public partial class MainViewModel : ViewModelBase
         DeviceTypes = new ObservableCollection<DeviceType>(Enum.GetValues(typeof(DeviceType)).Cast<DeviceType>());
         
         OpenLogFolderCommand = new RelayCommand(() => OpenLogFolder());
+        ToggleLogPanelCommand = new RelayCommand(() => IsLogPanelCollapsed = !IsLogPanelCollapsed);
 
         // Initialize the path
         UpdateSvgPath();
@@ -197,6 +205,39 @@ public partial class MainViewModel : ViewModelBase
     public ICommand ToggleThemeCommand { get; }
     
     public ICommand OpenLogFolderCommand { get; }
+    public ICommand ToggleLogPanelCommand { get; }
+
+    public bool IsLogPanelCollapsed
+    {
+        get => _isLogPanelCollapsed;
+        set
+        {
+            if (SetProperty(ref _isLogPanelCollapsed, value))
+            {
+                if (value)
+                {
+                    _logPanelHeightBeforeCollapse = _logPanelHeight;
+                }
+                else
+                {
+                    LogPanelHeight = _logPanelHeightBeforeCollapse >= DefaultLogHeight
+                        ? _logPanelHeightBeforeCollapse
+                        : DefaultLogHeight;
+                }
+                SavePreferences();
+            }
+        }
+    }
+
+    public double LogPanelHeight
+    {
+        get => _logPanelHeight;
+        set
+        {
+            if (SetProperty(ref _logPanelHeight, value))
+                SavePreferences();
+        }
+    }
 
     public bool IsConnectEnabled => CanConnect && IsTabNavigationEnabled;
 
@@ -1061,6 +1102,8 @@ public partial class MainViewModel : ViewModelBase
         _userPreferences = _preferencesService.Load();
         _userPreferences.IsTabsCollapsed = IsTabsCollapsed;
         _userPreferences.LastSelectedTab = SelectedTab?.TabName.Trim() ?? string.Empty;
+        _userPreferences.IsLogPanelCollapsed = IsLogPanelCollapsed;
+        _userPreferences.LogPanelHeight = IsLogPanelCollapsed ? _logPanelHeightBeforeCollapse : LogPanelHeight;
         _preferencesService.Save(_userPreferences);
     }
 
