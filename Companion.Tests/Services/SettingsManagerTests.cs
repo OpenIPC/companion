@@ -121,4 +121,47 @@ public class SettingsManagerTests
         Assert.That(result.Password, Is.EqualTo("12345"));
         Assert.That(result.DeviceType, Is.EqualTo(DeviceType.Camera));
     }
+
+    [Test]
+    public void LoadSettings_FileContainsNullsAndNone_NormalizesToDefaults()
+    {
+        var storedConfig = new DeviceConfig
+        {
+            IpAddress = null!,
+            Username = null!,
+            Password = null!,
+            DeviceType = DeviceType.None
+        };
+
+        File.WriteAllText(_testSettingsFilePath, JsonConvert.SerializeObject(storedConfig));
+
+        var result = SettingsManager.LoadSettings();
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.IpAddress, Is.EqualTo("192.168.1.10"));
+        Assert.That(result.Username, Is.EqualTo("root"));
+        Assert.That(result.Password, Is.EqualTo("12345"));
+        Assert.That(result.DeviceType, Is.EqualTo(DeviceType.Camera));
+    }
+
+    [Test]
+    public void SaveSettings_WhenValuesAreMissing_PersistsNormalizedDefaults()
+    {
+        var configToSave = new DeviceConfig
+        {
+            IpAddress = null!,
+            Username = null!,
+            Password = null!,
+            DeviceType = DeviceType.None
+        };
+
+        SettingsManager.SaveSettings(configToSave);
+
+        var savedConfig = JsonConvert.DeserializeObject<DeviceConfig>(File.ReadAllText(_testSettingsFilePath));
+        Assert.That(savedConfig, Is.Not.Null);
+        Assert.That(savedConfig!.IpAddress, Is.EqualTo("192.168.1.10"));
+        Assert.That(savedConfig.Username, Is.EqualTo("root"));
+        Assert.That(savedConfig.Password, Is.EqualTo("12345"));
+        Assert.That(savedConfig.DeviceType, Is.EqualTo(DeviceType.Camera));
+    }
 }
