@@ -145,7 +145,7 @@
 
                         <TextBlock Text="Warning: Restoring firmware will overwrite all flash partitions including bootloader, kernel, and rootfs. A power failure or incorrect backup can permanently brick the device."
                                    TextWrapping="Wrap"
-                                   Foreground="#B00020"
+                                   Foreground="{DynamicResource WarningTextForeground}"
                                    FontWeight="SemiBold" />
 
                         <CheckBox IsEnabled="{Binding CanConnect}"
@@ -202,7 +202,7 @@
                                    Opacity="0.85" />
                         <TextBlock Text="Warning: Replacing the bootloader can permanently brick the device. Proceed only if you accept the risk."
                                    TextWrapping="Wrap"
-                                   Foreground="#B00020"
+                                   Foreground="{DynamicResource WarningTextForeground}"
                                    FontWeight="SemiBold" />
 
                         <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
