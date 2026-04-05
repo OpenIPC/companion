@@ -11,14 +11,14 @@
 
     <ScrollViewer>
         <StackPanel Orientation="Vertical" Margin="10" Spacing="16">
-            <Border Background="#B0B0B0" CornerRadius="10" Padding="10">
+            <Border Background="{DynamicResource WarningBannerBackground}" CornerRadius="10" Padding="10">
                 <TextBlock Text="Application preferences are stored per user in the app data folder and apply across supported desktop platforms."
-                           Foreground="Black"
+                           Foreground="{DynamicResource PrimaryTextForeground}"
                            FontSize="14"
                            TextWrapping="Wrap" />
             </Border>
 
-            <Border Background="#F0F0F0" CornerRadius="8" Padding="16">
+            <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16">
                 <StackPanel Spacing="14">
                     <TextBlock Text="General"
                                FontSize="16"
@@ -49,7 +49,7 @@
 
                         <Border Grid.Row="2"
                                 Grid.Column="1"
-                                Background="#E7E7E7"
+                                Background="{DynamicResource InputFieldBackground}"
                                 CornerRadius="6"
                                 Padding="10"
                                 Margin="0,0,0,12"
@@ -73,7 +73,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Background="#F0F0F0" CornerRadius="8" Padding="16">
+            <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16">
                 <StackPanel>
                     <TextBlock Text="Debug Tools"
                                FontSize="16"
