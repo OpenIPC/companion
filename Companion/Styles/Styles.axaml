@@ -51,6 +51,7 @@
                         <SolidColorBrush x:Key="CircularButtonFill" Color="#333333"/>
                         <SolidColorBrush x:Key="CircularButtonHoverFill" Color="#444444"/>
                         <SolidColorBrush x:Key="SecondaryButtonBackground" Color="#707070"/>
+                        <SolidColorBrush x:Key="WarningTextForeground" Color="#B00020"/>
                         <SolidColorBrush x:Key="LinkForeground" Color="#4169E1"/>
                     </ResourceDictionary>
                     <ResourceDictionary x:Key="Dark">
@@ -91,6 +92,7 @@
                         <SolidColorBrush x:Key="CircularButtonFill" Color="#2A2A2A"/>
                         <SolidColorBrush x:Key="CircularButtonHoverFill" Color="#3A3A3A"/>
                         <SolidColorBrush x:Key="SecondaryButtonBackground" Color="#555555"/>
+                        <SolidColorBrush x:Key="WarningTextForeground" Color="#FF6B6B"/>
                         <SolidColorBrush x:Key="LinkForeground" Color="#4C61D8"/>
                     </ResourceDictionary>
                 </ResourceDictionary.ThemeDictionaries>
