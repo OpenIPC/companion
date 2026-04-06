@@ -1,5 +1,9 @@
+using System;
+using System.ComponentModel;
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Companion.Events;
 using Companion.Services;
@@ -9,19 +13,41 @@ namespace Companion.Views;
 
 public partial class MainView : UserControl
 {
+    private const double MaxLogPanelRatio = 0.4;
+    private const double MinExpandedHeight = 80; // header bar + 3 log lines
+    private const double CollapsedHeight = 20;
+    private MainViewModel? _viewModel;
+
+    private RowDefinition LogRow
+    {
+        get
+        {
+            var mainGrid = this.FindControl<Grid>("MainGrid");
+            return mainGrid!.RowDefinitions[3];
+        }
+    }
+
     public MainView()
     {
         InitializeComponent();
 
         if (!Design.IsDesignMode)
         {
-            // Resolve MainViewModel from the DI container
-            DataContext = App.ServiceProvider.GetRequiredService<MainViewModel>();
+            _viewModel = App.ServiceProvider.GetRequiredService<MainViewModel>();
+            DataContext = _viewModel;
 
-            // Subscribe to TabSelectionChangeEvent
-            var _eventSubscriptionService = App.ServiceProvider.GetRequiredService<IEventSubscriptionService>();
+            var eventSubscriptionService = App.ServiceProvider.GetRequiredService<IEventSubscriptionService>();
+            eventSubscriptionService.Subscribe<TabSelectionChangeEvent, string>(OnTabSelectionChanged);
 
-            _eventSubscriptionService.Subscribe<TabSelectionChangeEvent, string>(OnTabSelectionChanged);
+            // Set initial log panel height from preferences
+            ApplyLogPanelHeight();
+            UpdateChevron();
+
+            // Track collapse/expand changes
+            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+
+            LogSplitter.DragDelta += OnSplitterDragDelta;
+            LogSplitter.DragCompleted += OnSplitterDragCompleted;
         }
     }
 
@@ -35,5 +61,72 @@ public partial class MainView : UserControl
             .FirstOrDefault(tab => tab.TabName == selectedTab);
 
         if (targetTab != null) tabControl.SelectedItem = targetTab;
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.IsLogPanelCollapsed))
+        {
+            ApplyLogPanelHeight();
+            UpdateChevron();
+        }
+    }
+
+    private void ApplyLogPanelHeight()
+    {
+        if (_viewModel == null) return;
+
+        var logRow = LogRow;
+        if (_viewModel.IsLogPanelCollapsed)
+        {
+            logRow.MinHeight = CollapsedHeight;
+            logRow.Height = new GridLength(CollapsedHeight, GridUnitType.Pixel);
+        }
+        else
+        {
+            logRow.MinHeight = MinExpandedHeight;
+            var height = Math.Max(MinExpandedHeight, _viewModel.LogPanelHeight);
+            logRow.Height = new GridLength(height, GridUnitType.Pixel);
+        }
+    }
+
+    private void UpdateChevron()
+    {
+        if (_viewModel != null)
+            LogChevron.Text = _viewModel.IsLogPanelCollapsed ? "▸" : "▾";
+    }
+
+    private void OnSplitterDragDelta(object? sender, VectorEventArgs e)
+    {
+        // e.Vector.Y < 0 means dragging up = making log panel bigger
+        if (e.Vector.Y >= 0) return;
+
+        var mainGrid = LogPanel.Parent as Grid;
+        if (mainGrid == null) return;
+
+        var logRow = LogRow;
+        var maxHeight = mainGrid.Bounds.Height * MaxLogPanelRatio;
+        if (logRow.ActualHeight > maxHeight)
+            logRow.Height = new GridLength(maxHeight, GridUnitType.Pixel);
+    }
+
+    private void OnSplitterDragCompleted(object? sender, VectorEventArgs e)
+    {
+        if (_viewModel == null || _viewModel.IsLogPanelCollapsed) return;
+
+        var mainGrid = LogPanel.Parent as Grid;
+        if (mainGrid == null) return;
+
+        var logRow = LogRow;
+        var maxHeight = mainGrid.Bounds.Height * MaxLogPanelRatio;
+        var height = Math.Min(logRow.ActualHeight, maxHeight);
+        height = Math.Max(height, MinExpandedHeight);
+
+        _viewModel.LogPanelHeight = height;
+    }
+
+    private void OnDrawerLinePressed(object? sender, PointerPressedEventArgs e)
+    {
+        _viewModel?.ToggleTabsCommand.Execute(null);
     }
 }
