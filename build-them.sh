@@ -112,9 +112,17 @@ build_windows() {
 build_linux() {
     echo "Building $desktop_project for linux-arm64..."
     dotnet publish $desktop_project -c Release -r linux-arm64 --output "$output_dir/$desktop_project/linux-arm64" --self-contained -v $verbosity -p:PublishSingleFile=true
+    if [ -f "$output_dir/$desktop_project/linux-arm64/Companion.Desktop" ]; then
+        mv "$output_dir/$desktop_project/linux-arm64/Companion.Desktop" \
+           "$output_dir/$desktop_project/linux-arm64/Companion.DesktopApp"
+    fi
 
     echo "Building $desktop_project for linux-x64..."
     dotnet publish $desktop_project -c Release -r linux-x64 --output "$output_dir/$desktop_project/linux-x64" --self-contained -v $verbosity -p:PublishSingleFile=true
+    if [ -f "$output_dir/$desktop_project/linux-x64/Companion.Desktop" ]; then
+        mv "$output_dir/$desktop_project/linux-x64/Companion.Desktop" \
+           "$output_dir/$desktop_project/linux-x64/Companion.DesktopApp"
+    fi
 }
 
 # Function to build for Android
