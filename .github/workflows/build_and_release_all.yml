@@ -133,6 +133,17 @@ jobs:
             echo "Wrote ${RELEASE_VERSION_WITH_V} to ${PUBLISH_DIR}/VERSION"
           fi
 
+      - name: Rename Linux desktop binary
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PUBLISH_DIR="./Companion.Desktop/bin/Release/net8.0/linux-${{ matrix.arch }}/publish"
+          if [[ -f "${PUBLISH_DIR}/Companion.Desktop" ]]; then
+            mv "${PUBLISH_DIR}/Companion.Desktop" "${PUBLISH_DIR}/Companion.DesktopApp"
+            echo "Renamed Linux apphost to Companion.DesktopApp"
+          fi
+
       # ----- macOS: bundle .app + sign + dmg -----
       - name: Decode signing certificate
         if: matrix.os == 'macos-latest'
@@ -484,5 +495,5 @@ jobs:
             ### Install
             * **Windows**: unzip and run `Companion.Desktop.exe`.
             * **macOS**: open `.dmg` and drag **Companion.app** to Applications.
-            * **Linux**: unzip and run `./Companion.Desktop` (chmod +x if needed).
+            * **Linux**: unzip and run `./Companion.DesktopApp` (chmod +x if needed).
           files: ./release_files/*
