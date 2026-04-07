@@ -1,67 +1,152 @@
-#!/bin/bash 
+#!/bin/bash
+set -euo pipefail
 
+desktop_project="Companion.Desktop/Companion.Desktop.csproj"
+tests_project="Companion.Tests/Companion.Tests.csproj"
 
-# Define the project names and paths
-desktop_project="Companion.Desktop"
-android_project="Companion.Android"
-ios_project="Companion.iOS"
+output_root="build"
+publish_root="$output_root/publish"
+package_root="$output_root/packages"
+verbosity="minimal"
+run_tests_flag=true
 
-# Build output directory
-output_dir="build"
+build_all=false
+build_macos=false
+build_windows=false
+build_linux=false
 
-# Default verbosity level
-verbosity="normal"
+usage() {
+    cat <<EOF
+Usage: $0 [all|macos|windows|linux] [-v verbosity] [--skip-tests]
 
-# Function to clean previous builds
-clean_builds() {
-    echo "Cleaning previous builds in output directory..."
-    rm -rf "$output_dir"
-    echo "Running dotnet clean for each project..."
-    dotnet clean $desktop_project
-    dotnet clean $android_project
-    dotnet clean $ios_project
-    mkdir -p "$output_dir"
+Builds desktop publish outputs and archives them for local testing.
+
+Examples:
+  $0 linux
+  $0 windows -v normal
+  $0 all --skip-tests
+EOF
+}
+
+ensure_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Missing required command: $1"
+        exit 1
+    fi
+}
+
+clean_outputs() {
+    echo "Cleaning previous desktop outputs..."
+    rm -rf "$output_root"
+    mkdir -p "$publish_root" "$package_root"
+    dotnet clean "$desktop_project" >/dev/null
 }
 
 run_tests() {
-    echo "Running tests..."
-    dotnet test --logger "trx;LogFileName=TestResults.xml"
-}
-# Function to create macOS .app bundle
-create_macos_app_bundle() {
-    app_name="Companion"
-    src="$output_dir/$desktop_project/osx-arm64"
-    app_bundle="$output_dir/$desktop_project/osx-arm64/$app_name.app"
-
-    echo "Creating .app bundle at $app_bundle..."
-    rm -rf "$app_bundle"
-    mkdir -p "$app_bundle/Contents/MacOS" "$app_bundle/Contents/Resources"
-
-    # Icon (adjust path if needed)
-    cp "Companion/Assets/Icons/OpenIPC.icns" "$app_bundle/Contents/Resources/$app_name.icns" 2>/dev/null || true
-
-    # Copy published payload into MacOS
-    cp -R "$src/"* "$app_bundle/Contents/MacOS/"
-
-    # Ensure the apphost is executable; if framework-dependent, use the dll runner
-    if [ -f "$app_bundle/Contents/MacOS/Companion.Desktop" ]; then
-        chmod +x "$app_bundle/Contents/MacOS/Companion.Desktop"
+    if [ "$run_tests_flag" != true ]; then
+        echo "Skipping tests."
+        return
     fi
 
-    # Info.plist
-    cat > "$app_bundle/Contents/Info.plist" <<EOL
+    echo "Running desktop test suite..."
+    dotnet test "$tests_project" --logger "trx;LogFileName=TestResults.xml"
+}
+
+archive_directory() {
+    local archive_path="$1"
+    local source_dir="$2"
+    local source_name
+    local archive_dir
+    local archive_name
+
+    source_name="$(basename "$source_dir")"
+    archive_dir="$(cd "$(dirname "$archive_path")" && pwd)"
+    archive_name="$(basename "$archive_path")"
+    (
+        cd "$(dirname "$source_dir")"
+        zip -qry "$archive_dir/$archive_name" "$source_name"
+    )
+}
+
+publish_desktop() {
+    local rid="$1"
+    local publish_dir="$publish_root/$rid"
+
+    echo "Publishing $rid..."
+    dotnet publish "$desktop_project" \
+        -c Release \
+        -r "$rid" \
+        --self-contained true \
+        --output "$publish_dir" \
+        -p:PublishSingleFile=true \
+        -v "$verbosity"
+}
+
+package_linux() {
+    local arch="$1"
+    local rid="linux-$arch"
+    local publish_dir="$publish_root/$rid"
+    local package_dir="$package_root/Companion-linux-$arch"
+    local archive_path="$package_root/Companion-linux-$arch.zip"
+
+    publish_desktop "$rid"
+
+    rm -rf "$package_dir"
+    mkdir -p "$package_dir"
+    cp -R "$publish_dir"/. "$package_dir"/
+
+    if [ -f "$package_dir/Companion.Desktop" ]; then
+        mv "$package_dir/Companion.Desktop" "$package_dir/Companion.DesktopApp"
+        chmod +x "$package_dir/Companion.DesktopApp"
+    fi
+
+    archive_directory "$archive_path" "$package_dir"
+    echo "Created $archive_path"
+}
+
+package_windows() {
+    local arch="$1"
+    local rid="win-$arch"
+    local package_dir="$package_root/Companion-windows-$arch"
+    local archive_path="$package_root/Companion-windows-$arch.zip"
+
+    publish_desktop "$rid"
+
+    rm -rf "$package_dir"
+    mkdir -p "$package_dir"
+    cp -R "$publish_root/$rid"/. "$package_dir"/
+
+    archive_directory "$archive_path" "$package_dir"
+    echo "Created $archive_path"
+}
+
+create_macos_app_bundle() {
+    local publish_dir="$1"
+    local app_dir="$2"
+
+    rm -rf "$app_dir"
+    mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources"
+
+    cp -R "$publish_dir"/. "$app_dir/Contents/MacOS"/
+    cp "Companion/Assets/Icons/OpenIPC.icns" "$app_dir/Contents/Resources/Companion.icns"
+
+    if [ -f "$app_dir/Contents/MacOS/Companion.Desktop" ]; then
+        chmod +x "$app_dir/Contents/MacOS/Companion.Desktop"
+    fi
+
+    cat > "$app_dir/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>$app_name</string>
+    <string>Companion</string>
     <key>CFBundleDisplayName</key>
-    <string>$app_name</string>
+    <string>Companion</string>
     <key>CFBundleExecutable</key>
     <string>Companion.Desktop</string>
     <key>CFBundleIdentifier</key>
-    <string>com.openipc.$app_name</string>
+    <string>com.openipc.Companion</string>
     <key>CFBundleVersion</key>
     <string>1.0</string>
     <key>CFBundleShortVersionString</key>
@@ -71,131 +156,99 @@ create_macos_app_bundle() {
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>CFBundleIconFile</key>
-    <string>$app_name.icns</string>
+    <string>Companion.icns</string>
 </dict>
 </plist>
-EOL
-
-    echo "$app_name.app created: $app_bundle"
+EOF
 }
 
-# Function to build for macOS with verbose output
-build_macos() {
-    echo "Building $desktop_project for macOS (osx-arm64) as .app bundle..."
-    out="$output_dir/$desktop_project/osx-arm64"
-    dotnet publish "$desktop_project" -c Release -r osx-arm64 \
-      --output "$out" --self-contained true -v "$verbosity" \
-      -p:PublishSingleFile=true -p:UseAppHost=true
+package_macos() {
+    local rid="osx-arm64"
+    local publish_dir="$publish_root/$rid"
+    local package_dir="$package_root/Companion-macos-arm64"
+    local app_dir="$package_dir/Companion.app"
+    local archive_path="$package_root/Companion-macos-arm64.zip"
 
-    # Expect a native apphost when self-contained single-file
-    apphost="$out/Companion.Desktop"
-    dll="$out/Companion.Desktop.dll"
+    publish_desktop "$rid"
 
-    if [ -f "$apphost" ] || [ -f "$dll" ]; then
-        create_macos_app_bundle
-    else
-        echo "Error: macOS publish didn't produce Companion.Desktop or Companion.Desktop.dll in $out"
-        ls -la "$out"
-    fi
+    rm -rf "$package_dir"
+    mkdir -p "$package_dir"
+    create_macos_app_bundle "$publish_dir" "$app_dir"
+
+    archive_directory "$archive_path" "$package_dir"
+    echo "Created $archive_path"
 }
 
-# Function to build for Windows
-build_windows() {
-    echo "Building $desktop_project for win-arm64..."
-    dotnet publish $desktop_project -c Release -r win-arm64 --output "$output_dir/$desktop_project/win-arm64" --self-contained -v $verbosity -p:PublishSingleFile=true
-
-    echo "Building $desktop_project for win-x64..."
-    dotnet publish $desktop_project -c Release -r win-x64 --output "$output_dir/$desktop_project/win-x64" --self-contained -v $verbosity -p:PublishSingleFile=true
-}
-
-# Function to build for Linux
-build_linux() {
-    echo "Building $desktop_project for linux-arm64..."
-    dotnet publish $desktop_project -c Release -r linux-arm64 --output "$output_dir/$desktop_project/linux-arm64" --self-contained -v $verbosity -p:PublishSingleFile=true
-    if [ -f "$output_dir/$desktop_project/linux-arm64/Companion.Desktop" ]; then
-        mv "$output_dir/$desktop_project/linux-arm64/Companion.Desktop" \
-           "$output_dir/$desktop_project/linux-arm64/Companion.DesktopApp"
+parse_args() {
+    if [ $# -eq 0 ]; then
+        usage
+        exit 1
     fi
 
-    echo "Building $desktop_project for linux-x64..."
-    dotnet publish $desktop_project -c Release -r linux-x64 --output "$output_dir/$desktop_project/linux-x64" --self-contained -v $verbosity -p:PublishSingleFile=true
-    if [ -f "$output_dir/$desktop_project/linux-x64/Companion.Desktop" ]; then
-        mv "$output_dir/$desktop_project/linux-x64/Companion.Desktop" \
-           "$output_dir/$desktop_project/linux-x64/Companion.DesktopApp"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            all)
+                build_all=true
+                ;;
+            macos)
+                build_macos=true
+                ;;
+            windows)
+                build_windows=true
+                ;;
+            linux)
+                build_linux=true
+                ;;
+            --skip-tests)
+                run_tests_flag=false
+                ;;
+            -v|--verbosity)
+                shift
+                if [ $# -eq 0 ]; then
+                    echo "Missing verbosity value."
+                    exit 1
+                fi
+                verbosity="$1"
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                echo "Unknown option: $1"
+                usage
+                exit 1
+                ;;
+        esac
+        shift
+    done
+}
+
+main() {
+    ensure_command dotnet
+    ensure_command zip
+
+    parse_args "$@"
+    clean_outputs
+    run_tests
+
+    if [ "$build_all" = true ] || [ "$build_linux" = true ]; then
+        package_linux "arm64"
+        package_linux "x64"
     fi
+
+    if [ "$build_all" = true ] || [ "$build_windows" = true ]; then
+        package_windows "arm64"
+        package_windows "x64"
+    fi
+
+    if [ "$build_all" = true ] || [ "$build_macos" = true ]; then
+        package_macos
+    fi
+
+    echo
+    echo "Desktop publish outputs: $publish_root"
+    echo "Packaged artifacts: $package_root"
 }
 
-# Function to build for Android
-build_android() {
-    echo "Building $android_project as APK..."
-    dotnet publish $android_project -c Release -r android-arm64 --output "$output_dir/$android_project" -v $verbosity
-}
-
-# Function to build for iOS
-build_ios() {
-    echo "Building $ios_project as an IPA for iOS..."
-    dotnet publish $ios_project -c Release -r ios-arm64 --output "$output_dir/$ios_project" -v $verbosity
-}
-
-# Parse arguments
-build_all=false
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        all)
-            build_all=true
-            ;;
-        macos)
-            build_macos=true
-            ;;
-        windows)
-            build_windows=true
-            ;;
-        linux)
-            build_linux=true
-            ;;
-        android)
-            build_android=true
-            ;;
-        ios)
-            build_ios=true
-            ;;
-        -v|--verbosity)
-            shift
-            verbosity="$1"
-            ;;
-        *)
-            echo "Unknown option: $1"
-            echo "Usage: $0 [all|macos|windows|linux|android|ios] [-v verbosity_level]"
-            echo "Verbosity levels: quiet, minimal, normal, detailed, diagnostic"
-            exit 1
-            ;;
-    esac
-    shift
-done
-
-# Clean previous builds
-clean_builds
-run_tests
-
-# Execute builds based on the selected options
-if [ "$build_all" = true ] || [ "$build_macos" = true ]; then
-    build_macos
-fi
-
-if [ "$build_all" = true ] || [ "$build_windows" = true ]; then
-    build_windows
-fi
-
-if [ "$build_all" = true ] || [ "$build_linux" = true ]; then
-    build_linux
-fi
-
-if [ "$build_all" = true ] || [ "$build_android" = true ]; then
-    build_android
-fi
-
-if [ "$build_all" = true ] || [ "$build_ios" = true ]; then
-    build_ios
-fi
-
-echo "Build process complete. Outputs are in the '$output_dir' directory."
+main "$@"
