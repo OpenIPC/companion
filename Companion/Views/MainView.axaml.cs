@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Companion.Events;
 using Companion.Services;
 using Companion.ViewModels;
+using Serilog;
 
 namespace Companion.Views;
 
@@ -29,13 +31,20 @@ public partial class MainView : UserControl
 
     public MainView()
     {
+        var stopwatch = Stopwatch.StartNew();
         InitializeComponent();
+        Log.ForContext<MainView>().Information("Startup timing: MainView.InitializeComponent completed in {ElapsedMs} ms.",
+            stopwatch.Elapsed.TotalMilliseconds);
 
         if (!Design.IsDesignMode)
         {
+            var resolveViewModelStopwatch = Stopwatch.StartNew();
             _viewModel = App.ServiceProvider.GetRequiredService<MainViewModel>();
+            Log.ForContext<MainView>().Information("Startup timing: MainViewModel resolved in {ElapsedMs} ms.",
+                resolveViewModelStopwatch.Elapsed.TotalMilliseconds);
             DataContext = _viewModel;
 
+            var subscriptionsStopwatch = Stopwatch.StartNew();
             var eventSubscriptionService = App.ServiceProvider.GetRequiredService<IEventSubscriptionService>();
             eventSubscriptionService.Subscribe<TabSelectionChangeEvent, string>(OnTabSelectionChanged);
 
@@ -48,6 +57,8 @@ public partial class MainView : UserControl
 
             LogSplitter.DragDelta += OnSplitterDragDelta;
             LogSplitter.DragCompleted += OnSplitterDragCompleted;
+            Log.ForContext<MainView>().Information("Startup timing: MainView post-initialize wiring completed in {ElapsedMs} ms.",
+                subscriptionsStopwatch.Elapsed.TotalMilliseconds);
         }
     }
 
