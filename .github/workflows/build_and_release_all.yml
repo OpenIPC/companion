@@ -499,12 +499,11 @@ jobs:
           set -euo pipefail
 
           RELEASE_BODY="$(gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json body --jq .body)"
-          RELEASE_URL="$(gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json url --jq .url)"
 
           jq -n \
             --arg version "${VERSION}" \
             --arg notes "${RELEASE_BODY}" \
-            --arg url "${RELEASE_URL}" \
+            --arg url "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_REF_NAME}" \
             '{
               version: $version,
               release_notes: $notes,
