@@ -466,19 +466,8 @@ jobs:
 
           ls -la ./release_files
 
-      - name: Generate latest.json
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat << EOF > ./release_files/latest.json
-          {
-            "version": "${{ env.VERSION }}",
-            "release_notes": "Generated release notes.",
-            "download_url": "https://github.com/${{ github.repository }}/releases/latest"
-          }
-          EOF
-
       - name: Create GitHub Release and Upload Assets
+        id: create_release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
@@ -496,4 +485,37 @@ jobs:
             * **Windows**: unzip and run `Companion.Desktop.exe`.
             * **macOS**: open `.dmg` and drag **Companion.app** to Applications.
             * **Linux**: unzip and run `./Companion.DesktopApp` (chmod +x if needed).
-          files: ./release_files/*
+          files: |
+            ./release_files/Companion-windows-*.zip
+            ./release_files/Companion-linux-*.zip
+            ./release_files/Companion-macos-*.dmg
+
+      - name: Generate latest.json from release body
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          RELEASE_BODY="$(gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json body --jq .body)"
+          RELEASE_URL="$(gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json url --jq .url)"
+
+          jq -n \
+            --arg version "${VERSION}" \
+            --arg notes "${RELEASE_BODY}" \
+            --arg url "${RELEASE_URL}" \
+            '{
+              version: $version,
+              release_notes: $notes,
+              download_url: $url
+            }' > ./release_files/latest.json
+
+      - name: Upload latest.json to release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release upload "${GITHUB_REF_NAME}" ./release_files/latest.json --repo "${GITHUB_REPOSITORY}" --clobber
