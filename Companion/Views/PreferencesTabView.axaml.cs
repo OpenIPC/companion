@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace Companion.Views;
 
-public partial class FirmwareTabView : UserControl
+public partial class PreferencesTabView : UserControl
 {
-    public FirmwareTabView()
+    public PreferencesTabView()
     {
         InitializeComponent();
     }

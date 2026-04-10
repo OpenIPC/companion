@@ -15,7 +15,7 @@
         <Setter Property="Template">
             <ControlTemplate>
                 <Grid>
-                    <Ellipse x:Name="ButtonBackground" Fill="#333333" />
+                    <Ellipse x:Name="ButtonBackground" Fill="{DynamicResource CircularButtonFill}" />
                     <Ellipse x:Name="GlowEffect" Fill="Transparent" Margin="0" Opacity="0" />
                     <ContentPresenter Content="{TemplateBinding Content}"
                                      ContentTemplate="{TemplateBinding ContentTemplate}"
@@ -28,7 +28,25 @@
 
     <!-- Hover style -->
     <Style Selector="Button.CircularButton:pointerover /template/ Ellipse#ButtonBackground">
-        <Setter Property="Fill" Value="#444444" />
+        <Setter Property="Fill" Value="{DynamicResource CircularButtonHoverFill}" />
+    </Style>
+
+    <Style Selector="Button.CircularButton:disabled /template/ Ellipse#ButtonBackground">
+        <Setter Property="Fill" Value="#5C5C5C" />
+        <Setter Property="Opacity" Value="0.75" />
+    </Style>
+
+    <Style Selector="Button.CircularButton:disabled">
+        <Setter Property="Opacity" Value="0.6" />
+    </Style>
+
+    <Style Selector="Button.CircularButton:disabled Path#IconPath">
+        <Setter Property="Fill" Value="#BFBFBF" />
+        <Setter Property="Opacity" Value="0.85" />
+    </Style>
+
+    <Style Selector="Button.CircularButton:disabled /template/ Ellipse#GlowEffect">
+        <Setter Property="Opacity" Value="0" />
     </Style>
 
     <!-- Red pulse animation -->
@@ -53,7 +71,7 @@
 
     <!-- Blue glow style -->
     <Style Selector="Button.CircularButton.GreenGlow /template/ Ellipse#GlowEffect">
-        <Setter Property="Fill" Value="#4C61D8" />
+        <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
         <Setter Property="Opacity" Value="0.7" />
     </Style>
     
@@ -74,7 +92,7 @@
 </UserControl.Styles>
     
     <ScrollViewer>
-        <Grid Background="#555555" Height="80">
+        <Grid Background="{DynamicResource HeaderBackground}" Height="80">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -83,49 +101,69 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Logo and Title -->
-            <StackPanel Orientation="Vertical" Grid.Column="0">
-                <!-- <Image Source="/Assets/Icons/OpenIPC.png" Width="40" Height="40" Margin="0,0,10,0" /> -->
-                <Svg Width="150" Margin="10,5,0,0" Path="/Assets/Icons/openipc-logo.svg" />
+            <!-- Logo and branding -->
+            <StackPanel Orientation="Vertical" Grid.Column="0" Margin="10,0,0,0">
+                <!-- Logo -->
+                <Svg Width="150" Margin="0,10,0,0" Path="/Assets/Icons/openipc-logo.svg" />
 
-                <StackPanel Orientation="Horizontal" Margin="10,10,0,8" MaxWidth="180">
-                    <TextBlock FontSize="14" Foreground="White" Text="COMPANION" />
-                    <TextBlock FontSize="14" Foreground="White" Opacity="0.75"
-                               Margin="6,2,0,0"
-                               TextTrimming="CharacterEllipsis"
+                <!-- Version + icon row -->
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,8" Spacing="6"
+                            Opacity="0.6">
+                    <TextBlock FontSize="10" Foreground="White"
+                               VerticalAlignment="Center"
                                Text="{Binding AppVersionText}" />
+
+                    <Button Name="TelegramButton" Padding="4,2" Click="TelegramButton_OnClick"
+                            Background="Transparent" BorderThickness="0"
+                            VerticalContentAlignment="Center"
+                            ToolTip.Tip="Telegram">
+                        <Svg Width="14" Path="/Assets/Icons/ic-telegram.svg" />
+                    </Button>
+                    <Button Name="GithubButton" Padding="4,2" Click="GithubButton_OnClick"
+                            Background="Transparent" BorderThickness="0"
+                            VerticalContentAlignment="Center"
+                            ToolTip.Tip="GitHub">
+                        <Svg Width="14" Path="/Assets/Icons/mdi-github.svg" />
+                    </Button>
+                    <Button Name="ReportBugButton" Padding="4,2" Click="ReportBugButton_OnClick"
+                            Background="Transparent" BorderThickness="0"
+                            VerticalContentAlignment="Center"
+                            ToolTip.Tip="Report a bug on GitHub">
+                        <Path Data="M8,2 L9.88,3.88 M14.12,3.88 L16,2 M12,20 C8.7,20 6,17.3 6,14 L6,11 C6,8.79 7.79,7 10,7 L14,7 C16.21,7 18,8.79 18,11 L18,14 C18,17.3 15.3,20 12,20 Z M12,20 L12,11 M6.53,9 C4.6,8.8 3,7.1 3,5 M6,13 L2,13 M6,17 L3,17 M17.47,9 C19.4,8.8 21,7.1 21,5 M18,13 L22,13 M21,17 L18,17"
+                              Stroke="White" StrokeThickness="1.5"
+                              Width="14" Height="14" Stretch="Uniform" />
+                    </Button>
+                    <Button Padding="4,2"
+                            Background="Transparent" BorderThickness="0"
+                            VerticalContentAlignment="Center"
+                            Command="{Binding ToggleThemeCommand}"
+                            ToolTip.Tip="Toggle theme">
+                        <Panel>
+                            <!-- Sun icon (light mode) -->
+                            <Path Data="M12,16 A4,4 0 1,0 12,8 A4,4 0 1,0 12,16 Z M12,2 L12,4 M12,20 L12,22 M4.93,4.93 L6.34,6.34 M17.66,17.66 L19.07,19.07 M2,12 L4,12 M20,12 L22,12 M6.34,17.66 L4.93,19.07 M19.07,4.93 L17.66,6.34"
+                                  Stroke="White" StrokeThickness="1.5"
+                                  Width="14" Height="14" Stretch="Uniform"
+                                  IsVisible="{Binding !IsDarkTheme}" />
+                            <!-- Moon icon (dark mode) -->
+                            <Path Data="M21,12.79 A9,9 0 1,1 11.21,3 A7,7 0 0,0 21,12.79 Z"
+                                  Stroke="White" StrokeThickness="1.5"
+                                  Width="14" Height="14" Stretch="Uniform"
+                                  IsVisible="{Binding IsDarkTheme}" />
+                        </Panel>
+                    </Button>
                 </StackPanel>
-
-
             </StackPanel>
 
-            <StackPanel Orientation="Vertical" Grid.Column="1" HorizontalAlignment="Left"
-                        VerticalAlignment="Center" Spacing="3">
+            <!-- Column 1 empty -->
+            <Border Grid.Column="1" />
 
-                <Button Name="TelegramButton" Margin="0" Padding="20,0,5,5" Click="TelegramButton_OnClick"
-                        Background="Transparent" BorderThickness="0">
-                    <Svg Width="16" Path="/Assets/Icons/ic-telegram.svg" HorizontalAlignment="Center"
-                         VerticalAlignment="Center" />
-                </Button>
-
-                <Button Name="GithubButton" Margin="0" Padding="20,0,5,5" Click="GithubButton_OnClick"
-                        Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center"
-                        HorizontalContentAlignment="Center">
-                    <Svg Width="16" Path="/Assets/Icons/mdi-github.svg" />
-                </Button>
-
-                <!-- <Button Name="DiscordButton" Margin="0" Padding="20,0,5,5" Click="DiscordButton_OnClick" -->
-                <!--         Background="Transparent" BorderThickness="0"> -->
-                <!--     <Svg Width="16" Path="/Assets/Icons/ic-discord.svg" /> -->
-                <!-- </Button> -->
-            </StackPanel>
-
-            <StackPanel Orientation="Vertical" Grid.Column="2" HorizontalAlignment="Right"
-                        VerticalAlignment="Center" Spacing="3">
-
-                <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto, Auto"
+            <Grid Grid.Column="2">
+                <!-- Device info right-aligned -->
+                <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto"
                       ShowGridLines="False"
-                      Margin="5">
+                      Margin="5"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Center">
                     <!-- SOC -->
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="SOC:"
                                Margin="5,0,0,5"
@@ -163,14 +201,14 @@
                                HorizontalAlignment="Left"
                                VerticalAlignment="Center"
                                Foreground="White" />
-
                 </Grid>
-
-
-            </StackPanel>
+            </Grid>
 
             <!-- Connection Fields -->
-            <Grid Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+            <Grid Grid.Column="3"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Center"
+                  IsEnabled="{Binding IsTabNavigationEnabled}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -179,22 +217,23 @@
                 <!-- IP Address -->
                 <!-- <TextBox Width="200" Height="30" Watermark="IP Address" -->
                 <!--          Text="{Binding IpAddress, Mode=TwoWay}" -->
-                <!--          Background="{Binding EntryBoxBgColor}" -->
+                <!--          Background="{DynamicResource HeaderInputBackground}" -->
                 <!--          HorizontalAlignment="Left" -->
                 <!--          Classes="InputBox" Grid.Row="0" Margin="0,5,0,0" -->
                 <!--          ToolTip.Tip="Device IP Address" /> -->
                 <!-- Replace TextBox with ComboBox for IP Address -->
                 <!-- Replace TextBox with AutoCompleteBox for IP Address -->
-                <AutoCompleteBox Width="200" 
-                                 Height="30" 
+                <AutoCompleteBox Width="200"
+                                 Height="30"
                                  Watermark="IP Address"
                                  Text="{Binding IpAddress, Mode=TwoWay}"
                                  ItemsSource="{Binding CachedIpAddresses}"
                                  SelectedItem="{Binding SelectedCachedIpAddress}"
-                                 Background="{Binding EntryBoxBgColor}"
+                                 Background="{DynamicResource HeaderInputBackground}"
+                                 Foreground="{DynamicResource PrimaryTextForeground}"
                                  HorizontalAlignment="Left"
-                                 Classes="InputBox" 
-                                 Grid.Row="0" 
+                                 Classes="InputBox"
+                                 Grid.Row="0"
                                  Margin="0,5,0,0"
                                  FilterMode="Contains"
                                  ToolTip.Tip="Device IP Address" />
@@ -203,21 +242,24 @@
 
                     <!-- Device Type -->
                     <ComboBox Width="120" Height="30" ToolTip.Tip="Device Type"
-                              Background="{Binding EntryBoxBgColor}"
+                              Background="{DynamicResource HeaderInputBackground}"
+                              Foreground="{DynamicResource PrimaryTextForeground}"
                               Margin="0,5,0,5"
                               ItemsSource="{Binding DeviceTypes}"
                               SelectedItem="{Binding SelectedDeviceType, Mode=TwoWay}" />
 
                     <!-- Port -->
                     <TextBox Width="50" Height="30" Watermark="Port"
-                             Background="{Binding EntryBoxBgColor}"
+                             Background="{DynamicResource HeaderInputBackground}"
+                             Foreground="{DynamicResource PrimaryTextForeground}"
                              Margin="0,5,0,5"
                              Text="{Binding Port, Mode=TwoWay}" Classes="InputBox"
                              ToolTip.Tip="Port" />
 
                     <!-- Password -->
                     <TextBox Width="100" Height="30" Watermark="Password"
-                             Background="{Binding EntryBoxBgColor}"
+                             Background="{DynamicResource HeaderInputBackground}"
+                             Foreground="{DynamicResource PrimaryTextForeground}"
                              PasswordChar="*"
                              Margin="0,5,0,5"
                              Text="{Binding Password, Mode=TwoWay}" Classes="InputBox"
@@ -228,7 +270,7 @@
             <!-- Circular Connect Button -->
             <StackPanel Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,0,10,0">
                 <Button Width="50" Height="50" Command="{Binding ConnectCommand}"
-                        IsEnabled="{Binding CanConnect}"
+                        IsEnabled="{Binding IsConnectEnabled}"
                         Classes="CircularButton"
                         Classes.RedPulse="{Binding IsWaiting}"
                         Classes.GreenGlow="{Binding IsConnected}">

@@ -15,7 +15,7 @@
           ColumnDefinitions="*" Margin="10">
         
         <!-- Header with Information -->
-        <Border Grid.Row="0" Background="#B0B0B0" CornerRadius="10" Padding="10" Margin="10">
+        <Border Grid.Row="0" Background="{DynamicResource WarningBannerBackground}" CornerRadius="10" Padding="10" Margin="10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -31,7 +31,7 @@
                       Margin="5" />
                 <TextBlock Grid.Column="1"
                            Text="Add Github Repository URL where your custom presets are defined."
-                           Foreground="Black"
+                           Foreground="{DynamicResource PrimaryTextForeground}"
                            FontSize="14"
                            TextWrapping="Wrap"
                            VerticalAlignment="Center"

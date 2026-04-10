@@ -18,13 +18,13 @@
     </UserControl.Resources>
     
     <!-- Main Layout -->
-    <Grid>
+    <Grid x:Name="MainGrid" Background="{DynamicResource ContentBackground}">
         <!-- Define Rows -->
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /> <!-- Header -->
             <RowDefinition Height="*" />   <!-- Tab Content -->
             <RowDefinition Height="Auto" MinHeight="5" /> <!-- GridSplitter -->
-            <RowDefinition Height="60" MinHeight="60" /> <!-- Log Viewer with default height -->
+            <RowDefinition Height="60" MinHeight="20" /> <!-- Log Viewer -->
         </Grid.RowDefinitions>
         
         <!-- Header -->
@@ -39,9 +39,10 @@
                         ItemsSource="{Binding Tabs}"
                         SelectedIndex="{Binding SelectedTabIndex}"
                         SelectedItem="{Binding SelectedTab}"
+                        IsEnabled="{Binding IsTabNavigationEnabled}"
                         Width="{Binding IsTabsCollapsed, 
                         Converter={StaticResource BooleanToWidthConverter},
-                        ConverterParameter='80,180'}"
+                        ConverterParameter='60,200'}"
                         Padding="0,0,10,0">
                 
                 <TabControl.ItemTemplate>
@@ -52,40 +53,29 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <!-- Icon -->
-                            <Svg Grid.Column="0" Path="{Binding Icon}" Margin="0" />
+                            <!-- Icon (dark for unselected, light for selected) -->
+                            <Svg Grid.Column="0" Path="{Binding Icon}" Margin="0"
+                                 Classes="tab-icon-dark" />
+                            <Svg Grid.Column="0" Path="{Binding IconLight}" Margin="0"
+                                 Classes="tab-icon-light" />
 
                             <!-- Tab Name -->
-                            <TextBlock Text="{Binding TabName}" Grid.Column="1" 
+                            <TextBlock Text="{Binding TabName}" Grid.Column="1"
                                        VerticalAlignment="Center" HorizontalAlignment="Left"
                                        FontSize="18" Margin="10,0,10,0"
-                                       IsVisible="{Binding IsTabsCollapsed, 
+                                       IsVisible="{Binding IsTabsCollapsed,
                                Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </Grid>
                     </DataTemplate>
                 </TabControl.ItemTemplate>
             </TabControl>
 
-            <!-- Toggle Tabs Button -->
-            <Button Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" 
-                    VerticalAlignment="Top"
-                    Classes="DrawerButton"
-                    Command="{Binding ToggleTabsCommand}" 
-                    BorderThickness="0"
-                    Background="Transparent">
-
-                <StackPanel Orientation="Horizontal" 
-                            Background="Transparent"
-                             Spacing="0">
-                    <Svg Path="/Assets/Icons/drawer-handle.svg"
-                         Margin="0,0,0,0"  />
-                    <Svg Path="{Binding SvgPath}"
-                         Width="10"
-                         Margin="0,0,0,0"
-                         HorizontalAlignment="Left"
-                         />
-                </StackPanel>
-            </Button>
+            <!-- Side panel divider line -->
+            <Border Grid.Column="1" Width="8" Background="#4C61D8"
+                    VerticalAlignment="Stretch"
+                    HorizontalAlignment="Center"
+                    Cursor="Hand"
+                    PointerPressed="OnDrawerLinePressed" />
             
             <!-- Tab Content -->
             <ContentControl Grid.Column="2" 
@@ -95,49 +85,74 @@
         </Grid>
         
         <!-- GridSplitter -->
-        <GridSplitter Grid.Row="2"
-                      Background="#CCCCCC"
+        <GridSplitter x:Name="LogSplitter"
+                      Grid.Row="2"
+                      Background="{DynamicResource SplitterBackground}"
                       ResizeDirection="Rows"
                       ResizeBehavior="PreviousAndNext"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
-                      Cursor="SizeNorthSouth" />
+                      Cursor="SizeNorthSouth"
+                      IsVisible="{Binding !IsLogPanelCollapsed}" />
 
         <!-- Log Viewer Section -->
-        <Grid Grid.Row="3" Background="LightGray">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="20" MinWidth="20" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            
-            <!-- Log Label and Explorer Link -->
-            <StackPanel Grid.Column="0" Margin="5,3,5,3" VerticalAlignment="Top" >
-                <!-- Vertical "LOG" text -->
-                <!-- <StackPanel Orientation="Vertical" Margin="0,0,0,10" HorizontalAlignment="Center"> -->
-                <!--     <TextBlock Text="L" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" /> -->
-                <!--     <TextBlock Text="O" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" /> -->
-                <!--     <TextBlock Text="G" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" /> -->
-                <!-- </StackPanel> -->
-    
-                <Button Command="{Binding OpenLogFolderCommand}" 
-                        Background="Transparent" 
-                        Padding="0"
-                        BorderThickness="0"
-                        ToolTip.Tip="Open log folder in system file explorer">
-                    <!-- <StackPanel Orientation="Horizontal" Spacing="5"> -->
-                    <!--     <Svg Path="/Assets/Icons/folder-open.svg" Width="16" Height="16" /> -->
-                    <!--     ~1~ <TextBlock Text="Open Folder" /> @1@ -->
-                    <!-- </StackPanel> -->
-                    <StackPanel Orientation="Vertical" Margin="0,0,0,10" HorizontalAlignment="Center">
-                    <TextBlock Text="L" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center"  Foreground="Black"/>
-                    <TextBlock Text="O" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Foreground="Black"/>
-                    <TextBlock Text="G" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Foreground="Black"/>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-            
-            <!-- Log Viewer -->
-            <views:LogViewer Grid.Column="1" Margin="3,3,3,3" />
+        <Grid x:Name="LogPanel" Grid.Row="3" Background="{DynamicResource LogAreaBackground}">
+            <!-- Log toggle tab — sticks out above the panel -->
+            <Button x:Name="LogToggleButton"
+                    Command="{Binding ToggleLogPanelCommand}"
+                    Background="{DynamicResource LogAreaBackground}"
+                    Padding="8,2"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    ToolTip.Tip="Toggle log panel"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Margin="8,-16,0,0"
+                    ZIndex="1">
+                <Button.Styles>
+                    <Style Selector="Button">
+                        <Setter Property="CornerRadius" Value="6,6,0,0" />
+                    </Style>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                        <Setter Property="Background" Value="{DynamicResource LogAreaBackground}" />
+                        <Setter Property="Opacity" Value="0.8" />
+                    </Style>
+                </Button.Styles>
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock x:Name="LogChevron"
+                               Text="▾"
+                               FontSize="10"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource PrimaryTextForeground}" />
+                    <TextBlock Text="Log"
+                               FontSize="10"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource PrimaryTextForeground}" />
+                </StackPanel>
+            </Button>
+
+            <!-- Open log folder — top right -->
+            <Button Command="{Binding OpenLogFolderCommand}"
+                    Background="Transparent"
+                    Padding="2,1"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    IsVisible="{Binding !IsLogPanelCollapsed}"
+                    ToolTip.Tip="Open log folder"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="0,2,8,0"
+                    ZIndex="1">
+                <Path Data="M20 5h-8.5L9.86 2.38A1.91 1.91 0 0 0 8.27 2H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 13H4V4h4l1.79 3H20v11z"
+                      Fill="{DynamicResource PrimaryTextForeground}"
+                      Width="11" Height="11"
+                      Stretch="Uniform" />
+            </Button>
+
+            <!-- Log content -->
+            <views:LogViewer Margin="3,2,3,3"
+                             IsVisible="{Binding !IsLogPanelCollapsed}" />
         </Grid>
     </Grid>
 </UserControl>

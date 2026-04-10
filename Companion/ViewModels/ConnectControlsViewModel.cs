@@ -177,13 +177,14 @@ public partial class ConnectControlsViewModel : ViewModelBase
     private void LoadSettings()
     {
         var settings = SettingsManager.LoadSettings();
+        DeviceConfig.SetInstance(settings);
         _deviceConfig = DeviceConfig.Instance;
-        IpAddress = settings.IpAddress;
-        Password = settings.Password;
-        SelectedDeviceType = settings.DeviceType;
+        IpAddress = _deviceConfig.IpAddress;
+        Password = _deviceConfig.Password;
+        SelectedDeviceType = _deviceConfig.DeviceType;
         
         // Load cached IP addresses
-        CachedIpAddresses = new ObservableCollection<string>(settings.CachedIpAddresses ?? new List<string>());
+        CachedIpAddresses = new ObservableCollection<string>(_deviceConfig.CachedIpAddresses ?? new List<string>());
     
         // If current IP isn't in the cache and is valid, add it
         if (!string.IsNullOrEmpty(IpAddress) && 

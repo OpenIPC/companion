@@ -8,7 +8,9 @@ using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Avalonia;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -35,6 +37,10 @@ public partial class MainViewModel : ViewModelBase
     
     [ObservableProperty] private string _svgPath;
     private bool _isTabsCollapsed;
+    private bool _isLogPanelCollapsed;
+    private double _logPanelHeight = 60;
+    private double _logPanelHeightBeforeCollapse = 60;
+    private const double DefaultLogHeight = 60;
 
     [ObservableProperty] private bool _isMobile;
     private DeviceType _selectedDeviceType;
@@ -45,13 +51,18 @@ public partial class MainViewModel : ViewModelBase
 
     private readonly IServiceProvider _serviceProvider;
     private readonly IGlobalSettingsService _globalSettingsService;
+    private readonly IPreferencesService _preferencesService;
     private readonly ILogger _logger;
+    private UserPreferences _userPreferences;
+    private bool _preferencesInitialized;
+    private bool _isLoadingSettings;
     
     [ObservableProperty] private bool _isWaiting;
     [ObservableProperty] private bool _isConnected;
     
     [ObservableProperty] private ObservableCollection<string> _cachedIpAddresses = new();
     [ObservableProperty] private string _selectedCachedIpAddress;
+    [ObservableProperty] private bool _isTabNavigationEnabled = true;
 
 
     public MainViewModel(ILogger logger,
@@ -59,14 +70,19 @@ public partial class MainViewModel : ViewModelBase
         IEventSubscriptionService eventSubscriptionService,
         IServiceProvider serviceProvider,
         IGlobalSettingsService globalSettingsService,
+        IPreferencesService preferencesService,
         IMessageBoxService messageBoxService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
+        var startupStopwatch = Stopwatch.StartNew();
         
         _logger = logger?.ForContext(GetType()) ?? 
                  throw new ArgumentNullException(nameof(logger));
         _messageBoxService = messageBoxService;
+        var loadSettingsStopwatch = Stopwatch.StartNew();
         LoadSettings();
+        _logger.Information("Startup timing: MainViewModel.LoadSettings completed in {ElapsedMs} ms.",
+            loadSettingsStopwatch.Elapsed.TotalMilliseconds);
         
         // Initialize the ping service
         _pingService = PingService.Instance(_logger);
@@ -76,14 +92,22 @@ public partial class MainViewModel : ViewModelBase
         _serviceProvider = serviceProvider;
         _appVersionText = GetFormattedAppVersion();
         _globalSettingsService = globalSettingsService;
+        _preferencesService = preferencesService;
+        _userPreferences = _preferencesService.Load();
+        _isTabsCollapsed = _userPreferences.IsTabsCollapsed;
+        _isLogPanelCollapsed = _userPreferences.IsLogPanelCollapsed;
+        _logPanelHeight = Math.Max(DefaultLogHeight, _userPreferences.LogPanelHeight);
+        _logPanelHeightBeforeCollapse = _logPanelHeight;
 
         Tabs = new ObservableCollection<TabItemViewModel> { };
         
         // Subscribe to device type change events
         EventSubscriptionService.Subscribe<DeviceTypeChangeEvent, DeviceType>(
             OnDeviceTypeChangeEvent);
+        EventSubscriptionService.Subscribe<FirmwareOperationStateChangedEvent, bool>(OnFirmwareOperationStateChanged);
 
         ToggleTabsCommand = new RelayCommand(() => IsTabsCollapsed = !IsTabsCollapsed);
+        ToggleThemeCommand = new RelayCommand(() => IsDarkTheme = !IsDarkTheme);
 
         EntryBoxBgColor = new SolidColorBrush(Colors.White);
 
@@ -92,6 +116,7 @@ public partial class MainViewModel : ViewModelBase
         DeviceTypes = new ObservableCollection<DeviceType>(Enum.GetValues(typeof(DeviceType)).Cast<DeviceType>());
         
         OpenLogFolderCommand = new RelayCommand(() => OpenLogFolder());
+        ToggleLogPanelCommand = new RelayCommand(() => IsLogPanelCollapsed = !IsLogPanelCollapsed);
 
         // Initialize the path
         UpdateSvgPath();
@@ -104,11 +129,22 @@ public partial class MainViewModel : ViewModelBase
         IsVRXEnabled = false;
         
         // initialize tabs with Camera
+        var initializeTabsStopwatch = Stopwatch.StartNew();
         InitializeTabs(DeviceType.Camera);
+        _logger.Information("Startup timing: MainViewModel.InitializeTabs completed in {ElapsedMs} ms.",
+            initializeTabsStopwatch.Elapsed.TotalMilliseconds);
+        var restoreSelectedTabStopwatch = Stopwatch.StartNew();
+        RestoreSelectedTab();
+        _logger.Information("Startup timing: MainViewModel.RestoreSelectedTab completed in {ElapsedMs} ms.",
+            restoreSelectedTabStopwatch.Elapsed.TotalMilliseconds);
+        _preferencesInitialized = true;
+        _logger.Information("Startup timing: MainViewModel constructor completed in {ElapsedMs} ms.",
+            startupStopwatch.Elapsed.TotalMilliseconds);
     }
 
     private void InitializeTabs(DeviceType deviceType)
     {
+        _userPreferences = _preferencesService.Load();
         Tabs.Clear();
 
         // if Mobile apps default to tabs collapsed
@@ -120,26 +156,40 @@ public partial class MainViewModel : ViewModelBase
 
         if (deviceType == DeviceType.Camera)
         {
-            Tabs.Add(new TabItemViewModel("WFB", "avares://Companion/Assets/Icons/iconoir_wifi_dark.svg",
-                _serviceProvider.GetRequiredService<WfbTabViewModel>(), IsTabsCollapsed));
-            Tabs.Add(new TabItemViewModel("Camera", "avares://Companion/Assets/Icons/iconoir_camera_dark.svg",
-                _serviceProvider.GetRequiredService<CameraSettingsTabViewModel>(), IsTabsCollapsed));
-            Tabs.Add(new TabItemViewModel("Telemetry", "avares://Companion/Assets/Icons/iconoir_drag_dark.svg",
-                _serviceProvider.GetRequiredService<TelemetryTabViewModel>(), IsTabsCollapsed));
-            Tabs.Add(new TabItemViewModel("Setup", "avares://Companion/Assets/Icons/iconoir_settings_dark.svg",
-                _serviceProvider.GetRequiredService<SetupTabViewModel>(), IsTabsCollapsed));
+            if (!_userPreferences.FirmwareFocusedMode)
+            {
+                Tabs.Add(new TabItemViewModel("WFB", "avares://Companion/Assets/Icons/iconoir_wifi_dark.svg",
+                    () => _serviceProvider.GetRequiredService<WfbTabViewModel>(), IsTabsCollapsed));
+                Tabs.Add(new TabItemViewModel("Camera", "avares://Companion/Assets/Icons/iconoir_camera_dark.svg",
+                    () => _serviceProvider.GetRequiredService<CameraSettingsTabViewModel>(), IsTabsCollapsed));
+                Tabs.Add(new TabItemViewModel("Telemetry", "avares://Companion/Assets/Icons/iconoir_drag_dark.svg",
+                    () => _serviceProvider.GetRequiredService<TelemetryTabViewModel>(), IsTabsCollapsed));
+                Tabs.Add(new TabItemViewModel("Setup", "avares://Companion/Assets/Icons/iconoir_settings_dark.svg",
+                    () => _serviceProvider.GetRequiredService<SetupTabViewModel>(), IsTabsCollapsed));
+            }
             Tabs.Add(new TabItemViewModel("Firmware", "avares://Companion/Assets/Icons/iconair_firmware_dark.svg",
-                _serviceProvider.GetRequiredService<FirmwareTabViewModel>(), IsTabsCollapsed));
-            Tabs.Add(new TabItemViewModel("Advanced", "avares://Companion/Assets/Icons/iconair_advanced_dark.svg",
-                _serviceProvider.GetRequiredService<AdvancedTabViewModel>(), IsTabsCollapsed));
+                () => _serviceProvider.GetRequiredService<FirmwareTabViewModel>(), IsTabsCollapsed));
+            Tabs.Add(new TabItemViewModel("Preferences", "avares://Companion/Assets/Icons/iconoir_settings_dark.svg",
+                () => _serviceProvider.GetRequiredService<PreferencesTabViewModel>(), IsTabsCollapsed));
         }
         else if (deviceType == DeviceType.Radxa)
         {
-            // Need these spaces for some reason
-            Tabs.Add(new TabItemViewModel("WFB         ", "avares://Companion/Assets/Icons/iconoir_wifi_dark.svg",
-                _serviceProvider.GetRequiredService<WfbGSTabViewModel>(), IsTabsCollapsed));
-            Tabs.Add(new TabItemViewModel("Setup", "avares://Companion/Assets/Icons/iconoir_settings_dark.svg",
-                _serviceProvider.GetRequiredService<SetupTabViewModel>(), IsTabsCollapsed));
+            if (!_userPreferences.FirmwareFocusedMode)
+            {
+                // Need these spaces for some reason
+                Tabs.Add(new TabItemViewModel("WFB         ", "avares://Companion/Assets/Icons/iconoir_wifi_dark.svg",
+                    () => _serviceProvider.GetRequiredService<WfbGSTabViewModel>(), IsTabsCollapsed));
+                Tabs.Add(new TabItemViewModel("Setup", "avares://Companion/Assets/Icons/iconoir_settings_dark.svg",
+                    () => _serviceProvider.GetRequiredService<SetupTabViewModel>(), IsTabsCollapsed));
+            }
+            Tabs.Add(new TabItemViewModel("Preferences", "avares://Companion/Assets/Icons/iconoir_settings_dark.svg",
+                () => _serviceProvider.GetRequiredService<PreferencesTabViewModel>(), IsTabsCollapsed));
+        }
+
+        if (Tabs.Count > 0 && (SelectedTab == null || !Tabs.Contains(SelectedTab)))
+        {
+            SelectedTab = Tabs[0];
+            SelectedTabIndex = 0;
         }
     }
 
@@ -151,6 +201,7 @@ public partial class MainViewModel : ViewModelBase
             if (SetProperty(ref _isTabsCollapsed, value))
             {
                 UpdateSvgPath();
+                SavePreferences();
             }
         }
     }
@@ -163,8 +214,44 @@ public partial class MainViewModel : ViewModelBase
 
     public ICommand ConnectCommand { get; private set; }
     public ICommand ToggleTabsCommand { get; }
+    public ICommand ToggleThemeCommand { get; }
     
     public ICommand OpenLogFolderCommand { get; }
+    public ICommand ToggleLogPanelCommand { get; }
+
+    public bool IsLogPanelCollapsed
+    {
+        get => _isLogPanelCollapsed;
+        set
+        {
+            if (SetProperty(ref _isLogPanelCollapsed, value))
+            {
+                if (value)
+                {
+                    _logPanelHeightBeforeCollapse = _logPanelHeight;
+                }
+                else
+                {
+                    LogPanelHeight = _logPanelHeightBeforeCollapse >= DefaultLogHeight
+                        ? _logPanelHeightBeforeCollapse
+                        : DefaultLogHeight;
+                }
+                SavePreferences();
+            }
+        }
+    }
+
+    public double LogPanelHeight
+    {
+        get => _logPanelHeight;
+        set
+        {
+            if (SetProperty(ref _logPanelHeight, value))
+                SavePreferences();
+        }
+    }
+
+    public bool IsConnectEnabled => CanConnect && IsTabNavigationEnabled;
 
     public WfbTabViewModel WfbTabViewModel { get; }
     public WfbGSTabViewModel WfbGSTabViewModel { get; }
@@ -521,6 +608,9 @@ public partial class MainViewModel : ViewModelBase
             }
         }
 
+        if (_userPreferences.FirmwareFocusedMode && _deviceConfig.DeviceType == DeviceType.Camera)
+            TrySelectTab("Firmware");
+
         UpdateUIMessage("Connected");
     }
 
@@ -809,7 +899,7 @@ public partial class MainViewModel : ViewModelBase
 
         _logger.Information("Done reading files from device.");
 
-        _messageBoxService.ShowMessageBox("Read Device", "Done reading from device!");
+        _messageBoxService.ShowMessageBox("Read Device", "Done reading from device!", icon: Icon.None);
 
     }
 
@@ -959,19 +1049,80 @@ public partial class MainViewModel : ViewModelBase
     private void LoadSettings()
     {
         IsWaiting = true;
-        // Load settings via the SettingsManager
-        var settings = SettingsManager.LoadSettings();
-        _deviceConfig = DeviceConfig.Instance;
-        IpAddress = settings.IpAddress;
-        Password = settings.Password;
-        Port = settings.Port == 0 ? 22 : settings.Port;
-        SelectedDeviceType = settings.DeviceType;
-        
-        // Load cached IP addresses first
-        CachedIpAddresses = new ObservableCollection<string>(settings.CachedIpAddresses ?? new List<string>());
+        _isLoadingSettings = true;
 
-        // Publish the initial device type
-        EventSubscriptionService.Publish<DeviceTypeChangeEvent, DeviceType>(settings.DeviceType);
+        try
+        {
+            var settings = SettingsManager.LoadSettings();
+            DeviceConfig.SetInstance(settings);
+            _deviceConfig = DeviceConfig.Instance;
+
+            IpAddress = _deviceConfig.IpAddress;
+            Password = _deviceConfig.Password;
+            Port = _deviceConfig.Port == 0 ? 22 : _deviceConfig.Port;
+            SelectedDeviceType = _deviceConfig.DeviceType;
+            CachedIpAddresses = new ObservableCollection<string>(_deviceConfig.CachedIpAddresses ?? new List<string>());
+            IsDarkTheme = _deviceConfig.IsDarkTheme;
+            ApplyTheme();
+
+            EventSubscriptionService.Publish<DeviceTypeChangeEvent, DeviceType>(_deviceConfig.DeviceType);
+        }
+        finally
+        {
+            _isLoadingSettings = false;
+        }
+    }
+
+    private void RestoreSelectedTab()
+    {
+        if (Tabs.Count == 0)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(_userPreferences.LastSelectedTab))
+        {
+            if (!string.Equals(_userPreferences.LastSelectedTab, "Firmware", StringComparison.OrdinalIgnoreCase)
+                && TrySelectTab(_userPreferences.LastSelectedTab))
+                return;
+        }
+
+        SelectDefaultStartupTab();
+    }
+
+    private bool TrySelectTab(string tabName)
+    {
+        var selectedTab = Tabs.FirstOrDefault(tab =>
+            string.Equals(tab.TabName.Trim(), tabName, StringComparison.OrdinalIgnoreCase));
+
+        if (selectedTab == null)
+            return false;
+
+        SelectedTab = selectedTab;
+        SelectedTabIndex = Tabs.IndexOf(selectedTab);
+        return true;
+    }
+
+    private void SelectDefaultStartupTab()
+    {
+        var defaultTab = Tabs.FirstOrDefault(tab =>
+            !string.Equals(tab.TabName.Trim(), "Firmware", StringComparison.OrdinalIgnoreCase));
+
+        SelectedTab = defaultTab ?? Tabs[0];
+        SelectedTabIndex = Tabs.IndexOf(SelectedTab);
+    }
+
+    private void SavePreferences()
+    {
+        if (!_preferencesInitialized)
+            return;
+
+        // Reload first so tab-state saves do not overwrite newer values
+        // written by the Preferences or Firmware tabs.
+        _userPreferences = _preferencesService.Load();
+        _userPreferences.IsTabsCollapsed = IsTabsCollapsed;
+        _userPreferences.LastSelectedTab = SelectedTab?.TabName.Trim() ?? string.Empty;
+        _userPreferences.IsLogPanelCollapsed = IsLogPanelCollapsed;
+        _userPreferences.LogPanelHeight = IsLogPanelCollapsed ? _logPanelHeightBeforeCollapse : LogPanelHeight;
+        _preferencesService.Save(_userPreferences);
     }
 
     private void OpenLogFolder()
@@ -1064,11 +1215,38 @@ public partial class MainViewModel : ViewModelBase
     }
 }
     
+    partial void OnIsDarkThemeChanged(bool value)
+    {
+        ApplyTheme();
+        if (_isLoadingSettings)
+            return;
+
+        if (_deviceConfig != null)
+        {
+            _deviceConfig.IsDarkTheme = value;
+            SettingsManager.SaveSettings(_deviceConfig);
+        }
+    }
+
+    private void ApplyTheme()
+    {
+        if (Application.Current != null)
+        {
+            Application.Current.RequestedThemeVariant = IsDarkTheme
+                ? ThemeVariant.Dark
+                : ThemeVariant.Light;
+        }
+    }
+
     private void OnDeviceTypeChangeEvent(DeviceType deviceTypeEvent)
     {
         _logger.Debug($"Device type changed to: {deviceTypeEvent}");
 
-        Dispatcher.UIThread.InvokeAsync(() => InitializeTabs(deviceTypeEvent));
+        Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            InitializeTabs(deviceTypeEvent);
+            RestoreSelectedTab();
+        });
         //InitializeTabs(deviceTypeEvent);
 
         // Update IsVRXEnabled based on the device type
@@ -1079,6 +1257,27 @@ public partial class MainViewModel : ViewModelBase
 
         // Notify the view of tab changes
         //EventSubscriptionService.Publish<TabSelectionChangeEvent, string>(SelectedTab);
+    }
+
+    private void OnFirmwareOperationStateChanged(bool isInProgress)
+    {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => OnFirmwareOperationStateChanged(isInProgress));
+            return;
+        }
+
+        IsTabNavigationEnabled = !isInProgress;
+    }
+
+    partial void OnCanConnectChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsConnectEnabled));
+    }
+
+    partial void OnIsTabNavigationEnabledChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsConnectEnabled));
     }
 
     #region Observable Properties
@@ -1092,6 +1291,19 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private bool isVRXEnabled;
     [ObservableProperty] private DeviceConfig _deviceConfig;
     [ObservableProperty] private TabItemViewModel _selectedTab;
+    [ObservableProperty] private bool _isDarkTheme;
+
+    partial void OnSelectedTabChanged(TabItemViewModel value)
+    {
+        if (value == null)
+            return;
+
+        var index = Tabs.IndexOf(value);
+        if (index >= 0)
+            SelectedTabIndex = index;
+
+        SavePreferences();
+    }
 
     #endregion
 }

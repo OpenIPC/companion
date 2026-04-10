@@ -10,7 +10,9 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -39,7 +41,10 @@ public partial class FirmwareTabViewModel : ViewModelBase
         UploadRootfs,
         KernelFlash,
         RootfsFlash,
-        OverlayErase
+        OverlayErase,
+        WaitingForOffline,
+        WaitingForPing,
+        WaitingForSsh
     }
 
     #region Private Fields
@@ -49,11 +54,14 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private CancellationTokenSource _cancellationTokenSource;
     private FirmwareData _firmwareData;
     private readonly IGitHubService _gitHubService;
+    private readonly IPreferencesService _preferencesService;
     private bool _bInitializedCommands = false;
     private bool _bRecursionSelectGuard = false;
     private readonly IMessageBoxService _messageBoxService;
     private SysupgradePhase _sysupgradePhase = SysupgradePhase.None;
     private bool _sysupgradeInProgress = false;
+    private DispatcherTimer _flashTimer;
+    private bool _lastPublishedDestructiveOperationState;
     private static readonly IBrush ProgressRunningBrush = Brushes.Green;
     private static readonly IBrush ProgressErrorBrush = Brushes.Red;
     private static readonly IBrush ProgressCompleteBrush = new SolidColorBrush(Color.Parse("#4C61D8"));
@@ -67,7 +75,13 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private const int RootfsFlashStart = 60;
     private const int RootfsFlashEnd = 90;
     private const int OverlayEraseStart = 90;
-    private const int OverlayEraseEnd = 98;
+    private const int OverlayEraseEnd = 94;
+    private const int WaitForOfflineStart = 94;
+    private const int WaitForOfflineEnd = 95;
+    private const int WaitForPingStart = 95;
+    private const int WaitForPingEnd = 97;
+    private const int WaitForSshStart = 97;
+    private const int WaitForSshEnd = 99;
 
     private static readonly Regex AnsiEscapeRegex = new(@"\x1B\[[0-9;]*[mK]", RegexOptions.Compiled);
     private static readonly Regex AnsiBracketRegex = new(@"\[[0-9;]*m", RegexOptions.Compiled);
@@ -75,6 +89,9 @@ public partial class FirmwareTabViewModel : ViewModelBase
         new(@"(?:Erasing block|Writing kb|Verifying kb):.*\((?<percent>\d{1,3})%\)", RegexOptions.Compiled);
     private static readonly Regex OverlayPercentRegex =
         new(@"Erasing 64 Kibyte @ .* -\s*(?<percent>\d{1,3})%\s*complete",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex RecoveryPercentRegex =
+        new(@"Recovery progress:\s*(?<stage>offline|ping|ssh)\s+(?<percent>\d{1,3})%",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex MtdLineRegex =
         new(@"^(?<dev>mtd\d+):\s+(?<size>[0-9a-fA-F]+)\s+(?<erasesize>[0-9a-fA-F]+)\s+""(?<name>[^""]+)""",
@@ -106,9 +123,19 @@ public partial class FirmwareTabViewModel : ViewModelBase
     [ObservableProperty] private bool _bootloaderInProgress;
     [ObservableProperty] private string _bootloaderStorageTypeLabel = "Detected storage: Unknown";
     [ObservableProperty] private bool _firmwareUpgradeInProgress;
+    [ObservableProperty] private bool _backupInProgress;
+    [ObservableProperty] private int _backupProgressValue;
+    [ObservableProperty] private string _backupProgressText;
+    [ObservableProperty] private bool _restoreInProgress;
+    [ObservableProperty] private int _restoreProgressValue;
+    [ObservableProperty] private string _restoreProgressText;
+    [ObservableProperty] private bool _restoreConfirmed;
+    [ObservableProperty] private bool _flashWarning;
+    [ObservableProperty] private bool _isBackupExpanded;
     [ObservableProperty] private bool _isFirmwareExpanded = true;
     [ObservableProperty] private bool _isBootloaderExpanded;
     [ObservableProperty] private string _selectedFirmwareSource;
+    [ObservableProperty] private int _selectedFirmwareMethod; // 0=Automatic, 1=BySoc, 2=Local
 
     #endregion
 
@@ -163,6 +190,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
     public IAsyncRelayCommand<Window> SelectLocalFirmwarePackageCommand { get; set; }
     public IAsyncRelayCommand PerformFirmwareUpgradeAsyncCommand { get; set; }
     public IAsyncRelayCommand ReplaceBootloaderAsyncCommand { get; set; }
+    public IAsyncRelayCommand BackupFirmwareAsyncCommand { get; set; }
+    public IAsyncRelayCommand RestoreFirmwareAsyncCommand { get; set; }
     public ICommand ClearFormCommand { get; set; }
     public IAsyncRelayCommand DownloadFirmwareAsyncCommand { get; set; }
 
@@ -178,10 +207,12 @@ public partial class FirmwareTabViewModel : ViewModelBase
         ISshClientService sshClientService,
         IEventSubscriptionService eventSubscriptionService,
         IGitHubService gitHubService,
+        IPreferencesService preferencesService,
         IMessageBoxService messageBoxService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
         _gitHubService = gitHubService;
+        _preferencesService = preferencesService;
         _messageBoxService = messageBoxService;
         _httpClient = new HttpClient();
         _sysupgradeService = new SysUpgradeService(sshClientService, logger);
@@ -206,26 +237,59 @@ public partial class FirmwareTabViewModel : ViewModelBase
         BootloaderProgressValue = 0;
         BootloaderProgressText = string.Empty;
         BootloaderInProgress = false;
+        BackupInProgress = false;
+        BackupProgressValue = 0;
+        BackupProgressText = string.Empty;
+        RestoreInProgress = false;
+        RestoreProgressValue = 0;
+        RestoreProgressText = string.Empty;
+        RestoreConfirmed = false;
+        IsBackupExpanded = false;
         FirmwareUpgradeInProgress = false;
         IsFirmwareExpanded = true;
         IsBootloaderExpanded = false;
-        SelectedFirmwareSource = OpenIpcFirmwareSource;
+        var preferences = _preferencesService.Load();
+        var isGreg = string.Equals(preferences.PreferredFirmwareSource, GregApfpvFirmwareSource,
+            StringComparison.OrdinalIgnoreCase);
+        SelectedFirmwareSource = isGreg ? GregApfpvFirmwareSource : OpenIpcFirmwareSource;
+        if (isGreg)
+            SelectedFirmwareMethod = 1;
     }
 
     partial void OnIsFirmwareExpandedChanged(bool value)
     {
-        if (value && IsBootloaderExpanded)
-        {
+        if (!value)
+            return;
+
+        if (IsBootloaderExpanded)
             IsBootloaderExpanded = false;
-        }
+
+        if (IsBackupExpanded)
+            IsBackupExpanded = false;
     }
 
     partial void OnIsBootloaderExpandedChanged(bool value)
     {
-        if (value && IsFirmwareExpanded)
-        {
+        if (!value)
+            return;
+
+        if (IsFirmwareExpanded)
             IsFirmwareExpanded = false;
-        }
+
+        if (IsBackupExpanded)
+            IsBackupExpanded = false;
+    }
+
+    partial void OnIsBackupExpandedChanged(bool value)
+    {
+        if (!value)
+            return;
+
+        if (IsFirmwareExpanded)
+            IsFirmwareExpanded = false;
+
+        if (IsBootloaderExpanded)
+            IsBootloaderExpanded = false;
     }
 
     private void InitializeCommands()
@@ -244,15 +308,50 @@ public partial class FirmwareTabViewModel : ViewModelBase
             ReplaceBootloaderAsync,
             CanExecuteReplaceBootloader);
 
+        BackupFirmwareAsyncCommand = new AsyncRelayCommand(
+            BackupFirmwareAsync,
+            CanExecuteBackupFirmware);
+
+        RestoreFirmwareAsyncCommand = new AsyncRelayCommand(
+            RestoreFirmwareAsync,
+            CanExecuteRestoreFirmware);
+
         SelectLocalFirmwarePackageCommand = new AsyncRelayCommand<Window>(
             SelectLocalFirmwarePackage);
 
         ClearFormCommand = new RelayCommand(ClearForm);
     }
 
+    private void StartFlashTimer()
+    {
+        if (_flashTimer != null) return;
+        _flashTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
+        _flashTimer.Tick += (_, _) => FlashWarning = !FlashWarning;
+        _flashTimer.Start();
+    }
+
+    private void StopFlashTimer()
+    {
+        if (_flashTimer == null) return;
+        _flashTimer.Stop();
+        _flashTimer = null;
+        FlashWarning = false;
+    }
+
     private void SubscribeToEvents()
     {
         EventSubscriptionService.Subscribe<AppMessageEvent, AppMessage>(OnAppMessage);
+        EventSubscriptionService.Subscribe<FirmwareSourceChangedEvent, string>(OnFirmwareSourceChanged);
+    }
+
+    private void OnFirmwareSourceChanged(string source)
+    {
+        Logger.Debug("[FirmwareTab] OnFirmwareSourceChanged received: '{Source}', current='{Current}'", source, SelectedFirmwareSource);
+
+        if (string.IsNullOrWhiteSpace(source) || string.Equals(source, SelectedFirmwareSource, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        SelectedFirmwareSource = source;
     }
 
     #endregion
@@ -272,13 +371,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     private void HandleAppMessage(AppMessage message)
     {
+        var wasOperationInProgress = IsDestructiveOperationInProgress;
+
         CanConnect = message.CanConnect;
         IsConnected = message.CanConnect;
 
         _ = LoadManufacturersAsync();
         _ = LoadBootloadersAsync();
 
-        if (!IsConnected)
+        if (!IsConnected && !wasOperationInProgress)
         {
             IsLocalFirmwarePackageSelected = false;
             IsManufacturerDeviceFirmwareComboSelected = false;
@@ -287,6 +388,13 @@ public partial class FirmwareTabViewModel : ViewModelBase
             BootloaderProgressValue = 0;
             BootloaderProgressText = string.Empty;
             BootloaderInProgress = false;
+            BackupProgressValue = 0;
+            BackupProgressText = string.Empty;
+            BackupInProgress = false;
+            RestoreProgressValue = 0;
+            RestoreProgressText = string.Empty;
+            RestoreInProgress = false;
+            RestoreConfirmed = false;
             FirmwareUpgradeInProgress = false;
         }
 
@@ -309,12 +417,74 @@ public partial class FirmwareTabViewModel : ViewModelBase
         UpdateCanExecuteCommands();
     }
 
-    partial void OnSelectedFirmwareSourceChanged(string value)
+    partial void OnSelectedFirmwareMethodChanged(int value)
     {
-        if (string.IsNullOrWhiteSpace(value) || _bRecursionSelectGuard)
+        if (_bRecursionSelectGuard)
             return;
 
+        _bRecursionSelectGuard = true;
+
+        // Clear selections from other methods
+        if (value != 0) // Not Automatic
+        {
+            SelectedManufacturer = string.Empty;
+            SelectedDevice = string.Empty;
+            SelectedFirmware = string.Empty;
+            IsManufacturerDeviceFirmwareComboSelected = false;
+        }
+
+        if (value != 1) // Not BySoc
+        {
+            SelectedFirmwareBySoc = string.Empty;
+            IsFirmwareBySocSelected = false;
+        }
+
+        if (value != 2) // Not Local
+        {
+            ManualLocalFirmwarePackageFile = string.Empty;
+            IsLocalFirmwarePackageSelected = false;
+        }
+
+        _bRecursionSelectGuard = false;
+
+        OnPropertyChanged(nameof(IsAutomaticMethodSelected));
+        OnPropertyChanged(nameof(IsBySocMethodSelected));
+        OnPropertyChanged(nameof(IsLocalMethodSelected));
+        UpdateCanExecuteCommands();
+    }
+
+    public bool IsAutomaticMethodSelected => SelectedFirmwareMethod == 0;
+    public bool IsBySocMethodSelected => SelectedFirmwareMethod == 1;
+    public bool IsLocalMethodSelected => SelectedFirmwareMethod == 2;
+
+    partial void OnSelectedFirmwareSourceChanged(string value)
+    {
+        Logger.Debug("[FirmwareTab] OnSelectedFirmwareSourceChanged: '{Value}', guard={Guard}", value, _bRecursionSelectGuard);
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            // TwoWay binding wrote null/empty (e.g., during view teardown or binding init).
+            // Restore from preferences so the ViewModel stays consistent for the next view attachment.
+            var saved = _preferencesService.Load().PreferredFirmwareSource;
+            if (!string.IsNullOrWhiteSpace(saved))
+            {
+                _bRecursionSelectGuard = true;
+                SelectedFirmwareSource = saved;
+                _bRecursionSelectGuard = false;
+            }
+            return;
+        }
+
+        if (_bRecursionSelectGuard)
+            return;
+
+        EventSubscriptionService.Publish<FirmwareSourceChangedEvent, string>(value);
         ClearFirmwareSelectionsAndCollections();
+
+        // Card 1 (by manufacturer) is not applicable for Greg APFPV — switch to Card 2
+        if (IsGregApfpvSourceSelected() && SelectedFirmwareMethod == 0)
+            SelectedFirmwareMethod = 1;
+
         _ = LoadManufacturersAsync();
     }
     
@@ -448,6 +618,21 @@ public partial class FirmwareTabViewModel : ViewModelBase
         UpdateCanExecuteCommands();
     }
 
+    partial void OnBackupInProgressChanged(bool value)
+    {
+        UpdateCanExecuteCommands();
+    }
+
+    partial void OnRestoreInProgressChanged(bool value)
+    {
+        UpdateCanExecuteCommands();
+    }
+
+    partial void OnRestoreConfirmedChanged(bool value)
+    {
+        UpdateCanExecuteCommands();
+    }
+
     #endregion
 
     #region Public Methods
@@ -472,8 +657,9 @@ public partial class FirmwareTabViewModel : ViewModelBase
         {
             Logger.Information("Loading bootloader list...");
             var filenames = await GetBootloaderFilenamesAsync();
-            var storageType = await GetDeviceStorageTypeAsync();
-            UpdateBootloaderStorageTypeLabel(storageType);
+            var detectedStorageType = await GetDeviceStorageTypeAsync();
+            var storageType = NormalizeBootloaderStorageType(detectedStorageType);
+            UpdateBootloaderStorageTypeLabel(detectedStorageType, storageType);
             var filtered = FilterBootloadersByStorage(filenames, storageType);
             UpdateBootloaders(filtered);
         }
@@ -607,7 +793,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
         IsLocalFirmwarePackageSelected = false;
         IsManufacturerDeviceFirmwareComboSelected = false;
         IsManualUpdateEnabled = true;
-        
+        SelectedFirmwareMethod = 0;
+
         UpdateCanExecuteCommands();
     }
 
@@ -659,7 +846,27 @@ public partial class FirmwareTabViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanUseDropdowns));
         OnPropertyChanged(nameof(CanUseDropdownsBySoc));
         OnPropertyChanged(nameof(CanUseSelectLocalFirmwarePackage));
+        OnPropertyChanged(nameof(IsGregApfpvSelected));
         OnPropertyChanged(nameof(CanReplaceBootloader));
+        OnPropertyChanged(nameof(CanBackupFirmware));
+        OnPropertyChanged(nameof(CanRestoreFirmware));
+        OnPropertyChanged(nameof(IsDestructiveOperationInProgress));
+        OnPropertyChanged(nameof(DestructiveOperationWarning));
+        OnPropertyChanged(nameof(IsAutomaticMethodSelected));
+
+        if (IsDestructiveOperationInProgress)
+            StartFlashTimer();
+        else
+            StopFlashTimer();
+
+        if (_lastPublishedDestructiveOperationState != IsDestructiveOperationInProgress)
+        {
+            _lastPublishedDestructiveOperationState = IsDestructiveOperationInProgress;
+            EventSubscriptionService.Publish<FirmwareOperationStateChangedEvent, bool>(IsDestructiveOperationInProgress);
+        }
+
+        OnPropertyChanged(nameof(IsBySocMethodSelected));
+        OnPropertyChanged(nameof(IsLocalMethodSelected));
 
         if (IsConnected)
         {
@@ -667,6 +874,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
             DownloadFirmwareAsyncCommand?.NotifyCanExecuteChanged();
             PerformFirmwareUpgradeAsyncCommand?.NotifyCanExecuteChanged();
             ReplaceBootloaderAsyncCommand?.NotifyCanExecuteChanged();
+            BackupFirmwareAsyncCommand?.NotifyCanExecuteChanged();
+            RestoreFirmwareAsyncCommand?.NotifyCanExecuteChanged();
             SelectLocalFirmwarePackageCommand?.NotifyCanExecuteChanged();
         }
     }
@@ -674,9 +883,40 @@ public partial class FirmwareTabViewModel : ViewModelBase
     public bool CanReplaceBootloader =>
         IsConnected &&
         !BootloaderInProgress &&
+        !BackupInProgress &&
         !FirmwareUpgradeInProgress &&
         !string.IsNullOrWhiteSpace(SelectedBootloader) &&
         BootloaderConfirmed;
+
+    public bool CanBackupFirmware =>
+        IsConnected &&
+        !BootloaderInProgress &&
+        !FirmwareUpgradeInProgress &&
+        !BackupInProgress &&
+        !RestoreInProgress;
+
+    public bool CanRestoreFirmware =>
+        IsConnected &&
+        !BootloaderInProgress &&
+        !FirmwareUpgradeInProgress &&
+        !BackupInProgress &&
+        !RestoreInProgress &&
+        RestoreConfirmed;
+
+    public bool IsDestructiveOperationInProgress =>
+        BackupInProgress || RestoreInProgress || FirmwareUpgradeInProgress || BootloaderInProgress;
+
+    public string DestructiveOperationWarning
+    {
+        get
+        {
+            if (RestoreInProgress) return "DO NOT INTERRUPT — RESTORING FIRMWARE — DO NOT POWER OFF";
+            if (BootloaderInProgress) return "DO NOT INTERRUPT — FLASHING BOOTLOADER — DO NOT POWER OFF";
+            if (FirmwareUpgradeInProgress) return "DO NOT INTERRUPT — FIRMWARE UPGRADE IN PROGRESS — DO NOT POWER OFF";
+            if (BackupInProgress) return "DO NOT INTERRUPT — BACKUP IN PROGRESS";
+            return string.Empty;
+        }
+    }
 
     private async Task<FirmwareData> FetchFirmwareListAsync()
     {
@@ -789,8 +1029,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         if (!bootloaderFiles.Any())
             return bootloaderFiles;
 
-        if (string.IsNullOrEmpty(storageType))
-            return bootloaderFiles;
+        storageType = NormalizeBootloaderStorageType(storageType);
 
         var filtered = bootloaderFiles
             .Where(name => IsBootloaderForStorage(name, storageType))
@@ -801,13 +1040,21 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     private static bool IsBootloaderForStorage(string filename, string storageType)
     {
-        if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(storageType))
+        if (string.IsNullOrWhiteSpace(filename))
             return false;
 
+        storageType = NormalizeBootloaderStorageType(storageType);
         var lower = filename.ToLowerInvariant();
         return storageType == "nor"
             ? (lower.Contains("-nor") || lower.Contains("_nor"))
             : (lower.Contains("-nand") || lower.Contains("_nand"));
+    }
+
+    private static string NormalizeBootloaderStorageType(string storageType)
+    {
+        return string.Equals(storageType, "nand", StringComparison.OrdinalIgnoreCase)
+            ? "nand"
+            : "nor";
     }
 
     private async Task<string> GetDeviceStorageTypeAsync()
@@ -839,13 +1086,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
         return null;
     }
 
-    private void UpdateBootloaderStorageTypeLabel(string storageType)
+    private void UpdateBootloaderStorageTypeLabel(string detectedStorageType, string resolvedStorageType)
     {
-        var label = "Detected storage: Unknown";
-        if (string.Equals(storageType, "nor", StringComparison.OrdinalIgnoreCase))
+        var label = "Detected storage: Unknown (defaulting to NOR)";
+        if (string.Equals(detectedStorageType, "nor", StringComparison.OrdinalIgnoreCase))
             label = "Detected storage: NOR";
-        else if (string.Equals(storageType, "nand", StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(detectedStorageType, "nand", StringComparison.OrdinalIgnoreCase))
             label = "Detected storage: NAND";
+        else if (string.Equals(resolvedStorageType, "nor", StringComparison.OrdinalIgnoreCase))
+            label = "Detected storage: Unknown (defaulting to NOR)";
 
         if (!Dispatcher.UIThread.CheckAccess())
         {
@@ -1347,6 +1596,373 @@ public partial class FirmwareTabViewModel : ViewModelBase
         return CanReplaceBootloader;
     }
 
+    private bool CanExecuteBackupFirmware()
+    {
+        return CanBackupFirmware;
+    }
+
+    private bool CanExecuteRestoreFirmware()
+    {
+        return CanRestoreFirmware;
+    }
+
+    private async Task BackupFirmwareAsync()
+    {
+        var deviceConfig = DeviceConfig.Instance;
+        if (!deviceConfig.CanConnect)
+            return;
+
+        var chipType = string.IsNullOrWhiteSpace(deviceConfig.ChipType) ? "unknown-soc" : deviceConfig.ChipType;
+        var sanitizedChipType = Regex.Replace(chipType.ToLowerInvariant(), @"[^a-z0-9._-]+", "-");
+        var backupName = $"backup-{sanitizedChipType}-{DateTime.Now:yyyyMMdd-HHmmss}";
+        var remoteBaseDir = $"{OpenIPC.RemoteTempFolder}/mtd-backup";
+        var remoteBackupDir = $"{remoteBaseDir}/{backupName}";
+        var remoteArchivePath = $"{OpenIPC.RemoteTempFolder}/{backupName}.tar.gz";
+
+        try
+        {
+            BackupInProgress = true;
+            BackupProgressValue = 5;
+            BackupProgressText = "Stopping services on device...";
+            UpdateCanExecuteCommands();
+
+            await SshClientService.ExecuteCommandAsync(
+                deviceConfig,
+                "killall -q -3 majestic; killall -q wfb_tx; killall -q wfb_rx; " +
+                "killall -q msposd; killall -q telemetry_rx; killall -q telemetry_tx; " +
+                "sleep 1; sync; echo 3 > /proc/sys/vm/drop_caches; true");
+
+            BackupProgressValue = 8;
+            BackupProgressText = "Preparing backup directory on device...";
+            await SshClientService.ExecuteCommandAsync(
+                deviceConfig,
+                $"rm -rf '{remoteBaseDir}' '{remoteArchivePath}' && mkdir -p '{remoteBackupDir}'");
+
+            BackupProgressValue = 12;
+            BackupProgressText = "Backing up all MTD partitions on device...";
+            await SshClientService.ExecuteCommandAsync(
+                deviceConfig,
+                $"for mtd in $(ls /dev/mtdblock*); do dd if=${{mtd}} of='{remoteBackupDir}'/${{mtd##/*/}}.bin; done");
+
+            BackupProgressValue = 70;
+            BackupProgressText = "Syncing and generating checksum file on device...";
+            await SshClientService.ExecuteCommandAsync(
+                deviceConfig,
+                $"sync && cd '{remoteBackupDir}' && md5sum mtdblock*.bin > md5sums.txt");
+
+            BackupProgressValue = 82;
+            BackupProgressText = "Creating backup archive on device...";
+            await SshClientService.ExecuteCommandAsync(
+                deviceConfig,
+                $"tar -cf - -C '{remoteBaseDir}' '{backupName}' | gzip > '{remoteArchivePath}'");
+
+            var saveFileDialog = new SaveFileDialog
+            {
+                Title = "Save Firmware Backup",
+                DefaultExtension = "tar.gz",
+                InitialFileName = $"{backupName}.tar.gz",
+                Filters = new List<FileDialogFilter>
+                {
+                    new() { Name = "Tar GZip Archive", Extensions = { "tar.gz" } },
+                    new() { Name = "All Files", Extensions = { "*" } }
+                }
+            };
+
+            var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                ? desktop.MainWindow
+                : null;
+
+            if (mainWindow == null)
+            {
+                BackupProgressText = "Unable to open save dialog.";
+                return;
+            }
+
+            var savePath = await saveFileDialog.ShowAsync(mainWindow);
+            if (string.IsNullOrWhiteSpace(savePath))
+            {
+                BackupProgressText = "Backup download canceled.";
+                return;
+            }
+
+            BackupProgressValue = 92;
+            BackupProgressText = "Downloading backup archive...";
+            var archiveBytes = await SshClientService.DownloadFileBytesAsync(deviceConfig, remoteArchivePath);
+            if (archiveBytes.Length == 0)
+            {
+                BackupProgressText = "Failed to download backup archive.";
+                BackupProgressValue = 0;
+                await _messageBoxService.ShowCustomMessageBox(
+                    "Backup failed",
+                    "The backup archive could not be downloaded. Please try again or open a ticket.",
+                    ButtonEnum.Ok,
+                    Icon.Error);
+                return;
+            }
+
+            File.WriteAllBytes(savePath, archiveBytes);
+
+            BackupProgressValue = 100;
+            BackupProgressText = $"Backup saved to {savePath}";
+
+            await SshClientService.ExecuteCommandAsync(
+                deviceConfig,
+                $"rm -rf '{remoteBackupDir}' '{remoteArchivePath}'");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error backing up firmware");
+            BackupProgressText = $"Error: {ex.Message}";
+            BackupProgressValue = 0;
+            await _messageBoxService.ShowCustomMessageBox(
+                "Backup failed",
+                "An error occurred while creating the backup. Please try again or open a ticket.",
+                ButtonEnum.Ok,
+                Icon.Error);
+        }
+        finally
+        {
+            BackupInProgress = false;
+            UpdateCanExecuteCommands();
+        }
+    }
+
+    private static List<int> ParseMtdIndices(string mtdOutput)
+    {
+        return mtdOutput
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => MtdLineRegex.Match(line))
+            .Where(match => match.Success)
+            .Select(match => match.Groups["dev"].Value.Replace("mtd", string.Empty, StringComparison.OrdinalIgnoreCase))
+            .Select(index => int.TryParse(index, out var parsed) ? parsed : -1)
+            .Where(index => index >= 0)
+            .ToList();
+    }
+
+    private async Task RestoreFirmwareAsync()
+    {
+        var deviceConfig = DeviceConfig.Instance;
+        if (!deviceConfig.CanConnect) return;
+
+        var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+
+        if (mainWindow == null)
+        {
+            RestoreProgressText = "Unable to open file dialog.";
+            return;
+        }
+
+        var dialog = new OpenFileDialog
+        {
+            Title = "Select Firmware Backup",
+            Filters = new List<FileDialogFilter>
+            {
+                new() { Name = "Firmware Backup", Extensions = { "gz", "tgz" } },
+                new() { Name = "All Files", Extensions = { "*" } }
+            }
+        };
+
+        var files = await dialog.ShowAsync(mainWindow);
+        if (files == null || files.Length == 0 || string.IsNullOrWhiteSpace(files[0]))
+        {
+            RestoreProgressText = "Restore canceled.";
+            return;
+        }
+
+        var archivePath = files[0];
+
+        var confirm = await _messageBoxService.ShowCustomMessageBox(
+            "Restore firmware?",
+            $"This will overwrite all MTD flash partitions on the device with data from:\n{Path.GetFileName(archivePath)}\n\nThis is irreversible. A power failure mid-flash can permanently brick the device. Continue?",
+            ButtonEnum.YesNo,
+            Icon.Warning);
+
+        if (confirm != ButtonResult.Yes) return;
+
+        string tempDir = null;
+        try
+        {
+            RestoreInProgress = true;
+            RestoreProgressValue = 2;
+            RestoreProgressText = "Extracting backup archive...";
+            UpdateCanExecuteCommands();
+
+            tempDir = ExtractBackupToTempDir(archivePath);
+
+            RestoreProgressValue = 8;
+            RestoreProgressText = "Verifying checksums...";
+
+            var checksumFile = Directory.GetFiles(tempDir, "md5sums.txt", SearchOption.AllDirectories).FirstOrDefault()
+                               ?? Directory.GetFiles(tempDir, "sha256sums.txt", SearchOption.AllDirectories).FirstOrDefault();
+            var mtdBinFiles = Directory.GetFiles(tempDir, "mtdblock*.bin", SearchOption.AllDirectories)
+                .Concat(Directory.GetFiles(tempDir, "mtd[0-9]*.bin", SearchOption.AllDirectories))
+                .OrderBy(f =>
+                {
+                    var m = Regex.Match(Path.GetFileNameWithoutExtension(f), @"(\d+)$");
+                    return m.Success ? int.Parse(m.Groups[1].Value) : int.MaxValue;
+                })
+                .ToList();
+
+            if (!mtdBinFiles.Any())
+            {
+                RestoreProgressText = "No MTD partition files found in the backup archive.";
+                await _messageBoxService.ShowCustomMessageBox(
+                    "Restore failed",
+                    "No MTD partition files (mtd*.bin) found in the backup archive.",
+                    ButtonEnum.Ok,
+                    Icon.Error);
+                return;
+            }
+
+            if (checksumFile != null)
+                VerifyBackupChecksums(checksumFile, mtdBinFiles);
+
+            RestoreProgressValue = 12;
+            RestoreProgressText = "Reading device partition table...";
+
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var mtdResult = await SshClientService.ExecuteCommandWithResponseAsync(deviceConfig, "cat /proc/mtd", cts.Token);
+            var deviceIndices = ParseMtdIndices(mtdResult?.Result ?? string.Empty);
+
+            if (!deviceIndices.Any())
+            {
+                RestoreProgressText = "Could not read MTD partitions from device.";
+                await _messageBoxService.ShowCustomMessageBox(
+                    "Restore failed",
+                    "Could not read /proc/mtd from device.",
+                    ButtonEnum.Ok,
+                    Icon.Error);
+                return;
+            }
+
+            var progressPerPartition = Math.Max(1, 75 / mtdBinFiles.Count);
+
+            for (var i = 0; i < mtdBinFiles.Count; i++)
+            {
+                var localPath = mtdBinFiles[i];
+                var filename = Path.GetFileName(localPath);
+                var indexMatch = Regex.Match(filename, @"mtdblock(\d+)\.bin|mtd(\d+)\.bin");
+                if (!indexMatch.Success) continue;
+
+                var partitionIndex = int.Parse(indexMatch.Groups[1].Success
+                    ? indexMatch.Groups[1].Value
+                    : indexMatch.Groups[2].Value);
+
+                if (!deviceIndices.Contains(partitionIndex))
+                {
+                    Logger.Warning($"Skipping {filename}: /dev/mtd{partitionIndex} not found on device.");
+                    continue;
+                }
+
+                var remotePath = $"{OpenIPC.RemoteTempFolder}/{filename}";
+
+                RestoreProgressValue = 15 + (i * progressPerPartition);
+                RestoreProgressText = $"Uploading {filename} ({i + 1}/{mtdBinFiles.Count})...";
+                await SshClientService.UploadFileAsync(deviceConfig, localPath, remotePath);
+
+                RestoreProgressValue = 15 + (i * progressPerPartition) + (progressPerPartition / 2);
+                RestoreProgressText = $"Flashing {filename} to /dev/mtd{partitionIndex}...";
+                await SshClientService.ExecuteCommandAsync(deviceConfig, $"flashcp -v '{remotePath}' /dev/mtd{partitionIndex}");
+
+                await SshClientService.ExecuteCommandAsync(deviceConfig, $"rm -f '{remotePath}'");
+            }
+
+            RestoreProgressValue = 95;
+            RestoreProgressText = "Rebooting device...";
+            await SshClientService.ExecuteCommandAsync(deviceConfig, "reboot");
+
+            RestoreProgressValue = 100;
+            RestoreProgressText = "Restore complete. Device is rebooting.";
+
+            await _messageBoxService.ShowCustomMessageBox(
+                "Restore complete",
+                "All MTD partitions have been restored. The device will reboot now.",
+                ButtonEnum.Ok,
+                Icon.Success);
+        }
+        catch (InvalidDataException ex)
+        {
+            Logger.Error(ex, "Checksum mismatch during restore");
+            RestoreProgressText = $"Checksum mismatch: {ex.Message}";
+            RestoreProgressValue = 0;
+            await _messageBoxService.ShowCustomMessageBox(
+                "Restore aborted",
+                $"Checksum verification failed: {ex.Message}\n\nThe backup may be corrupted. No data was written to the device.",
+                ButtonEnum.Ok,
+                Icon.Error);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error restoring firmware");
+            RestoreProgressText = $"Error: {ex.Message}";
+            RestoreProgressValue = 0;
+            await _messageBoxService.ShowCustomMessageBox(
+                "Restore failed",
+                "An error occurred during restore. Please try again or open a ticket.",
+                ButtonEnum.Ok,
+                Icon.Error);
+        }
+        finally
+        {
+            RestoreInProgress = false;
+            RestoreConfirmed = false;
+            if (tempDir != null && Directory.Exists(tempDir))
+                try { Directory.Delete(tempDir, true); } catch { /* best effort cleanup */ }
+            UpdateCanExecuteCommands();
+        }
+    }
+
+    private string ExtractBackupToTempDir(string archivePath)
+    {
+        var tarPath = DecompressTgzToTar(archivePath);
+        var tempDir = Path.Combine(Path.GetTempPath(), $"companion-restore-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        using (var archive = SharpCompress.Archives.Tar.TarArchive.Open(tarPath))
+        {
+            foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
+            {
+                var destPath = Path.Combine(tempDir, Path.GetFileName(entry.Key));
+                using var entryStream = entry.OpenEntryStream();
+                using var fileStream = File.Create(destPath);
+                entryStream.CopyTo(fileStream);
+            }
+        }
+
+        try { File.Delete(tarPath); } catch { /* best effort */ }
+        return tempDir;
+    }
+
+    private static void VerifyBackupChecksums(string checksumFile, List<string> mtdBinFiles)
+    {
+        var checksumMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var line in File.ReadAllLines(checksumFile))
+        {
+            var spaceIdx = line.IndexOf(' ');
+            if (spaceIdx < 0) continue;
+            var hash = line[..spaceIdx].Trim();
+            var name = Path.GetFileName(line[spaceIdx..].Trim());
+            if (!string.IsNullOrEmpty(name))
+                checksumMap[name] = hash;
+        }
+
+        using var md5 = System.Security.Cryptography.MD5.Create();
+        foreach (var binPath in mtdBinFiles)
+        {
+            var name = Path.GetFileName(binPath);
+            if (!checksumMap.TryGetValue(name, out var expectedHash)) continue;
+
+            using var stream = File.OpenRead(binPath);
+            var hashBytes = md5.ComputeHash(stream);
+            var actualHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+
+            if (!string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"{name}: expected {expectedHash[..8]}…, got {actualHash[..8]}…");
+        }
+    }
+
     private async Task ReplaceBootloaderAsync()
     {
         if (string.IsNullOrWhiteSpace(SelectedBootloader))
@@ -1610,6 +2226,35 @@ public partial class FirmwareTabViewModel : ViewModelBase
             SetProgressMinimum(OverlayEraseStart);
         }
 
+        if (line.StartsWith("Waiting for device reboot", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.WaitingForOffline;
+            SetProgressMinimum(WaitForOfflineStart);
+            return;
+        }
+
+        if (line.StartsWith("Device went offline", StringComparison.OrdinalIgnoreCase) ||
+            line.StartsWith("Did not observe disconnect", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.WaitingForPing;
+            SetProgressMinimum(WaitForPingStart);
+            return;
+        }
+
+        if (line.StartsWith("Device is reachable again. Waiting for SSH", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.WaitingForSsh;
+            SetProgressMinimum(WaitForSshStart);
+            return;
+        }
+
+        if (line.StartsWith("Device reconnected successfully", StringComparison.OrdinalIgnoreCase))
+        {
+            _sysupgradePhase = SysupgradePhase.WaitingForSsh;
+            SetProgressMinimum(99);
+            return;
+        }
+
         if (TryParseSysupgradePercent(line, out var percent))
             ApplySysupgradePercent(percent);
     }
@@ -1632,6 +2277,10 @@ public partial class FirmwareTabViewModel : ViewModelBase
             return true;
 
         match = OverlayPercentRegex.Match(line);
+        if (match.Success && int.TryParse(match.Groups["percent"].Value, out percent))
+            return true;
+
+        match = RecoveryPercentRegex.Match(line);
         if (match.Success && int.TryParse(match.Groups["percent"].Value, out percent))
             return true;
 
@@ -1660,6 +2309,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
                 break;
             case SysupgradePhase.OverlayErase:
                 SetProgressMinimum(MapPercentToRange(OverlayEraseStart, OverlayEraseEnd, percent));
+                break;
+            case SysupgradePhase.WaitingForOffline:
+                SetProgressMinimum(MapPercentToRange(WaitForOfflineStart, WaitForOfflineEnd, percent));
+                break;
+            case SysupgradePhase.WaitingForPing:
+                SetProgressMinimum(MapPercentToRange(WaitForPingStart, WaitForPingEnd, percent));
+                break;
+            case SysupgradePhase.WaitingForSsh:
+                SetProgressMinimum(MapPercentToRange(WaitForSshStart, WaitForSshEnd, percent));
                 break;
         }
     }
@@ -1744,7 +2402,16 @@ public partial class FirmwareTabViewModel : ViewModelBase
             _sysupgradePhase = SysupgradePhase.None;
             ProgressValue = 100;
             SetProgressBarBrush(ProgressCompleteBrush);
-            await _messageBoxService.ShowCustomMessageBox("Upgrade Complete!!", "Device has been flashed!", ButtonEnum.Ok, Icon.Success);
+            var deviceUrl = $"http://{DeviceConfig.Instance.IpAddress}";
+            var result = await _messageBoxService.ShowCustomMessageBox(
+                "Upgrade Complete!!",
+                $"Device has been flashed!\n\nOpen device page:\n{deviceUrl}\n\nOpen this link now?",
+                ButtonEnum.YesNo,
+                Icon.Success);
+
+            if (result == ButtonResult.Yes)
+                OpenUrl(deviceUrl);
+
             Logger.Information("Firmware upgrade completed successfully.");
         }
         catch (Exception ex)
@@ -1754,6 +2421,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
             _sysupgradeInProgress = false;
             _sysupgradePhase = SysupgradePhase.None;
         }
+    }
+
+    private static void OpenUrl(string url)
+    {
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = url,
+            UseShellExecute = true
+        });
     }
 
     public async Task SelectLocalFirmwarePackage(Window window)
@@ -1795,6 +2471,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
     {
         return string.Equals(SelectedFirmwareSource, GregApfpvFirmwareSource, StringComparison.OrdinalIgnoreCase);
     }
+
+    public bool IsGregApfpvSelected => IsGregApfpvSourceSelected();
 
     private string BuildFirmwareDownloadUrl(string firmwareFilename)
     {

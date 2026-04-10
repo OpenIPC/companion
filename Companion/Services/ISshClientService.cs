@@ -56,5 +56,7 @@ public interface ISshClientService
         Action<string> updateProgress,
         CancellationToken cancellationToken = default,
         TimeSpan? timeout = null,
-        Func<string, bool> isCommandComplete = null);
+        Func<string, bool> isCommandComplete = null,
+        bool allowDisconnectCompletion = false,
+        bool disableTimeout = false);
 }

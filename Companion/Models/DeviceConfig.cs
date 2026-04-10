@@ -22,8 +22,9 @@ public class DeviceConfig : INotifyPropertyChanged
     
     private int _port;
     private string _username;
-    
-    
+    private bool _isDarkTheme;
+
+
     #endregion
 
     #region Constructor
@@ -173,8 +174,21 @@ public class DeviceConfig : INotifyPropertyChanged
     }
     
     
+    /// <summary>
+    /// Gets or sets whether the dark theme is enabled
+    /// </summary>
+    public bool IsDarkTheme
+    {
+        get => _isDarkTheme;
+        set
+        {
+            _isDarkTheme = value;
+            OnPropertyChanged();
+        }
+    }
+
     #endregion
-    
+
     /// <summary>
     /// Gets whether the device can be connected to based on required properties
     /// </summary>

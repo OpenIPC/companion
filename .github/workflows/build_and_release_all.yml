@@ -133,6 +133,17 @@ jobs:
             echo "Wrote ${RELEASE_VERSION_WITH_V} to ${PUBLISH_DIR}/VERSION"
           fi
 
+      - name: Rename Linux desktop binary
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PUBLISH_DIR="./Companion.Desktop/bin/Release/net8.0/linux-${{ matrix.arch }}/publish"
+          if [[ -f "${PUBLISH_DIR}/Companion.Desktop" ]]; then
+            mv "${PUBLISH_DIR}/Companion.Desktop" "${PUBLISH_DIR}/Companion.DesktopApp"
+            echo "Renamed Linux apphost to Companion.DesktopApp"
+          fi
+
       # ----- macOS: bundle .app + sign + dmg -----
       - name: Decode signing certificate
         if: matrix.os == 'macos-latest'
@@ -270,6 +281,8 @@ jobs:
             echo "Signing app with identity: $CODESIGN_IDENTITY"
             codesign --keychain "$KEYCHAIN_PATH" \
                      --deep --force --verify --verbose \
+                     --options runtime \
+                     --timestamp \
                      --sign "${CODESIGN_IDENTITY}" "${APP_DIR}"
             codesign --verify --verbose=4 "${APP_DIR}"
             spctl --assess --type execute --verbose "${APP_DIR}" || true
@@ -278,12 +291,82 @@ jobs:
           fi
 
           rm -f "${DMG_NAME}"
-          mkdir -p dmg_build && cp -R "${APP_DIR}" dmg_build/ && ln -s /Applications dmg_build/Applications
+          mkdir -p dmg_build
+          rm -rf "dmg_build/${APP_DIR}"
+          # Preserve bundle metadata and signatures when staging the signed app for the DMG.
+          ditto "${APP_DIR}" "dmg_build/${APP_DIR}"
+          codesign --verify --deep --strict --verbose=4 "dmg_build/${APP_DIR}"
+          ln -s /Applications dmg_build/Applications
           hdiutil create -volname "Companion" -srcfolder dmg_build -ov -format UDZO -fs HFS+ -size 500m "${DMG_NAME}"
           rm -rf dmg_build
 
-          rm -f "Companion-macos-${{ matrix.arch }}.zip"
-          zip -r "Companion-macos-${{ matrix.arch }}.zip" "${APP_DIR}"
+          MOUNT_DIR="$(mktemp -d)"
+          DEVICE_NAME=""
+          cleanup_mount() {
+            if [[ -n "${DEVICE_NAME}" ]]; then
+              hdiutil detach "${DEVICE_NAME}" || true
+            fi
+            rmdir "${MOUNT_DIR}" 2>/dev/null || true
+          }
+          trap cleanup_mount EXIT
+
+          ATTACH_OUTPUT="$(hdiutil attach -readonly -nobrowse -mountpoint "${MOUNT_DIR}" "${DMG_NAME}")"
+          DEVICE_NAME="$(echo "${ATTACH_OUTPUT}" | awk '/Apple_HFS/ {print $1; exit}')"
+          if [[ -z "${DEVICE_NAME}" ]]; then
+            echo "ERROR: Failed to determine mounted DMG device."
+            exit 1
+          fi
+
+          codesign --verify --deep --strict --verbose=4 "${MOUNT_DIR}/${APP_DIR}"
+          spctl --assess --type execute --verbose=4 "${MOUNT_DIR}/${APP_DIR}" || true
+
+      - name: Notarize and staple macOS DMG
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+
+          DMG_NAME="Companion-macos-${{ matrix.arch }}.dmg"
+
+          if [[ -z "${APPLE_ID:-}" || -z "${APPLE_APP_SPECIFIC_PASSWORD:-}" || -z "${APPLE_TEAM_ID:-}" ]]; then
+            if [[ "${GITHUB_REF:-}" == refs/tags/release-v* ]]; then
+              echo "ERROR: Missing notarization secrets for tagged release."
+              echo "Required: APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID"
+              exit 1
+            fi
+
+            echo "No notarization credentials configured; skipping notarization."
+            exit 0
+          fi
+
+          SUBMISSION_OUTPUT="$(xcrun notarytool submit "${DMG_NAME}" \
+            --apple-id "${APPLE_ID}" \
+            --password "${APPLE_APP_SPECIFIC_PASSWORD}" \
+            --team-id "${APPLE_TEAM_ID}" \
+            --wait \
+            --output-format json)"
+
+          echo "${SUBMISSION_OUTPUT}"
+
+          SUBMISSION_ID="$(echo "${SUBMISSION_OUTPUT}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+          SUBMISSION_STATUS="$(echo "${SUBMISSION_OUTPUT}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])')"
+
+          if [[ "${SUBMISSION_STATUS}" != "Accepted" ]]; then
+            echo "Notarization failed with status: ${SUBMISSION_STATUS}"
+            xcrun notarytool log "${SUBMISSION_ID}" \
+              --apple-id "${APPLE_ID}" \
+              --password "${APPLE_APP_SPECIFIC_PASSWORD}" \
+              --team-id "${APPLE_TEAM_ID}" || true
+            exit 1
+          fi
+
+          xcrun stapler staple "${DMG_NAME}"
+          xcrun stapler validate "${DMG_NAME}"
+          spctl --assess --type open --verbose=4 "${DMG_NAME}" || true
 
       # ----- Linux packaging -----
       - name: Linux - zip publish folder
@@ -318,13 +401,6 @@ jobs:
           # Name without extension keeps folders sane when downloaded
           name: Companion-macos-${{ matrix.arch }}
           path: Companion-macos-${{ matrix.arch }}.dmg
-          compression-level: 9
-      - name: Upload macOS App Zip
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: Companion-macos-${{ matrix.arch }}-app
-          path: Companion-macos-${{ matrix.arch }}.zip
           compression-level: 9
 
       - name: Upload Windows Artifact
@@ -387,24 +463,11 @@ jobs:
 
           # Copy macOS DMGs (also inside artifact folders)
           find ./artifacts -type f -name "Companion-macos-*.dmg" -exec cp {} ./release_files/ \;
-          # Copy macOS app zips
-          find ./artifacts -type f -name "Companion-macos-*.zip" -exec cp {} ./release_files/ \;
 
           ls -la ./release_files
 
-      - name: Generate latest.json
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat << EOF > ./release_files/latest.json
-          {
-            "version": "${{ env.VERSION }}",
-            "release_notes": "Generated release notes.",
-            "download_url": "https://github.com/${{ github.repository }}/releases/latest"
-          }
-          EOF
-
       - name: Create GitHub Release and Upload Assets
+        id: create_release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
@@ -416,11 +479,43 @@ jobs:
             ### Downloads
             * **Windows**: `Companion-windows-x64.zip` / `Companion-windows-arm64.zip`
             * **macOS**: `Companion-macos-x64.dmg` / `Companion-macos-arm64.dmg`
-            * **macOS (App ZIP)**: `Companion-macos-x64.zip` / `Companion-macos-arm64.zip`
             * **Linux**: `Companion-linux-x64.zip` / `Companion-linux-arm64.zip`
 
             ### Install
             * **Windows**: unzip and run `Companion.Desktop.exe`.
-            * **macOS**: open `.dmg` and drag **Companion.app** to Applications. (ZIP contains the `.app` bundle.)
-            * **Linux**: unzip and run `./Companion.Desktop` (chmod +x if needed).
-          files: ./release_files/*
+            * **macOS**: open `.dmg` and drag **Companion.app** to Applications.
+            * **Linux**: unzip and run `./Companion.DesktopApp` (chmod +x if needed).
+          files: |
+            ./release_files/Companion-windows-*.zip
+            ./release_files/Companion-linux-*.zip
+            ./release_files/Companion-macos-*.dmg
+
+      - name: Generate latest.json from release body
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          RELEASE_BODY="$(gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json body --jq .body)"
+          RELEASE_URL="$(gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json url --jq .url)"
+
+          jq -n \
+            --arg version "${VERSION}" \
+            --arg notes "${RELEASE_BODY}" \
+            --arg url "${RELEASE_URL}" \
+            '{
+              version: $version,
+              release_notes: $notes,
+              download_url: $url
+            }' > ./release_files/latest.json
+
+      - name: Upload latest.json to release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release upload "${GITHUB_REF_NAME}" ./release_files/latest.json --repo "${GITHUB_REPOSITORY}" --clobber

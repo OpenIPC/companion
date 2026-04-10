@@ -19,7 +19,7 @@
 
         <StackPanel Orientation="Vertical">
             <!-- Other controls -->
-            <Border Background="#B0B0B0" CornerRadius="10" Padding="10" Margin="10">
+            <Border Background="{DynamicResource WarningBannerBackground}" CornerRadius="10" Padding="10" Margin="10">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -34,7 +34,7 @@
                           Margin="5" />
                     <TextBlock Grid.Column="1"
                                Text="This tab contains various settings that influence the performance and reliability of the WFB link. If you are unsure how to set this up, use the PRESETS tab."
-                               Foreground="Black"
+                               Foreground="{DynamicResource PrimaryTextForeground}"
                                FontSize="14"
                                TextWrapping="Wrap"
                                VerticalAlignment="Center"
@@ -47,7 +47,7 @@
         
         <!-- <Rectangle Height="300" Width="300" Fill="LightGray" /> -->
 
-        <Border Background="#F0F0F0" CornerRadius="8" Padding="16" Margin="8">
+        <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="16" Margin="8">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />

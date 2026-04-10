@@ -8,24 +8,112 @@
     </Design.PreviewWith>
 
 
-    <!-- Resource dictionary with colors -->
+    <!-- Static brand colors (always available) -->
     <Styles.Resources>
         <Color x:Key="OpenIPCBlue">#4C61D8</Color>
         <SolidColorBrush x:Key="OpenIPCBlueBrush" Color="{StaticResource OpenIPCBlue}"/>
     </Styles.Resources>
-    
+
+    <!-- Theme-variant resource dictionaries -->
+    <Style>
+        <Style.Resources>
+            <ResourceDictionary>
+                <ResourceDictionary.ThemeDictionaries>
+                    <ResourceDictionary x:Key="Light">
+                        <SolidColorBrush x:Key="HeaderInputBackground" Color="White"/>
+                        <SolidColorBrush x:Key="HeaderInputConnectedBackground" Color="#CCCCCC"/>
+                        <!-- ToggleSwitch overrides -->
+                        <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#4C61D8"/>
+                        <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#3A4FC0"/>
+                        <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#0056B3"/>
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#4C61D8"/>
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPointerOver" Color="#3A4FC0"/>
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPressed" Color="#0056B3"/>
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="White"/>
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPointerOver" Color="White"/>
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="White"/>
+                        <SolidColorBrush x:Key="AccentBrush" Color="#4C61D8"/>
+                        <SolidColorBrush x:Key="AccentPressedBrush" Color="#0056B3"/>
+                        <SolidColorBrush x:Key="HeaderBackground" Color="#555555"/>
+                        <SolidColorBrush x:Key="ContentBackground" Color="White"/>
+                        <SolidColorBrush x:Key="CardBackground" Color="#F0F0F0"/>
+                        <SolidColorBrush x:Key="InputFieldBackground" Color="#E7E7E7"/>
+                        <SolidColorBrush x:Key="WarningBannerBackground" Color="#B0B0B0"/>
+                        <SolidColorBrush x:Key="LabelForeground" Color="#555555"/>
+                        <SolidColorBrush x:Key="PrimaryTextForeground" Color="#222222"/>
+                        <SolidColorBrush x:Key="ThemeBorderBrush" Color="#CCCCCC"/>
+                        <SolidColorBrush x:Key="TabStripBackground" Color="#555555"/>
+                        <SolidColorBrush x:Key="TabItemBackground" Color="DimGray"/>
+                        <SolidColorBrush x:Key="TabItemHoverBackground" Color="LightGray"/>
+                        <SolidColorBrush x:Key="LogAreaBackground" Color="LightGray"/>
+                        <SolidColorBrush x:Key="DrawerHoverBackground" Color="White"/>
+                        <SolidColorBrush x:Key="SplitterBackground" Color="#CCCCCC"/>
+                        <SolidColorBrush x:Key="CircularButtonFill" Color="#333333"/>
+                        <SolidColorBrush x:Key="CircularButtonHoverFill" Color="#444444"/>
+                        <SolidColorBrush x:Key="SecondaryButtonBackground" Color="#707070"/>
+                        <SolidColorBrush x:Key="WarningTextForeground" Color="#B00020"/>
+                        <SolidColorBrush x:Key="LinkForeground" Color="#4169E1"/>
+                    </ResourceDictionary>
+                    <ResourceDictionary x:Key="Dark">
+                        <SolidColorBrush x:Key="HeaderInputBackground" Color="#3C3C3C"/>
+                        <SolidColorBrush x:Key="HeaderInputConnectedBackground" Color="#555555"/>
+                        <!-- ToggleSwitch overrides -->
+                        <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#4C61D8"/>
+                        <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#5B6FE0"/>
+                        <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#3A4FC0"/>
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#4C61D8"/>
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPointerOver" Color="#5B6FE0"/>
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPressed" Color="#3A4FC0"/>
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="White"/>
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPointerOver" Color="White"/>
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="White"/>
+                        <SolidColorBrush x:Key="ToggleSwitchFillOff" Color="#555555"/>
+                        <SolidColorBrush x:Key="ToggleSwitchFillOffPointerOver" Color="#666666"/>
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="#888888"/>
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOffPointerOver" Color="#999999"/>
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#D0D0D0"/>
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPointerOver" Color="#E0E0E0"/>
+                        <SolidColorBrush x:Key="AccentBrush" Color="#4C61D8"/>
+                        <SolidColorBrush x:Key="AccentPressedBrush" Color="#0056B3"/>
+                        <SolidColorBrush x:Key="HeaderBackground" Color="#1E1E1E"/>
+                        <SolidColorBrush x:Key="ContentBackground" Color="#2D2D2D"/>
+                        <SolidColorBrush x:Key="CardBackground" Color="#383838"/>
+                        <SolidColorBrush x:Key="InputFieldBackground" Color="#3C3C3C"/>
+                        <SolidColorBrush x:Key="WarningBannerBackground" Color="#4A4A4A"/>
+                        <SolidColorBrush x:Key="LabelForeground" Color="#D0D0D0"/>
+                        <SolidColorBrush x:Key="PrimaryTextForeground" Color="#E8E8E8"/>
+                        <SolidColorBrush x:Key="ThemeBorderBrush" Color="#555555"/>
+                        <SolidColorBrush x:Key="TabStripBackground" Color="#1E1E1E"/>
+                        <SolidColorBrush x:Key="TabItemBackground" Color="#333333"/>
+                        <SolidColorBrush x:Key="TabItemHoverBackground" Color="#4A4A4A"/>
+                        <SolidColorBrush x:Key="LogAreaBackground" Color="#2A2A2A"/>
+                        <SolidColorBrush x:Key="DrawerHoverBackground" Color="#444444"/>
+                        <SolidColorBrush x:Key="SplitterBackground" Color="#555555"/>
+                        <SolidColorBrush x:Key="CircularButtonFill" Color="#2A2A2A"/>
+                        <SolidColorBrush x:Key="CircularButtonHoverFill" Color="#3A3A3A"/>
+                        <SolidColorBrush x:Key="SecondaryButtonBackground" Color="#555555"/>
+                        <SolidColorBrush x:Key="WarningTextForeground" Color="#FF6B6B"/>
+                        <SolidColorBrush x:Key="LinkForeground" Color="#4C61D8"/>
+                    </ResourceDictionary>
+                </ResourceDictionary.ThemeDictionaries>
+            </ResourceDictionary>
+        </Style.Resources>
+    </Style>
+
     <!-- Default Window Style -->
     <Style Selector="Window">
         <Setter Property="Width" Value="1100" />
         <Setter Property="Height" Value="775" />
-        <!-- <Setter Property="RequestedThemeVariant" Value="Dark" /> -->
-        <Setter Property="RequestedThemeVariant" Value="Light" />
+    </Style>
+
+    <!-- ToggleSwitch: ensure content text is readable -->
+    <Style Selector="ToggleSwitch">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextForeground}" />
     </Style>
 
 
     <Style Selector="Label">
         <Setter Property="VerticalAlignment" Value="Center" />
-        <!-- <Setter Property="FontWeight" Value="Medium" /> -->
     </Style>
 
     <!-- ListBoxItem Style -->
@@ -36,11 +124,10 @@
     </Style>
 
     <Style Selector="Label">
-        <Setter Property="Foreground" Value="#555555" />
+        <Setter Property="Foreground" Value="{DynamicResource LabelForeground}" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Padding" Value="0,0,0,0" />
         <Setter Property="Margin" Value="0,0,0,0" />
-
     </Style>
 
 
@@ -70,14 +157,12 @@
     <Style Selector="Button">
         <Setter Property="FontSize" Value="14" />
         <Setter Property="CornerRadius" Value="10" />
-        <Setter Property="BorderBrush" Value="#CCCCCC" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="10,5" />
 
-        <Setter Property="Background" Value="{StaticResource OpenIPCBlueBrush}" />
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
         <Setter Property="Foreground" Value="White" />
-        <!-- <Setter Property="Background" Value="#B0D5FF"/> -->
-        <!-- <Setter Property="Foreground" Value="#000000"/> -->
 
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -86,17 +171,17 @@
 
     <Style Selector="AutoCompleteBox">
         <Setter Property="FontSize" Value="14" />
-        <Setter Property="BorderBrush" Value="#CCCCCC" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}" />
         <Setter Property="CornerRadius" Value="10" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="10,5" />
         <Setter Property="Margin" Value="5,5,5,0" />
     </Style>
-    
+
     <Style Selector="ComboBox">
         <Setter Property="FontSize" Value="14" />
         <Setter Property="CornerRadius" Value="10" />
-        <Setter Property="BorderBrush" Value="#CCCCCC" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="10,5" />
         <Setter Property="Margin" Value="5,5,5,0" />
@@ -106,7 +191,7 @@
 
     <Style Selector="TabControl">
         <Setter Property="TabStripPlacement" Value="Left" />
-        <Setter Property="Background" Value="#555555" />
+        <Setter Property="Background" Value="{DynamicResource TabStripBackground}" />
     </Style>
 
     <Style Selector="TabControl.collapsed">
@@ -117,49 +202,56 @@
     </Style>
 
     <Style Selector="TabItem">
-        <!-- <Setter Property="Background" Value="#E0E0E0" /> -->
-        
-        <Setter Property="Background" Value="DimGray" />
-        <Setter Property="Foreground" Value="Black" />
+        <Setter Property="Background" Value="{DynamicResource TabItemBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextForeground}" />
         <!-- Padding property enlarges the effective size of a child element by the specified Thickness value. -->
         <Setter Property="Padding" Value="10,10,40,10" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="BorderThickness" Value="0,0,0,1" />
-        <Setter Property="BorderBrush" Value="#CCCCCC" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}" />
         <Setter Property="CornerRadius" Value="5" />
-        <!-- <Setter Property="Margin" Value="2,2,2,2" /> -->
         <!-- The Margin property describes the distance between an element and its child or peers -->
         <Setter Property="Margin" Value="0" />
     </Style>
 
-    
-    
+
+
     <!-- Keep these in this order, When multiple styles apply to the same element, the style defined later in the  -->
     <!-- Styles.axaml file or with higher specificity will take precedence. -->
     <Style Selector="TabItem:pointerover /template/ Border#PART_LayoutRoot">
-        <Setter Property="Background" Value="LightGray" /> <!-- General hover style -->
+        <Setter Property="Background" Value="{DynamicResource TabItemHoverBackground}" />
     </Style>
 
     <Style Selector="TabItem:pressed /template/ Border#PART_LayoutRoot">
-        <Setter Property="Background" Value="#4C61D8" /> <!-- Pressed style -->
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
     </Style>
 
     <Style Selector="TabItem:selected /template/ Border#PART_LayoutRoot">
-        <Setter Property="Background" Value="#4C61D8" /> <!-- Selected style -->
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
     </Style>
 
     <Style Selector="TabItem:pointerover:selected /template/ Border#PART_LayoutRoot">
-        <Setter Property="Background" Value="#4C61D8" /> <!-- Hover on selected tab -->
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
     </Style>
-    <Style Selector="TabItem:pointerover:selected /template/ ContentPresenter#PART_ContentPresenter"> 
+    <Style Selector="TabItem:pointerover:selected /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Foreground" Value="White" />
         </Style>
 
 
-    
-    <!-- -->
+
+    <!-- Tab icon swap: show dark icon normally, light icon when selected -->
+    <Style Selector="TabItem Svg.tab-icon-light">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="TabItem:selected Svg.tab-icon-dark">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="TabItem:selected Svg.tab-icon-light">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+
     <Style Selector="TabItem:selected">
-        <Setter Property="Background" Value="#4C61D8" />
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
         <Setter Property="Foreground" Value="#FFFFFF" />
     </Style>
 
@@ -168,17 +260,15 @@
     <Style Selector="TextBox.InputBox">
         <Setter Property="FontSize" Value="14" />
         <Setter Property="CornerRadius" Value="10" />
-        <Setter Property="BorderBrush" Value="#CCCCCC" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="10,5" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
-        <!-- <Setter Property="WatermarkBrush" Value="#A0A0A0"/> -->
     </Style>
 
     <!-- Circular Connect Button -->
     <Style Selector="Button.CircularButton">
-        <Setter Property="Background" Value="#4C61D8" />
-        <!-- <Setter Property="Foreground" Value="Blue"/> -->
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="CornerRadius" Value="30" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -186,49 +276,48 @@
     </Style>
 
     <Style Selector="Button.CircularButton:pressed">
-        <Setter Property="Background" Value="#0056B3" />
+        <Setter Property="Background" Value="{DynamicResource AccentPressedBrush}" />
     </Style>
-    
-    
+
+
     <!-- WFB -->
     <Style Selector="ComboBox.WfbComboBox">
         <Setter Property="MinWidth" Value="180" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="VerticalAlignment" Value="Center" />
-        
+
     </Style>
-    
+
     <Style Selector="TextBox.WfbTextBox">
         <Setter Property="FontSize" Value="14" />
         <Setter Property="CornerRadius" Value="10" />
-        <Setter Property="BorderBrush" Value="#CCCCCC" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="10,5" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />        
+        <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    
-    
-    
-    
+
+
+
+
     <Style Selector="Border.BoxShadow">
-        
+
         <Setter Property="BorderThickness" Value="1" />
-        <!-- <Setter Property="BoxShadow" Value="5 5 10 0 DarkGray" /> -->
-       
+
     </Style>
-    
+
     <Style Selector="Button.DrawerButton">
         <Setter Property="CornerRadius" Value="10" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="0,0" />
         <Setter Property="Background" Value="Transparent"></Setter>
     </Style>
-    
+
     <Style Selector="StackPanel:pointerover.DrawerStackPanel">
-        <Setter Property="Background" Value="White"></Setter>
+        <Setter Property="Background" Value="{DynamicResource DrawerHoverBackground}"></Setter>
     </Style>
-    
+
     <Style Selector="Button:pointerover.DrawerButton /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="Transparent" /> <!-- General hover style -->
     </Style>

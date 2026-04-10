@@ -39,8 +39,7 @@ public class SshClientService : ISshClientService
             try
             {
                 await client.ConnectAsync(cancellationToken);
-                //client.Connect();
-                var result = client.RunCommand(command);
+                var result = await Task.Run(() => client.RunCommand(command), cancellationToken);
                 _logger.Debug($"Command executed successfully. Result: {result.Result}, Exit code: {result.ExitStatus}");
                 return result;
             }
@@ -62,8 +61,10 @@ public class SshClientService : ISshClientService
 
         var connectionInfo = new ConnectionInfo(deviceConfig.IpAddress, deviceConfig.Port, deviceConfig.Username,
             new PasswordAuthenticationMethod(deviceConfig.Username, deviceConfig.Password));
-        using (var client = new SshClient(connectionInfo))
+
+        await Task.Run(() =>
         {
+            using var client = new SshClient(connectionInfo);
             try
             {
                 client.Connect();
@@ -79,7 +80,7 @@ public class SshClientService : ISshClientService
             {
                 client.Disconnect();
             }
-        }
+        });
     }
 
 
@@ -393,7 +394,9 @@ public class SshClientService : ISshClientService
         Action<string> updateProgress,
         CancellationToken cancellationToken = default,
         TimeSpan? timeout = null,
-        Func<string, bool> isCommandComplete = null)
+        Func<string, bool> isCommandComplete = null,
+        bool allowDisconnectCompletion = false,
+        bool disableTimeout = false)
     {
         timeout ??= TimeSpan.FromMinutes(2); // Default timeout
         isCommandComplete ??= output => output.Contains("Unconditional reboot") || output.Contains("Arguments written");
@@ -423,11 +426,18 @@ public class SshClientService : ISshClientService
             {
                 if (!client.IsConnected)
                 {
+                    if (allowDisconnectCompletion)
+                    {
+                        updateProgress("Connection lost. Device may be flashing or rebooting.");
+                        commandCompleted = true;
+                        break;
+                    }
+
                     updateProgress("Connection lost.");
                     break;
                 }
 
-                if (DateTime.UtcNow - startTime > timeout)
+                if (!disableTimeout && DateTime.UtcNow - startTime > timeout)
                 {
                     updateProgress("Command execution timed out.");
                     break;
