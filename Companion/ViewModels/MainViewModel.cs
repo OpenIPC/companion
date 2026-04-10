@@ -74,11 +74,15 @@ public partial class MainViewModel : ViewModelBase
         IMessageBoxService messageBoxService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
+        var startupStopwatch = Stopwatch.StartNew();
         
         _logger = logger?.ForContext(GetType()) ?? 
                  throw new ArgumentNullException(nameof(logger));
         _messageBoxService = messageBoxService;
+        var loadSettingsStopwatch = Stopwatch.StartNew();
         LoadSettings();
+        _logger.Information("Startup timing: MainViewModel.LoadSettings completed in {ElapsedMs} ms.",
+            loadSettingsStopwatch.Elapsed.TotalMilliseconds);
         
         // Initialize the ping service
         _pingService = PingService.Instance(_logger);
@@ -125,9 +129,17 @@ public partial class MainViewModel : ViewModelBase
         IsVRXEnabled = false;
         
         // initialize tabs with Camera
+        var initializeTabsStopwatch = Stopwatch.StartNew();
         InitializeTabs(DeviceType.Camera);
+        _logger.Information("Startup timing: MainViewModel.InitializeTabs completed in {ElapsedMs} ms.",
+            initializeTabsStopwatch.Elapsed.TotalMilliseconds);
+        var restoreSelectedTabStopwatch = Stopwatch.StartNew();
         RestoreSelectedTab();
+        _logger.Information("Startup timing: MainViewModel.RestoreSelectedTab completed in {ElapsedMs} ms.",
+            restoreSelectedTabStopwatch.Elapsed.TotalMilliseconds);
         _preferencesInitialized = true;
+        _logger.Information("Startup timing: MainViewModel constructor completed in {ElapsedMs} ms.",
+            startupStopwatch.Elapsed.TotalMilliseconds);
     }
 
     private void InitializeTabs(DeviceType deviceType)
@@ -147,18 +159,18 @@ public partial class MainViewModel : ViewModelBase
             if (!_userPreferences.FirmwareFocusedMode)
             {
                 Tabs.Add(new TabItemViewModel("WFB", "avares://Companion/Assets/Icons/iconoir_wifi_dark.svg",
-                    _serviceProvider.GetRequiredService<WfbTabViewModel>(), IsTabsCollapsed));
+                    () => _serviceProvider.GetRequiredService<WfbTabViewModel>(), IsTabsCollapsed));
                 Tabs.Add(new TabItemViewModel("Camera", "avares://Companion/Assets/Icons/iconoir_camera_dark.svg",
-                    _serviceProvider.GetRequiredService<CameraSettingsTabViewModel>(), IsTabsCollapsed));
+                    () => _serviceProvider.GetRequiredService<CameraSettingsTabViewModel>(), IsTabsCollapsed));
                 Tabs.Add(new TabItemViewModel("Telemetry", "avares://Companion/Assets/Icons/iconoir_drag_dark.svg",
-                    _serviceProvider.GetRequiredService<TelemetryTabViewModel>(), IsTabsCollapsed));
+                    () => _serviceProvider.GetRequiredService<TelemetryTabViewModel>(), IsTabsCollapsed));
                 Tabs.Add(new TabItemViewModel("Setup", "avares://Companion/Assets/Icons/iconoir_settings_dark.svg",
-                    _serviceProvider.GetRequiredService<SetupTabViewModel>(), IsTabsCollapsed));
+                    () => _serviceProvider.GetRequiredService<SetupTabViewModel>(), IsTabsCollapsed));
             }
             Tabs.Add(new TabItemViewModel("Firmware", "avares://Companion/Assets/Icons/iconair_firmware_dark.svg",
-                _serviceProvider.GetRequiredService<FirmwareTabViewModel>(), IsTabsCollapsed));
+                () => _serviceProvider.GetRequiredService<FirmwareTabViewModel>(), IsTabsCollapsed));
             Tabs.Add(new TabItemViewModel("Preferences", "avares://Companion/Assets/Icons/iconoir_settings_dark.svg",
-                _serviceProvider.GetRequiredService<PreferencesTabViewModel>(), IsTabsCollapsed));
+                () => _serviceProvider.GetRequiredService<PreferencesTabViewModel>(), IsTabsCollapsed));
         }
         else if (deviceType == DeviceType.Radxa)
         {
@@ -166,12 +178,12 @@ public partial class MainViewModel : ViewModelBase
             {
                 // Need these spaces for some reason
                 Tabs.Add(new TabItemViewModel("WFB         ", "avares://Companion/Assets/Icons/iconoir_wifi_dark.svg",
-                    _serviceProvider.GetRequiredService<WfbGSTabViewModel>(), IsTabsCollapsed));
+                    () => _serviceProvider.GetRequiredService<WfbGSTabViewModel>(), IsTabsCollapsed));
                 Tabs.Add(new TabItemViewModel("Setup", "avares://Companion/Assets/Icons/iconoir_settings_dark.svg",
-                    _serviceProvider.GetRequiredService<SetupTabViewModel>(), IsTabsCollapsed));
+                    () => _serviceProvider.GetRequiredService<SetupTabViewModel>(), IsTabsCollapsed));
             }
             Tabs.Add(new TabItemViewModel("Preferences", "avares://Companion/Assets/Icons/iconoir_settings_dark.svg",
-                _serviceProvider.GetRequiredService<PreferencesTabViewModel>(), IsTabsCollapsed));
+                () => _serviceProvider.GetRequiredService<PreferencesTabViewModel>(), IsTabsCollapsed));
         }
 
         if (Tabs.Count > 0 && (SelectedTab == null || !Tabs.Contains(SelectedTab)))
@@ -1066,17 +1078,14 @@ public partial class MainViewModel : ViewModelBase
         if (Tabs.Count == 0)
             return;
 
-        if (_userPreferences.FirmwareFocusedMode && TrySelectTab("Firmware"))
-            return;
-
         if (!string.IsNullOrWhiteSpace(_userPreferences.LastSelectedTab))
         {
-            if (TrySelectTab(_userPreferences.LastSelectedTab))
+            if (!string.Equals(_userPreferences.LastSelectedTab, "Firmware", StringComparison.OrdinalIgnoreCase)
+                && TrySelectTab(_userPreferences.LastSelectedTab))
                 return;
         }
 
-        SelectedTab = Tabs[0];
-        SelectedTabIndex = 0;
+        SelectDefaultStartupTab();
     }
 
     private bool TrySelectTab(string tabName)
@@ -1090,6 +1099,15 @@ public partial class MainViewModel : ViewModelBase
         SelectedTab = selectedTab;
         SelectedTabIndex = Tabs.IndexOf(selectedTab);
         return true;
+    }
+
+    private void SelectDefaultStartupTab()
+    {
+        var defaultTab = Tabs.FirstOrDefault(tab =>
+            !string.Equals(tab.TabName.Trim(), "Firmware", StringComparison.OrdinalIgnoreCase));
+
+        SelectedTab = defaultTab ?? Tabs[0];
+        SelectedTabIndex = Tabs.IndexOf(SelectedTab);
     }
 
     private void SavePreferences()

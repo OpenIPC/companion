@@ -1,0 +1,41 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:view="using:Companion.Views"
+        x:Class="Companion.Views.StartupSplashWindow"
+        x:DataType="view:StartupSplashWindow"
+        Width="420"
+        Height="240"
+        CanResize="False"
+        ShowInTaskbar="True"
+        SystemDecorations="BorderOnly"
+        WindowStartupLocation="CenterScreen"
+        Title="OpenIPC Companion">
+    <Border Background="{DynamicResource ThemeBackgroundBrush}"
+            Padding="28">
+        <Grid RowDefinitions="Auto,Auto,*">
+            <StackPanel Spacing="12">
+                <Image Source="/Assets/Icons/OpenIPC.png"
+                       Width="64"
+                       Height="64"
+                       HorizontalAlignment="Center" />
+                <TextBlock Text="OpenIPC Companion"
+                           HorizontalAlignment="Center"
+                           FontSize="24"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="{Binding VersionText}"
+                           HorizontalAlignment="Center"
+                           Opacity="0.75" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="2"
+                        VerticalAlignment="Bottom"
+                        Spacing="10">
+                <ProgressBar IsIndeterminate="True"
+                             Height="6" />
+                <TextBlock Text="{Binding StatusText}"
+                           HorizontalAlignment="Center"
+                           Opacity="0.8" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

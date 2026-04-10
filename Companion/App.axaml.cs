@@ -10,6 +10,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MsBox.Avalonia;
@@ -28,6 +29,8 @@ namespace Companion;
 
 public class App : Application
 {
+    private static readonly TimeSpan SplashDisplayThreshold = TimeSpan.FromMilliseconds(200);
+
     public static IServiceProvider ServiceProvider { get; private set; }
 
     public static string OSType { get; private set; }
@@ -219,50 +222,133 @@ public class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        // Step 1: Load configuration
-        var configuration = LoadConfiguration();
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            // Remove Avalonia's default data validation plugin to avoid conflicts
+            BindingPlugins.DataValidators.RemoveAt(0);
+            Dispatcher.UIThread.Post(async () => await InitializeDesktopAsync(desktop), DispatcherPriority.Background);
+        }
+        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
+        {
+            InitializeServices();
+            singleViewPlatform.MainView = ServiceProvider.GetRequiredService<MainView>();
+        }
 
-        // Step 2: Configure DI container
+        base.OnFrameworkInitializationCompleted();
+    }
+
+    private async Task InitializeDesktopAsync(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        var startupStopwatch = Stopwatch.StartNew();
+        StartupSplashWindow? splashWindow = null;
+        ILogger? logger = null;
+
+        try
+        {
+            splashWindow = await ShowSplashIfNeededAsync(splashWindow, desktop, startupStopwatch, "Loading configuration...");
+            var configurationStopwatch = Stopwatch.StartNew();
+            var configuration = await Task.Run(LoadConfiguration);
+            var configurationElapsed = configurationStopwatch.Elapsed;
+
+            splashWindow = await ShowSplashIfNeededAsync(splashWindow, desktop, startupStopwatch, "Preparing services...");
+            var servicesStopwatch = Stopwatch.StartNew();
+            await Task.Run(() =>
+            {
+                var serviceCollection = new ServiceCollection();
+                ConfigureServices(serviceCollection, configuration);
+                ServiceProvider = serviceCollection.BuildServiceProvider();
+            });
+            var servicesElapsed = servicesStopwatch.Elapsed;
+
+            Log.Logger = ServiceProvider.GetRequiredService<ILogger>();
+            logger = Log.ForContext<App>();
+
+            logger.Information(
+                "**********************************************************************************************");
+            logger.Information($"Starting up log for OpenIPC Companion {VersionHelper.GetAppVersion()}");
+            logger.Information("Logger initialized successfully.");
+            logger.Information("Starting up....");
+            logger.Information("Startup timing: configuration loaded in {ElapsedMs} ms.", configurationElapsed.TotalMilliseconds);
+            logger.Information("Startup timing: services built in {ElapsedMs} ms.", servicesElapsed.TotalMilliseconds);
+
+            splashWindow = await ShowSplashIfNeededAsync(splashWindow, desktop, startupStopwatch, "Applying preferences...");
+            var settingsStopwatch = Stopwatch.StartNew();
+            var savedSettings = await Task.Run(SettingsManager.LoadSettings);
+            RequestedThemeVariant = savedSettings?.IsDarkTheme == true
+                ? ThemeVariant.Dark
+                : ThemeVariant.Light;
+            logger.Information("Startup timing: settings applied in {ElapsedMs} ms.", settingsStopwatch.Elapsed.TotalMilliseconds);
+
+            splashWindow = await ShowSplashIfNeededAsync(splashWindow, desktop, startupStopwatch, "Opening window...");
+            var mainWindowStopwatch = Stopwatch.StartNew();
+            var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
+            logger.Information("Startup timing: MainWindow resolved in {ElapsedMs} ms.", mainWindowStopwatch.Elapsed.TotalMilliseconds);
+            desktop.MainWindow = mainWindow;
+            mainWindow.Show();
+            splashWindow?.Close();
+            logger.Information("Startup timing: main window created in {ElapsedMs} ms.", mainWindowStopwatch.Elapsed.TotalMilliseconds);
+
+            var preferencesService = ServiceProvider.GetRequiredService<IPreferencesService>();
+            if (ShouldCheckForUpdates(preferencesService))
+                _ = CheckForUpdatesAsync();
+
+            logger.Information("Startup timing: total desktop startup completed in {ElapsedMs} ms.", startupStopwatch.Elapsed.TotalMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            logger?.Error(ex, "Desktop startup failed.");
+            splashWindow?.Close();
+            throw;
+        }
+    }
+
+    private static async Task<StartupSplashWindow?> ShowSplashIfNeededAsync(StartupSplashWindow? splashWindow,
+        IClassicDesktopStyleApplicationLifetime desktop, Stopwatch startupStopwatch, string statusText)
+    {
+        if (splashWindow is null && startupStopwatch.Elapsed >= SplashDisplayThreshold)
+        {
+            splashWindow = new StartupSplashWindow
+            {
+                StatusText = statusText
+            };
+            desktop.MainWindow = splashWindow;
+            splashWindow.Show();
+            await Task.Yield();
+            return splashWindow;
+        }
+
+        if (splashWindow is not null)
+        {
+            splashWindow.StatusText = statusText;
+            await Task.Yield();
+        }
+
+        return splashWindow;
+    }
+
+    private void InitializeServices()
+    {
+        var configuration = LoadConfiguration();
         var serviceCollection = new ServiceCollection();
         ConfigureServices(serviceCollection, configuration);
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
-        // Step 3: Initialize logger (resolve it from service provider)
         Log.Logger = ServiceProvider.GetRequiredService<ILogger>();
         var logger = Log.ForContext<App>();
-        
         logger.Information(
             "**********************************************************************************************");
         logger.Information($"Starting up log for OpenIPC Companion {VersionHelper.GetAppVersion()}");
         logger.Information("Logger initialized successfully.");
         logger.Information("Starting up....");
 
-        // check for updates
         var preferencesService = ServiceProvider.GetRequiredService<IPreferencesService>();
         if (ShouldCheckForUpdates(preferencesService))
-            CheckForUpdatesAsync();
+            _ = CheckForUpdatesAsync();
 
-        // Apply saved theme before creating window to prevent flash
         var savedSettings = SettingsManager.LoadSettings();
         RequestedThemeVariant = savedSettings?.IsDarkTheme == true
             ? ThemeVariant.Dark
             : ThemeVariant.Light;
-
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
-            // Remove Avalonia's default data validation plugin to avoid conflicts
-            BindingPlugins.DataValidators.RemoveAt(0);
-
-            // Resolve MainWindow and its DataContext from DI container
-            desktop.MainWindow = ServiceProvider.GetRequiredService<MainWindow>();
-        }
-        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
-        {
-            // Resolve MainView and its DataContext from DI container
-            singleViewPlatform.MainView = ServiceProvider.GetRequiredService<MainView>();
-        }
-
-        base.OnFrameworkInitializationCompleted();
     }
 
     private string GetConfigPath()
@@ -386,6 +472,7 @@ public class App : Application
     {
         // Register Views
         services.AddTransient<MainWindow>();
+        services.AddTransient<StartupSplashWindow>();
         services.AddTransient<MainView>();
         services.AddTransient<CameraSettingsTabView>();
         services.AddTransient<ConnectControlsView>();
