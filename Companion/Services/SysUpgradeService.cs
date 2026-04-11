@@ -41,7 +41,7 @@ public class SysUpgradeService
             updateProgress("Starting sysupgrade. Do not unplug the device.");
             await _sshClientService.ExecuteCommandWithProgressAsync(
                 deviceConfig,
-                $"sysupgrade --force_ver -n --kernel={OpenIPC.RemoteTempFolder}/{kernelFilename} --rootfs={OpenIPC.RemoteTempFolder}/{rootfsFilename}",
+                $"sysupgrade --force_ver -n -z --kernel={OpenIPC.RemoteTempFolder}/{kernelFilename} --rootfs={OpenIPC.RemoteTempFolder}/{rootfsFilename}",
                 updateProgress,
                 cancellationToken,
                 timeout: TimeSpan.FromMinutes(15),
