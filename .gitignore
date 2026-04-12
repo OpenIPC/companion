@@ -219,6 +219,10 @@ csx/
 ecf/
 rcf/
 
+# Local tooling and generated resources
+\!AvaloniaResources/
+.claude/
+
 # Windows Store app package directories and files
 AppPackages/
 BundleArtifacts/
