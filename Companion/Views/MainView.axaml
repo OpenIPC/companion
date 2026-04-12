@@ -151,8 +151,11 @@
             </Button>
 
             <!-- Log content -->
-            <views:LogViewer Margin="3,2,3,3"
-                             IsVisible="{Binding !IsLogPanelCollapsed}" />
+            <Border Margin="3,2,3,3"
+                    Background="Transparent"
+                    IsVisible="{Binding !IsLogPanelCollapsed}">
+                <views:LogViewer DataContext="{Binding LogViewerViewModel}" />
+            </Border>
         </Grid>
     </Grid>
 </UserControl>

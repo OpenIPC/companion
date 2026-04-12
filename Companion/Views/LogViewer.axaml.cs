@@ -3,7 +3,6 @@ using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
-using Microsoft.Extensions.DependencyInjection;
 using Companion.ViewModels;
 
 namespace Companion.Views;
@@ -23,9 +22,6 @@ public partial class LogViewer : UserControl
         AttachedToVisualTree += (_, _) => ScrollToLatest();
         DetachedFromVisualTree += (_, _) => UnsubscribeFromLogMessages(_currentViewModel);
         SizeChanged += OnSizeChanged;
-
-        //if (!Design.IsDesignMode) DataContext = new LogViewerViewModel();
-        DataContext = App.ServiceProvider.GetService<LogViewerViewModel>();
         OnDataContextChanged(this, EventArgs.Empty);
     }
 
