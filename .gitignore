@@ -220,7 +220,7 @@ ecf/
 rcf/
 
 # Local tooling and generated resources
-\!AvaloniaResources/
+\!AvaloniaResources
 .claude/
 
 # Windows Store app package directories and files
