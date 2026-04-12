@@ -117,6 +117,7 @@ public partial class MainViewModel : ViewModelBase
         
         OpenLogFolderCommand = new RelayCommand(() => OpenLogFolder());
         ToggleLogPanelCommand = new RelayCommand(() => IsLogPanelCollapsed = !IsLogPanelCollapsed);
+        LogViewerViewModel = _serviceProvider.GetRequiredService<LogViewerViewModel>();
 
         // Initialize the path
         UpdateSvgPath();
