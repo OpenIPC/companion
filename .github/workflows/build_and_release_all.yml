@@ -139,6 +139,7 @@ jobs:
         if: matrix.run_tests == true
         shell: bash
         run: |
+          dotnet restore "${{ env.TEST_PROJECT }}"
           dotnet test "${{ env.TEST_PROJECT }}" \
             --configuration Release \
             --no-restore \
