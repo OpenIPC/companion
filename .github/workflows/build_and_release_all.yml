@@ -124,7 +124,16 @@ jobs:
 
       - name: Restore dependencies
         shell: bash
-        run: dotnet restore "${{ env.DESKTOP_PROJECT }}"
+        run: |
+          set -euo pipefail
+          if [[ "${{ matrix.os_name }}" == "windows" ]]; then
+            dotnet restore "${{ env.DESKTOP_PROJECT }}" \
+              -r "${{ matrix.rid }}" \
+              -p:PublishReadyToRun=true
+          else
+            dotnet restore "${{ env.DESKTOP_PROJECT }}" \
+              -r "${{ matrix.rid }}"
+          fi
 
       - name: Run tests
         if: matrix.run_tests == true
