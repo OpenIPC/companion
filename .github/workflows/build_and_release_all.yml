@@ -284,6 +284,7 @@ jobs:
           set -euo pipefail
 
           ICON_SRC="./Companion/Assets/Icons/OpenIPC.icns"
+          ENTITLEMENTS_PATH="./Companion.Desktop/Entitlements.plist"
           APP_DIR="${PACKAGE_DIR}/Companion.app"
           DMG_PATH="$GITHUB_WORKSPACE/${{ matrix.artifact_name }}.dmg"
 
@@ -318,6 +319,7 @@ jobs:
           if [[ -n "${CODESIGN_IDENTITY:-}" && -n "${KEYCHAIN_PATH:-}" ]]; then
             codesign --keychain "$KEYCHAIN_PATH" \
                      --deep --force --verify --verbose \
+                     --entitlements "$ENTITLEMENTS_PATH" \
                      --options runtime \
                      --timestamp \
                      --sign "${CODESIGN_IDENTITY}" "$APP_DIR"
