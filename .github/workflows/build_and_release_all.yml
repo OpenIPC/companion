@@ -238,6 +238,7 @@ jobs:
 
           # NOTE: project paths changed — icons now live under Companion.Desktop
           ICON_SRC="./Companion/Assets/Icons/OpenIPC.icns"
+          ENTITLEMENTS_PATH="./Companion.Desktop/Entitlements.plist"
 
           PUBLISH_DIR="./Companion.Desktop/bin/Release/net8.0/osx-${{ matrix.arch }}/publish"
           APP_DIR="${APP_NAME}.app"
@@ -283,6 +284,7 @@ jobs:
             echo "Signing app with identity: $CODESIGN_IDENTITY"
             codesign --keychain "$KEYCHAIN_PATH" \
                      --deep --force --verify --verbose \
+                     --entitlements "$ENTITLEMENTS_PATH" \
                      --options runtime \
                      --timestamp \
                      --sign "${CODESIGN_IDENTITY}" "${APP_DIR}"
