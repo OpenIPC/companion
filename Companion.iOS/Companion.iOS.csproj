@@ -43,8 +43,8 @@
 
     <ItemGroup>
         <PackageReference Include="Avalonia.iOS" Version="$(AvaloniaVersion)"/>
-        <PackageReference Include="Avalonia.Svg.Skia" Version="11.2.0.2"/>
-        <PackageReference Include="Avalonia.Xaml.Interactivity" Version="11.2.0.12" />
+        <PackageReference Include="Avalonia.Svg.Skia" Version="$(AvaloniaSvgSkiaVersion)"/>
+        <PackageReference Include="Avalonia.Xaml.Interactivity" Version="$(AvaloniaXamlInteractivityVersion)" />
         <PackageReference Include="MessageBox.Avalonia" Version="3.2.0"/>
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.2" />
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0-rc.2.24473.5"/>

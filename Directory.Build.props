@@ -1,6 +1,8 @@
 <Project>
   <PropertyGroup>
-    <AvaloniaVersion>11.2.3</AvaloniaVersion>
+    <AvaloniaVersion>11.3.14</AvaloniaVersion>
+    <AvaloniaSvgSkiaVersion>11.3.0</AvaloniaSvgSkiaVersion>
+    <AvaloniaXamlInteractivityVersion>11.3.0.6</AvaloniaXamlInteractivityVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Nerdbank.GitVersioning" Version="3.6.139" PrivateAssets="all" />

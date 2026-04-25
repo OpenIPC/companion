@@ -10,9 +10,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia.Desktop" Version="0.10.13"/>
-        <PackageReference Include="Avalonia.Svg.Skia" Version="11.2.0.2"/>
-        <PackageReference Include="Avalonia.Xaml.Interactivity" Version="11.2.0.12" />
+        <PackageReference Include="Avalonia.Desktop" Version="$(AvaloniaVersion)"/>
+        <PackageReference Include="Avalonia.Svg.Skia" Version="$(AvaloniaSvgSkiaVersion)"/>
+        <PackageReference Include="Avalonia.Xaml.Interactivity" Version="$(AvaloniaXamlInteractivityVersion)" />
         <PackageReference Include="coverlet.collector" Version="6.0.4"/>
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.2" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0"/>
