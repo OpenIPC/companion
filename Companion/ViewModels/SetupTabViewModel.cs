@@ -339,11 +339,9 @@ private async Task ExecuteKeyManagementActionAsync()
     {
         if (!CanConnect)
         {
-            var msgBox = MessageBoxManager.GetMessageBoxStandard(
-                "Connection Required", 
-                "Please connect to a device before performing key management actions.",
-                ButtonEnum.Ok);
-            await msgBox.ShowAsync();
+            await _messageBoxService.ShowMessageBox(
+                "Connection Required",
+                "Please connect to a device before performing key management actions.");
             return;
         }
         
@@ -377,11 +375,9 @@ private async Task ExecuteKeyManagementActionAsync()
         Logger.Error(ex, "Error in key management");
         UpdateUIMessage($"Error: {ex.Message}");
         
-        var msgBox = MessageBoxManager.GetMessageBoxStandard(
-            "Error", 
-            $"An error occurred during key management: {ex.Message}",
-            ButtonEnum.Ok);
-        await msgBox.ShowAsync();
+        await _messageBoxService.ShowMessageBox(
+            "Error",
+            $"An error occurred during key management: {ex.Message}");
     }
 }
 
@@ -437,18 +433,15 @@ private async Task GenerateNewKeyAsync()
         KeyValidationColor = Brushes.Green;
         KeyValidationMessage = "New key generated successfully";
         
-        var msgBox = MessageBoxManager.GetMessageBoxStandard(
-            "Key Generated", 
-            $"New encryption key generated and saved to:\n{_localKeyPath}\n\nChecksum: {checksum}",
-            ButtonEnum.Ok);
-        await msgBox.ShowAsync();
+        await _messageBoxService.ShowMessageBox(
+            "Key Generated",
+            $"New encryption key generated and saved to:\n{_localKeyPath}\n\nChecksum: {checksum}");
         
         // Ask if user wants to upload the key to the device
-        var uploadMsg = MessageBoxManager.GetMessageBoxStandard(
+        var result = await _messageBoxService.ShowCustomMessageBox(
             "Upload Key", 
             "Do you want to upload this key to the connected device?",
             ButtonEnum.YesNo);
-        var result = await uploadMsg.ShowAsync();
         
         if (result == ButtonResult.Yes)
         {
@@ -556,11 +549,9 @@ private async Task UploadKeyAsync(string specificKeyPath = null)
             KeyValidationColor = Brushes.Red;
             KeyValidationMessage = "Key upload failed verification";
             
-            var msgBox = MessageBoxManager.GetMessageBoxStandard(
-                "Verification Failed", 
-                "The uploaded key could not be verified. Checksums do not match.",
-                ButtonEnum.Ok);
-            await msgBox.ShowAsync();
+            await _messageBoxService.ShowMessageBox(
+                "Verification Failed",
+                "The uploaded key could not be verified. Checksums do not match.");
         }
     }
     catch (Exception ex)
@@ -596,12 +587,11 @@ private async Task DownloadKeyFromDeviceAsync()
         if (File.Exists(droneKeyPath))
         {
             Logger.Debug("drone.key already exists locally, checking if user wants to overwrite");
-            var msgBox = MessageBoxManager.GetMessageBoxStandard(
+            var result = await _messageBoxService.ShowCustomMessageBox(
                 "File Exists", 
                 "A drone.key file already exists locally. Do you want to overwrite it?",
                 ButtonEnum.YesNo);
-            
-            var result = await msgBox.ShowAsync();
+
             if (result == ButtonResult.No)
             {
                 Logger.Debug("User chose not to overwrite existing drone.key");
@@ -660,11 +650,9 @@ private async Task DownloadKeyFromDeviceAsync()
             KeyValidationColor = Brushes.Red;
             KeyValidationMessage = "Key download failed";
             
-            var msgBox = MessageBoxManager.GetMessageBoxStandard(
-                "Download Failed", 
-                "Failed to download key from device.",
-                ButtonEnum.Ok);
-            await msgBox.ShowAsync();
+            await _messageBoxService.ShowMessageBox(
+                "Download Failed",
+                "Failed to download key from device.");
         }
     }
     catch (Exception ex)
@@ -722,11 +710,9 @@ private async Task VerifyKeyAsync()
                 KeyValidationColor = Brushes.Green;
                 KeyValidationMessage = "Key verified successfully";
                 
-                var msgBox = MessageBoxManager.GetMessageBoxStandard(
-                    "Verification Success", 
-                    "The device key matches the local key.\nChecksum: " + deviceChecksum,
-                    ButtonEnum.Ok);
-                await msgBox.ShowAsync();
+                await _messageBoxService.ShowMessageBox(
+                    "Verification Success",
+                    "The device key matches the local key.\nChecksum: " + deviceChecksum);
             }
             else
             {
@@ -735,12 +721,10 @@ private async Task VerifyKeyAsync()
                 KeyValidationColor = Brushes.Red;
                 KeyValidationMessage = "Key verification failed - checksums don't match";
                 
-                var msgBox = MessageBoxManager.GetMessageBoxStandard(
-                    "Verification Failed", 
+                await _messageBoxService.ShowMessageBox(
+                    "Verification Failed",
                     "The device key does not match the local key.\n\n" +
-                    $"Local: {localChecksum}\nDevice: {deviceChecksum}",
-                    ButtonEnum.Ok);
-                await msgBox.ShowAsync();
+                    $"Local: {localChecksum}\nDevice: {deviceChecksum}");
             }
         }
         else
@@ -751,14 +735,13 @@ private async Task VerifyKeyAsync()
             KeyValidationColor = Brushes.Yellow;
             KeyValidationMessage = "No local key to compare with";
             
-            var msgBox = MessageBoxManager.GetMessageBoxStandard(
+            var result = await _messageBoxService.ShowCustomMessageBox(
                 "No Local Key", 
                 "No local key file found to compare with the device key.\n\n" +
                 $"Device key checksum: {deviceChecksum}\n\n" +
                 "Would you like to download the key from the device?",
                 ButtonEnum.YesNo);
-            
-            var result = await msgBox.ShowAsync();
+
             if (result == ButtonResult.Yes)
             {
                 await DownloadKeyFromDeviceAsync();
@@ -905,11 +888,7 @@ private string CalculateChecksum(byte[] data)
         var selectedSensor = SelectedSensor;
         if (selectedSensor == null)
         {
-            MessageBoxManager.GetMessageBoxStandard("Error", "No sensor selected");
-
-            var box = MessageBoxManager
-                .GetMessageBoxStandard("error!", "No sensor selected!");
-            await box.ShowAsync();
+            await _messageBoxService.ShowMessageBox("Error", "No sensor selected!");
             return;
         }
 
@@ -960,20 +939,19 @@ private string CalculateChecksum(byte[] data)
         var hosts = BuildScanTargets(ScanIpLabel);
         if (hosts.Count == 0)
         {
-            var invalidBox = MessageBoxManager.GetMessageBoxStandard("Invalid subnet",
+            await _messageBoxService.ShowMessageBox("Invalid subnet",
                 "Enter a valid prefix like 192.168., 192.168.1., or a full IP.");
-            await invalidBox.ShowAsync();
             IsScanning = false;
             return;
         }
 
         if (hosts.Count > 4096)
         {
-            var confirm = MessageBoxManager.GetMessageBoxStandard(
+            var result = await _messageBoxService.ShowCustomMessageBox(
                 "Large scan",
                 $"This will scan {hosts.Count} addresses and may take a while. Continue?",
                 ButtonEnum.YesNo);
-            if (await confirm.ShowAsync() != ButtonResult.Yes)
+            if (result != ButtonResult.Yes)
             {
                 IsScanning = false;
                 return;
@@ -1035,8 +1013,7 @@ private string CalculateChecksum(byte[] data)
         else
         {
             ScanMessages = "Scan completed";
-            var confirmBox = MessageBoxManager.GetMessageBoxStandard("Scan completed", "Scan completed");
-            await confirmBox.ShowAsync();
+            await _messageBoxService.ShowMessageBox("Scan completed", "Scan completed");
         }
 
         IsScanning = false;
@@ -1338,10 +1315,8 @@ private string CalculateChecksum(byte[] data)
 
             // Step 5: Execute sysupgrade
 
-            var msgBox = MessageBoxManager.GetMessageBoxStandard("Confirm",
+            var result = await _messageBoxService.ShowCustomMessageBox("Confirm",
                 $"This will download and update your camera to {SelectedFwVersion}, continue?", ButtonEnum.OkAbort);
-
-            var result = await msgBox.ShowAsync();
             if (result == ButtonResult.Abort)
             {
                 Log.Debug("Upgrade Cancelled!");
@@ -1495,10 +1470,8 @@ private string CalculateChecksum(byte[] data)
         if (File.Exists(droneKeyPath))
         {
             Log.Debug("drone.key already exists locally, do you want to overwrite it?");
-            var msBox = MessageBoxManager.GetMessageBoxStandard("File exists!",
+            var result = await _messageBoxService.ShowCustomMessageBox("File exists!",
                 "File drone.key already exists locally, do you want to overwrite it?", ButtonEnum.OkCancel);
-
-            var result = await msBox.ShowAsync();
             if (result == ButtonResult.Cancel)
             {
                 Log.Debug("local drone.key was not overwritten");
