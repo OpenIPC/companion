@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
 using Companion.Services;
+using Companion.Views;
 using Serilog;
 
 namespace Companion.Services;
@@ -25,29 +25,17 @@ namespace Companion.Services;
         
         public async Task ShowMessageBox(string title, string message, Window? owner = null, Icon icon = Icon.Info)
         {
-            var msgBox = MessageBoxManager.GetMessageBoxStandard(
-                title,
-                message,
-                ButtonEnum.Ok,
-                icon,
-                WindowStartupLocation.CenterScreen
-            );
-
-            await ShowMessageBoxAsync(msgBox, owner);
+            owner ??= ResolveOwnerWindow();
+            await ShowSimpleDialogAsync(title, message, ButtonEnum.Ok, owner);
         }
         
         public async Task<ButtonResult> ShowMessageBoxWithFolderLink(string title, string message, string filePath, Window? owner = null)
         {
-            // For folder operations, we'll use a custom approach instead
-            var msgBox = MessageBoxManager.GetMessageBoxStandard(
+            var result = await ShowSimpleDialogAsync(
                 title,
                 message + "\n\nWould you like to open the containing folder?",
                 ButtonEnum.YesNo,
-                Icon.Info,
-                WindowStartupLocation.CenterScreen
-            );
-
-            var result = await ShowMessageBoxAsync(msgBox, owner);
+                owner);
             
             if (result == ButtonResult.Yes)
             {
@@ -104,23 +92,20 @@ namespace Companion.Services;
         // A more flexible version that accepts standard button configurations
         public async Task<ButtonResult> ShowCustomMessageBox(string title, string message, ButtonEnum buttons, Icon icon = Icon.Info, Window? owner = null)
         {
-            var msgBox = MessageBoxManager.GetMessageBoxStandard(
-                title,
-                message,
-                buttons,
-                icon,
-                WindowStartupLocation.CenterScreen
-            );
-
-            return await ShowMessageBoxAsync(msgBox, owner);
+            return await ShowSimpleDialogAsync(title, message, buttons, owner);
         }
 
-        private static async Task<ButtonResult> ShowMessageBoxAsync(dynamic msgBox, Window? owner = null)
+        private static async Task<ButtonResult> ShowSimpleDialogAsync(string title, string message, ButtonEnum buttons,
+            Window? owner = null)
         {
             owner ??= ResolveOwnerWindow();
-            return owner != null
-                ? await msgBox.ShowWindowDialogAsync(owner)
-                : await msgBox.ShowAsync();
+            var dialog = new SimpleMessageDialog(title, message, buttons);
+
+            if (owner is not null)
+                return await dialog.ShowDialog<ButtonResult>(owner);
+
+            dialog.Show();
+            return ButtonResult.None;
         }
 
         private static Window? ResolveOwnerWindow()

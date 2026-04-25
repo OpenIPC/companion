@@ -559,11 +559,9 @@ public partial class MainViewModel : ViewModelBase
         if (!validator.IsDeviceConfigValid(_deviceConfig))
         {
             UpdateUIMessage("Hostname Error!");
-            var msBox = MessageBoxManager.GetMessageBoxStandard("Hostname Error!",
+            var result = await _messageBoxService.ShowCustomMessageBox("Hostname Error!",
                 $"Hostname does not match device type! \nHostname: {_deviceConfig.Hostname} Device Type: {_selectedDeviceType}.\nPlease check device..\nOk to continue anyway\nCancel to quit",
                 ButtonEnum.OkCancel);
-
-            var result = await msBox.ShowAsync();
             if (result == ButtonResult.Cancel)
             {
                 _logger.Debug("Device selection and hostname mismatch, stopping");
@@ -655,9 +653,8 @@ public partial class MainViewModel : ViewModelBase
         {
             // Handle the timeout
             // .
-            var resp = MessageBoxManager.GetMessageBoxStandard("Timeout Error!",
+            await _messageBoxService.ShowMessageBox("Timeout Error!",
                 "The command took too long to execute. Please check device..");
-            await resp.ShowAsync();
             return;
         }
 
@@ -694,9 +691,8 @@ public partial class MainViewModel : ViewModelBase
         {
             // Handle the timeout
             // .
-            var resp = MessageBoxManager.GetMessageBoxStandard("Timeout Error!",
+            await _messageBoxService.ShowMessageBox("Timeout Error!",
                 "The command took too long to execute. Please check device..");
-            await resp.ShowAsync();
             return;
         }
 
@@ -732,9 +728,8 @@ public partial class MainViewModel : ViewModelBase
         {
             // Handle the timeout
             // .
-            var resp = MessageBoxManager.GetMessageBoxStandard("Timeout Error!",
+            await _messageBoxService.ShowMessageBox("Timeout Error!",
                 "The command took too long to execute. Please check device..");
-            await resp.ShowAsync();
             return;
         }
 
@@ -770,9 +765,8 @@ public partial class MainViewModel : ViewModelBase
         {
             // Handle the timeout
             // .
-            var resp = MessageBoxManager.GetMessageBoxStandard("Timeout Error!",
+            await _messageBoxService.ShowMessageBox("Timeout Error!",
                 "The command took too long to execute. Please check device..");
-            await resp.ShowAsync();
             return;
         }
 
@@ -900,7 +894,7 @@ public partial class MainViewModel : ViewModelBase
 
         _logger.Information("Done reading files from device.");
 
-        _messageBoxService.ShowMessageBox("Read Device", "Done reading from device!", icon: Icon.None);
+        await _messageBoxService.ShowMessageBox("Read Device", "Done reading from device!", icon: Icon.None);
 
     }
 
@@ -956,8 +950,7 @@ public partial class MainViewModel : ViewModelBase
             }
             else
             {
-                await MessageBoxManager.GetMessageBoxStandard("Error", "Failed to download /etc/wifibroadcast.cfg")
-                    .ShowAsync();
+                await _messageBoxService.ShowMessageBox("Error", "Failed to download /etc/wifibroadcast.cfg");
             }
         }
         catch (Exception e)

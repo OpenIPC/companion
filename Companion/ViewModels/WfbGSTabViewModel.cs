@@ -62,6 +62,7 @@ public partial class WfbGSTabViewModel : ViewModelBase
 
     private readonly WfbGsConfigParser _wfbGsConfigParser;
     private readonly WifiConfigParser _wifiConfigParser;
+    private readonly IMessageBoxService _messageBoxService;
 
 
     [ObservableProperty] private bool _canConnect;
@@ -78,11 +79,13 @@ public partial class WfbGSTabViewModel : ViewModelBase
 
     public WfbGSTabViewModel(ILogger logger,
         ISshClientService sshClientService,
-        IEventSubscriptionService eventSubscriptionService)
+        IEventSubscriptionService eventSubscriptionService,
+        IMessageBoxService messageBoxService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
         _wfbGsConfigParser = new WfbGsConfigParser();
         _wifiConfigParser = new WifiConfigParser();
+        _messageBoxService = messageBoxService;
 
         InitializeCollections();
 
@@ -125,7 +128,7 @@ public partial class WfbGSTabViewModel : ViewModelBase
         // /etc/modprobe.d/wfb.conf
         await UpdateModprobeWfbConf();
 
-        await MessageBoxManager.GetMessageBoxStandard("Success", "Saved!").ShowAsync();
+        await _messageBoxService.ShowMessageBox("Success", "Saved!");
     }
 
     private async Task UpdateModprobeWfbConf()
@@ -138,7 +141,7 @@ public partial class WfbGSTabViewModel : ViewModelBase
 
             if (string.IsNullOrEmpty(updatedConfigString))
             {
-                await MessageBoxManager.GetMessageBoxStandard("Error", "Updated configuration is empty").ShowAsync();
+                await _messageBoxService.ShowMessageBox("Error", "Updated configuration is empty");
                 return;
             }
 
@@ -172,7 +175,7 @@ public partial class WfbGSTabViewModel : ViewModelBase
 
             if (string.IsNullOrEmpty(updatedConfigContent))
             {
-                await MessageBoxManager.GetMessageBoxStandard("Error", "Updated configuration is empty").ShowAsync();
+                await _messageBoxService.ShowMessageBox("Error", "Updated configuration is empty");
                 return;
             }
 
@@ -184,7 +187,7 @@ public partial class WfbGSTabViewModel : ViewModelBase
         catch (Exception ex)
         {
             Log.Error(ex, "Failed to update configuration file.");
-            await MessageBoxManager.GetMessageBoxStandard("Error", "Failed to update configuration.").ShowAsync();
+            await _messageBoxService.ShowMessageBox("Error", "Failed to update configuration.");
         }
     }
 

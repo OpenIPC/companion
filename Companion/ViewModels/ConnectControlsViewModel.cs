@@ -35,6 +35,7 @@ public partial class ConnectControlsViewModel : ViewModelBase
     private readonly Ping _ping = new();
     private readonly TimeSpan _pingInterval = TimeSpan.FromSeconds(1);
     private readonly TimeSpan _pingTimeout = TimeSpan.FromMilliseconds(500);
+    private readonly IMessageBoxService _messageBoxService;
     private bool _canConnect;
     private DeviceConfig _deviceConfig;
     private SolidColorBrush _pingStatusColor = new(Colors.Red);
@@ -121,9 +122,11 @@ public partial class ConnectControlsViewModel : ViewModelBase
     public ConnectControlsViewModel(ILogger logger,
         ISshClientService sshClientService,
         IEventSubscriptionService eventSubscriptionService,
-        IGlobalSettingsService globalSettingsService)
+        IGlobalSettingsService globalSettingsService,
+        IMessageBoxService messageBoxService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
+        _messageBoxService = messageBoxService;
         SetDefaults();
         LoadSettings();
 
@@ -537,10 +540,9 @@ public partial class ConnectControlsViewModel : ViewModelBase
 
         if (cmdResult == null)
         {
-            var resp = MessageBoxManager.GetMessageBoxStandard(
+            await _messageBoxService.ShowMessageBox(
                 "Timeout Error!",
                 "The command took too long to execute. Please check device..");
-            await resp.ShowAsync();
             return;
         }
 
