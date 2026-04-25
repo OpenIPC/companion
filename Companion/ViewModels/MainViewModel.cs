@@ -1151,8 +1151,8 @@ public partial class MainViewModel : ViewModelBase
         }
         else if (OperatingSystem.IsLinux())
         {
-            appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config");
-            logPath = Path.Combine(appDataFolder, appName, "logs");
+            appDataFolder = OpenIPC.AppDataConfigDirectory;
+            logPath = Path.Combine(appDataFolder, "Logs");
         }
         else
         {
