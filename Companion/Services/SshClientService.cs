@@ -106,7 +106,11 @@ public class SshClientService : ISshClientService
                 }
                 catch (Exception ex)
                 {
+                    // Do NOT swallow: a failed upload must surface so the caller can
+                    // abort the flash instead of proceeding against a missing/partial
+                    // file and reporting a false success.
                     _logger.Error($"Error uploading file: {ex.Message}");
+                    throw;
                 }
                 finally
                 {
