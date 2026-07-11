@@ -154,29 +154,68 @@ public class SysUpgradeService
     }
 
     /// <summary>
+    /// Seconds the device is given to complete the verify-mount before we stop waiting on it.
+    /// </summary>
+    private const int MountProbeSeconds = 45;
+
+    /// <summary>
     /// Returns true if the device's currently-running kernel can loop-mount the uploaded rootfs
     /// squashfs. This is exactly what <c>sysupgrade</c> does to verify the image before flashing, so
     /// it predicts whether sysupgrade will succeed or abort with "mount ... Invalid argument".
     /// </summary>
+    /// <remarks>
+    /// The mount does not always fail cleanly — it can <b>block indefinitely</b>. Observed on an
+    /// SSC338Q air unit: sysupgrade printed "Update rootfs from /tmp/rootfs.squashfs.ssc338q" and
+    /// never emitted another byte, because everything between that line and the flash write is a
+    /// silent losetup+mount. An unbounded probe would therefore hang in exactly the case this
+    /// fallback exists to survive, so it is bounded twice, and a probe that does not answer in time
+    /// counts as NOT mountable — handing such a device to sysupgrade would only wedge it on the very
+    /// same mount.
+    /// </remarks>
     private async Task<bool> CanRunningKernelMountRootfsAsync(
         DeviceConfig deviceConfig,
         string remoteRootfsPath,
         CancellationToken cancellationToken)
     {
         // Mount read-only via loop, print a sentinel only on success, then always clean up.
+        // `timeout` keeps the device-side mount from lingering forever; it is best-effort only,
+        // since the SIGTERM it sends cannot free a mount wedged in uninterruptible (D) state, and
+        // the applet may be absent on a minimal build. Hence the client-side bound below as well.
         const string sentinel = "RUBY_MOUNT_OK";
         var probe =
             $"d=$(mktemp -d 2>/dev/null || echo /tmp/.cmp_verify); mkdir -p \"$d\"; " +
-            $"if mount -t squashfs -o loop,ro '{remoteRootfsPath}' \"$d\" 2>/dev/null; then " +
+            $"if timeout {MountProbeSeconds} mount -t squashfs -o loop,ro '{remoteRootfsPath}' \"$d\" 2>/dev/null " +
+            $"|| mount -t squashfs -o loop,ro '{remoteRootfsPath}' \"$d\" 2>/dev/null; then " +
             $"echo {sentinel}; umount \"$d\" 2>/dev/null; fi; rmdir \"$d\" 2>/dev/null; true";
 
         try
         {
-            var result = await _sshClientService.ExecuteCommandWithResponseAsync(deviceConfig, probe, cancellationToken);
+            // A CancellationToken cannot rescue us here: ExecuteCommandWithResponseAsync runs the
+            // blocking SSH.NET RunCommand inside Task.Run, whose token only prevents the delegate
+            // from *starting* — once it is running, cancelling it does nothing and the await would
+            // wait forever. Bound it on the wall clock instead.
+            var probeTask = _sshClientService.ExecuteCommandWithResponseAsync(deviceConfig, probe, cancellationToken);
+            var limit = Task.Delay(TimeSpan.FromSeconds(MountProbeSeconds + 20), cancellationToken);
+
+            if (await Task.WhenAny(probeTask, limit) != probeTask)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                _logger.Warning(
+                    "Rootfs mount probe did not answer within {Seconds}s — the mount is wedged. " +
+                    "Treating rootfs as NOT mountable (using direct flashcp).",
+                    MountProbeSeconds + 20);
+                return false;
+            }
+
+            var result = await probeTask;
             var ok = result?.Result?.Contains(sentinel, StringComparison.Ordinal) == true;
             _logger.Information("Rootfs mount probe: {Result}.",
                 ok ? "mountable (using sysupgrade)" : "NOT mountable (using direct flashcp)");
             return ok;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
