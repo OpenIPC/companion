@@ -24,18 +24,14 @@ public class SysUpgradeService
     {
         try
         {
-            updateProgress("Uploading kernel...");
             string kernelFilename = Path.GetFileName(kernelPath);
             var remoteKernelPath = $"{OpenIPC.RemoteTempFolder}/{kernelFilename}";
-            await _sshClientService.UploadFileAsync(deviceConfig, kernelPath, remoteKernelPath);
-            await ValidateRemoteFileSizeAsync(deviceConfig, kernelPath, remoteKernelPath, "kernel", updateProgress, cancellationToken);
+            await UploadAndVerifyWithRetryAsync(deviceConfig, kernelPath, remoteKernelPath, "kernel", updateProgress, cancellationToken);
             updateProgress("Kernel binary uploaded successfully.");
 
-            updateProgress("Uploading root filesystem...");
             string rootfsFilename = Path.GetFileName(rootfsPath);
             var remoteRootfsPath = $"{OpenIPC.RemoteTempFolder}/{rootfsFilename}";
-            await _sshClientService.UploadFileAsync(deviceConfig, rootfsPath, remoteRootfsPath);
-            await ValidateRemoteFileSizeAsync(deviceConfig, rootfsPath, remoteRootfsPath, "rootfs", updateProgress, cancellationToken);
+            await UploadAndVerifyWithRetryAsync(deviceConfig, rootfsPath, remoteRootfsPath, "rootfs", updateProgress, cancellationToken);
             updateProgress("Root filesystem binary uploaded successfully.");
 
             updateProgress("Starting sysupgrade. Do not unplug the device.");
@@ -56,6 +52,48 @@ public class SysUpgradeService
         {
             _logger.Error(ex, "Error during sysupgrade.");
             updateProgress($"Error: {ex.Message}");
+            // Re-throw so the caller does NOT report a successful flash when the
+            // upload/verification/flash actually failed. A swallowed exception here
+            // is what made a failed flash look identical to a successful one.
+            throw;
+        }
+    }
+
+    private const int UploadMaxAttempts = 3;
+
+    /// <summary>
+    /// Uploads a file and verifies it landed at full size on the device, retrying on
+    /// failure. SCP uploads over flaky links (e.g. dropbear) can fail or truncate; without
+    /// verification the flash would proceed against a missing/partial file. Throws if all
+    /// attempts fail so the caller can abort instead of bricking or faking success.
+    /// </summary>
+    private async Task UploadAndVerifyWithRetryAsync(
+        DeviceConfig deviceConfig,
+        string localPath,
+        string remotePath,
+        string label,
+        Action<string> updateProgress,
+        CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                updateProgress(attempt == 1
+                    ? $"Uploading {label}..."
+                    : $"Uploading {label}... (attempt {attempt}/{UploadMaxAttempts})");
+                await _sshClientService.UploadFileAsync(deviceConfig, localPath, remotePath);
+                await ValidateRemoteFileSizeAsync(deviceConfig, localPath, remotePath, label, updateProgress, cancellationToken);
+                return;
+            }
+            catch (Exception ex) when (attempt < UploadMaxAttempts)
+            {
+                _logger.Warning(ex, "Upload of {Label} failed on attempt {Attempt}/{Max}; retrying.",
+                    label, attempt, UploadMaxAttempts);
+                updateProgress($"Upload of {label} failed (attempt {attempt}/{UploadMaxAttempts}); retrying...");
+                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+            }
         }
     }
 

@@ -2440,6 +2440,14 @@ public partial class FirmwareTabViewModel : ViewModelBase
             SetProgressBarBrush(ProgressErrorBrush);
             _sysupgradeInProgress = false;
             _sysupgradePhase = SysupgradePhase.None;
+            // Tell the user the flash failed. Previously the upload/sysupgrade swallowed
+            // its exception, so this catch never fired and the success dialog ran anyway —
+            // the device was left on its old firmware while the UI claimed it was flashed.
+            await _messageBoxService.ShowCustomMessageBox(
+                "Upgrade failed",
+                $"The firmware was NOT flashed. The device is still on its previous firmware.\n\n{ex.Message}\n\nCheck the connection and try again.",
+                ButtonEnum.Ok,
+                Icon.Error);
         }
     }
 
