@@ -26,6 +26,7 @@ using Companion.Services;
 using Renci.SshNet.Messages;
 using Serilog;
 using SharpCompress.Archives;
+using SharpCompress.Readers;
 
 namespace Companion.ViewModels;
 
@@ -1447,11 +1448,11 @@ public partial class FirmwareTabViewModel : ViewModelBase
             Directory.CreateDirectory(tempDir);
 
             ProgressValue = 8;
-            using (var archive = SharpCompress.Archives.Tar.TarArchive.Open(tarFilePath))
+            using (var archive = SharpCompress.Archives.Tar.TarArchive.OpenArchive(tarFilePath, new ReaderOptions()))
             {
                 foreach (var entry in archive.Entries.Where(entry => !entry.IsDirectory))
                 {
-                    var destinationPath = Path.Combine(tempDir, entry.Key);
+                    var destinationPath = GetSafeArchiveDestinationPath(tempDir, entry.Key);
                     var directoryPath = Path.GetDirectoryName(destinationPath);
 
                     if (!Directory.Exists(directoryPath))
@@ -1920,11 +1921,11 @@ public partial class FirmwareTabViewModel : ViewModelBase
         var tempDir = Path.Combine(Path.GetTempPath(), $"companion-restore-{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);
 
-        using (var archive = SharpCompress.Archives.Tar.TarArchive.Open(tarPath))
+        using (var archive = SharpCompress.Archives.Tar.TarArchive.OpenArchive(tarPath, new ReaderOptions()))
         {
             foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
             {
-                var destPath = Path.Combine(tempDir, Path.GetFileName(entry.Key));
+                var destPath = GetSafeArchiveDestinationPath(tempDir, Path.GetFileName(entry.Key));
                 using var entryStream = entry.OpenEntryStream();
                 using var fileStream = File.Create(destPath);
                 entryStream.CopyTo(fileStream);
@@ -1933,6 +1934,25 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
         try { File.Delete(tarPath); } catch { /* best effort */ }
         return tempDir;
+    }
+
+    private static string GetSafeArchiveDestinationPath(string baseDirectory, string entryKey)
+    {
+        if (string.IsNullOrWhiteSpace(entryKey))
+            throw new InvalidDataException("Archive entry has no file name.");
+
+        if (Path.IsPathRooted(entryKey))
+            throw new InvalidDataException($"Archive entry uses an absolute path: {entryKey}");
+
+        var baseFullPath = Path.GetFullPath(baseDirectory);
+        if (!baseFullPath.EndsWith(Path.DirectorySeparatorChar))
+            baseFullPath += Path.DirectorySeparatorChar;
+
+        var destinationPath = Path.GetFullPath(Path.Combine(baseFullPath, entryKey));
+        if (!destinationPath.StartsWith(baseFullPath, StringComparison.Ordinal))
+            throw new InvalidDataException($"Archive entry escapes the extraction directory: {entryKey}");
+
+        return destinationPath;
     }
 
     private static void VerifyBackupChecksums(string checksumFile, List<string> mtdBinFiles)
