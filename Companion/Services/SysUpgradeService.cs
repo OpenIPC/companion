@@ -181,11 +181,18 @@ public class SysUpgradeService
         // `timeout` keeps the device-side mount from lingering forever; it is best-effort only,
         // since the SIGTERM it sends cannot free a mount wedged in uninterruptible (D) state, and
         // the applet may be absent on a minimal build. Hence the client-side bound below as well.
+        //
+        // The bare, un-timed mount is used ONLY when the `timeout` applet is missing — never as a
+        // fallback after a mount failure/timeout. `M` holds `timeout N` when the applet exists and is
+        // empty otherwise, so exactly one mount runs: a bounded one where possible. A `... || mount`
+        // form would spawn a second unbounded mount on every real mount failure, which — because the
+        // client-side wait below abandons the command without killing it — is precisely the
+        // background-wedge this probe exists to avoid.
         const string sentinel = "RUBY_MOUNT_OK";
         var probe =
             $"d=$(mktemp -d 2>/dev/null || echo /tmp/.cmp_verify); mkdir -p \"$d\"; " +
-            $"if timeout {MountProbeSeconds} mount -t squashfs -o loop,ro '{remoteRootfsPath}' \"$d\" 2>/dev/null " +
-            $"|| mount -t squashfs -o loop,ro '{remoteRootfsPath}' \"$d\" 2>/dev/null; then " +
+            $"if command -v timeout >/dev/null 2>&1; then M=\"timeout {MountProbeSeconds}\"; else M=\"\"; fi; " +
+            $"if $M mount -t squashfs -o loop,ro '{remoteRootfsPath}' \"$d\" 2>/dev/null; then " +
             $"echo {sentinel}; umount \"$d\" 2>/dev/null; fi; rmdir \"$d\" 2>/dev/null; true";
 
         try
@@ -263,22 +270,14 @@ public class SysUpgradeService
             throw new InvalidOperationException("'flashcp' (mtd-utils) is not available on the device; cannot flash directly.");
 
         updateProgress($"Flashing kernel to {kernelPartition.Device}. Do not unplug the device.");
-        await _sshClientService.ExecuteCommandWithProgressAsync(
-            deviceConfig,
-            $"flashcp -v '{remoteKernelPath}' {kernelPartition.Device}",
-            updateProgress,
-            cancellationToken,
-            timeout: TimeSpan.FromMinutes(5),
-            disableTimeout: true);
+        await FlashPartitionAsync(
+            deviceConfig, remoteKernelPath, kernelPartition.Device, "kernel",
+            TimeSpan.FromMinutes(5), updateProgress, cancellationToken);
 
         updateProgress($"Flashing root filesystem to {rootfsPartition.Device}. Do not unplug the device.");
-        await _sshClientService.ExecuteCommandWithProgressAsync(
-            deviceConfig,
-            $"flashcp -v '{remoteRootfsPath}' {rootfsPartition.Device}",
-            updateProgress,
-            cancellationToken,
-            timeout: TimeSpan.FromMinutes(15),
-            disableTimeout: true);
+        await FlashPartitionAsync(
+            deviceConfig, remoteRootfsPath, rootfsPartition.Device, "root filesystem",
+            TimeSpan.FromMinutes(15), updateProgress, cancellationToken);
 
         // sysupgrade -n resets the settings overlay; replicate that so stale config from the old
         // firmware doesn't shadow the new image. Best-effort: skip if there is no such partition.
@@ -297,6 +296,69 @@ public class SysUpgradeService
             timeout: TimeSpan.FromMinutes(2),
             allowDisconnectCompletion: true,
             disableTimeout: true);
+    }
+
+    /// <summary>
+    /// Writes one image to one MTD partition with <c>flashcp -v</c>, blocking until the write reports
+    /// an explicit exit code, and throwing if it failed or never completed.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ISshClientService.ExecuteCommandWithProgressAsync"/> decides a command is finished
+    /// only when it prints a sysupgrade-style sentinel or the SSH session drops. flashcp does neither —
+    /// it streams progress and returns to the shell prompt — so with <c>disableTimeout</c> the read loop
+    /// would spin forever, and even on timeout the helper only reports via progress text without
+    /// throwing. Raw MTD writes must fail loudly, so we append <c>; echo MARKER$?</c> to carry flashcp's
+    /// exit status back over the shell stream, complete the moment that marker is parsed, keep a finite
+    /// timeout, and throw on a non-zero code or on no marker at all (timeout / lost connection).
+    /// </remarks>
+    private async Task FlashPartitionAsync(
+        DeviceConfig deviceConfig,
+        string remoteImagePath,
+        string partitionDevice,
+        string label,
+        TimeSpan timeout,
+        Action<string> updateProgress,
+        CancellationToken cancellationToken)
+    {
+        const string marker = "RUBY_FLASHCP_EXIT:";
+        int? exitCode = null;
+
+        // Parse the "MARKER<code>" line flashcp's shell prints on exit. The shell also echoes the
+        // command itself, which contains the literal "MARKER$?" (no digits) — skipping the no-digit
+        // case keeps that echo from being mistaken for completion.
+        void Sniff(string line)
+        {
+            updateProgress(line);
+            var idx = line.IndexOf(marker, StringComparison.Ordinal);
+            if (idx < 0)
+                return;
+            var end = idx + marker.Length;
+            while (end < line.Length && char.IsWhiteSpace(line[end]))
+                end++;
+            var start = end;
+            while (end < line.Length && char.IsDigit(line[end]))
+                end++;
+            if (end > start && int.TryParse(line.Substring(start, end - start), out var code))
+                exitCode = code;
+        }
+
+        await _sshClientService.ExecuteCommandWithProgressAsync(
+            deviceConfig,
+            $"flashcp -v '{remoteImagePath}' {partitionDevice}; echo {marker}$?",
+            Sniff,
+            cancellationToken,
+            timeout: timeout,
+            // Sniff runs before this check each line, so "we parsed a real exit code" is completion.
+            isCommandComplete: _ => exitCode.HasValue,
+            disableTimeout: false);
+
+        if (exitCode is null)
+            throw new InvalidOperationException(
+                $"Flashing {label} to {partitionDevice} did not report completion within {timeout.TotalMinutes:0} min " +
+                "(flashcp may be wedged or the connection dropped); aborting to avoid a silently half-written flash.");
+        if (exitCode != 0)
+            throw new InvalidOperationException(
+                $"flashcp failed writing {label} to {partitionDevice} (exit {exitCode}); the flash is likely incomplete.");
     }
 
     private async Task<bool> RemoteCommandExistsAsync(
