@@ -33,6 +33,7 @@ public partial class PresetsTabViewModel : ViewModelBase
     private readonly IPresetService _presetService;
     private readonly HttpClient _httpClient;
     private readonly ILogger _logger;
+    private readonly IMessageBoxService _messageBoxService;
     private readonly bool _presetsEnabled;
 
     #region Observable Properties
@@ -96,7 +97,8 @@ public partial class PresetsTabViewModel : ViewModelBase
         ISshClientService sshClientService,
         IEventSubscriptionService eventSubscriptionService,
         IGitHubPresetService gitHubPresetService,
-        IPresetService presetService)
+        IPresetService presetService,
+        IMessageBoxService messageBoxService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
         _gitHubPresetService = gitHubPresetService;
@@ -104,6 +106,7 @@ public partial class PresetsTabViewModel : ViewModelBase
         _logger = logger?.ForContext(GetType()) ?? 
                  throw new ArgumentNullException(nameof(logger));
         _httpClient = new HttpClient();
+        _messageBoxService = messageBoxService;
         _presetsEnabled = IsPresetsEnabled();
 
         SubscribeToEvents();
@@ -659,9 +662,9 @@ public partial class PresetsTabViewModel : ViewModelBase
                 // Show a success message to the user
                 await Dispatcher.UIThread.InvokeAsync(async () =>
                 {
-                    await MessageBoxManager.GetMessageBoxStandard(
+                    await _messageBoxService.ShowMessageBox(
                         "Success",
-                        $"Successfully applied preset '{preset.Name}'").ShowAsync();
+                        $"Successfully applied preset '{preset.Name}'");
                 });
             }
             else
@@ -673,9 +676,9 @@ public partial class PresetsTabViewModel : ViewModelBase
                 // Show an error message to the user
                 await Dispatcher.UIThread.InvokeAsync(async () =>
                 {
-                    await MessageBoxManager.GetMessageBoxStandard(
+                    await _messageBoxService.ShowMessageBox(
                         "Error",
-                        $"Failed to apply preset '{preset.Name}'. Check the log for details.").ShowAsync();
+                        $"Failed to apply preset '{preset.Name}'. Check the log for details.");
                 });
             }
         }
@@ -688,9 +691,9 @@ public partial class PresetsTabViewModel : ViewModelBase
             // Show an error message to the user
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                await MessageBoxManager.GetMessageBoxStandard(
+                await _messageBoxService.ShowMessageBox(
                     "Error",
-                    $"Error applying preset: {ex.Message}").ShowAsync();
+                    $"Error applying preset: {ex.Message}");
             });
         }
         finally

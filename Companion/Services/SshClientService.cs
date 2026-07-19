@@ -15,15 +15,17 @@ namespace Companion.Services;
 public class SshClientService : ISshClientService
 {
     private IEventSubscriptionService _eventSubscriptionService;
+    private readonly IMessageBoxService _messageBoxService;
 
     private readonly ILogger _logger;
 
-    public SshClientService(IEventSubscriptionService eventSubscriptionService, ILogger logger)
+    public SshClientService(IEventSubscriptionService eventSubscriptionService, ILogger logger, IMessageBoxService messageBoxService)
     {
         _logger = logger?.ForContext(GetType()) ?? 
                   throw new ArgumentNullException(nameof(logger));
         
         _eventSubscriptionService = eventSubscriptionService;
+        _messageBoxService = messageBoxService;
     }
 
     public async Task<SshCommand> ExecuteCommandWithResponseAsync(DeviceConfig deviceConfig, string command,
@@ -106,7 +108,11 @@ public class SshClientService : ISshClientService
                 }
                 catch (Exception ex)
                 {
+                    // Do NOT swallow: a failed upload must surface so the caller can
+                    // abort the flash instead of proceeding against a missing/partial
+                    // file and reporting a false success.
                     _logger.Error($"Error uploading file: {ex.Message}");
+                    throw;
                 }
                 finally
                 {
@@ -327,8 +333,7 @@ public class SshClientService : ISshClientService
         }
         else
         {
-            var msgBox = MessageBoxManager.GetMessageBoxStandard("Error", $"File {fileName} not found.");
-            msgBox.ShowAsync();
+            await _messageBoxService.ShowMessageBox("Error", $"File {fileName} not found.");
         }
     }
 

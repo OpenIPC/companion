@@ -29,6 +29,7 @@ public partial class WfbTabViewModel : ViewModelBase
     private readonly IYamlConfigService _yamlConfigService;
     private readonly Dictionary<string, string> _yamlConfig = new();
     private readonly IGlobalSettingsService _globalSettingsService;
+    private readonly IMessageBoxService _messageBoxService;
     #endregion
 
     #region Observable Properties
@@ -80,11 +81,13 @@ public partial class WfbTabViewModel : ViewModelBase
         ISshClientService sshClientService,
         IEventSubscriptionService eventSubscriptionService,
         IYamlConfigService yamlConfigService,
-        IGlobalSettingsService globalSettingsSettingsViewModel)
+        IGlobalSettingsService globalSettingsSettingsViewModel,
+        IMessageBoxService messageBoxService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
         _yamlConfigService = yamlConfigService ?? throw new ArgumentNullException(nameof(yamlConfigService));
         _globalSettingsService = globalSettingsSettingsViewModel ?? throw new ArgumentNullException(nameof(globalSettingsSettingsViewModel));
+        _messageBoxService = messageBoxService;
         
         // read device to determine configurations
         _globalSettingsService.ReadDevice();
@@ -259,7 +262,7 @@ public partial class WfbTabViewModel : ViewModelBase
 
         if (string.IsNullOrEmpty(updatedWfbConfContent))
         {
-            await MessageBoxManager.GetMessageBoxStandard("Error", "WfbConfContent is empty").ShowAsync();
+            await _messageBoxService.ShowMessageBox("Error", "WfbConfContent is empty");
             return;
         }
 

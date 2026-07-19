@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Companion.Views.SimpleMessageDialog"
+        Width="360"
+        MinWidth="220"
+        MinHeight="120"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="BorderOnly">
+    <Border Padding="14">
+        <Grid RowDefinitions="*,Auto" RowSpacing="10">
+            <TextBlock x:Name="MessageTextBlock"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Stretch" />
+
+            <StackPanel x:Name="ButtonsPanel"
+                        Grid.Row="1"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Spacing="10" />
+        </Grid>
+    </Border>
+</Window>

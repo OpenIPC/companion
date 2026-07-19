@@ -390,11 +390,10 @@ public class App : Application
 
     public virtual async Task ShowUpdateDialogAsync(string releaseNotes, string downloadUrl, string newVersion)
     {
-        var msgBox = MessageBoxManager.GetMessageBoxStandard("Update Available",
+        var messageBoxService = ServiceProvider.GetRequiredService<IMessageBoxService>();
+        var result = await messageBoxService.ShowCustomMessageBox("Update Available",
             $"New version available: {newVersion}\n\n{releaseNotes}\n\nDo you want to download the update?",
             ButtonEnum.YesNo);
-
-        var result = await msgBox.ShowAsync();
 
         if (result == ButtonResult.Yes) OpenBrowser(downloadUrl);
     }

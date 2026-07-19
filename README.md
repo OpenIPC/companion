@@ -27,6 +27,8 @@ dotnet build Companion.Desktop/Companion.Desktop.csproj -c Release
 dotnet run --project Companion.Desktop/Companion.Desktop.csproj
 ```
 
+For local cross-platform packaging checks, use `./build-them.sh`. That script is intended for developer testing before pushing changes. GitHub Actions is the source of truth for official CI builds, release artifacts, and published releases.
+
 ## Documentation
 
 - [Configuration and logging](docs/configuration.md)

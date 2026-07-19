@@ -48,16 +48,17 @@ public class WfbTabViewModelTest : ViewModelTestBase
     private Mock<IGlobalSettingsService> _mockGlobalSettingsService;    
 
 
-    [Test]
+    [Fact]
     public void SelectedPower24GHz_PropertyChange_RaisesNotification()
     {
         // Arrange
-        var viewModel = new WfbTabViewModel(
+        WfbTabViewModel viewModel = new WfbTabViewModel(
             LoggerMock.Object,
             SshClientServiceMock.Object,
             EventSubscriptionServiceMock.Object,
             YamlConfigServiceMock.Object,
-            GlobalSettingsServiceMock.Object
+            GlobalSettingsServiceMock.Object,
+            MessageBoxServiceMock.Object
         );
 
         var propertyChangedRaised = false;
@@ -83,12 +84,13 @@ public class WfbTabViewModelTest : ViewModelTestBase
             .Returns(tabMessageEventMock.Object);
 
         // Arrange
-        var viewModel = new WfbTabViewModel(
+        WfbTabViewModel viewModel = new WfbTabViewModel(
             LoggerMock.Object,
             SshClientServiceMock.Object,
             EventSubscriptionServiceMock.Object,
             YamlConfigServiceMock.Object,
-            GlobalSettingsServiceMock.Object
+            GlobalSettingsServiceMock.Object,
+            MessageBoxServiceMock.Object
         );
 
 
@@ -114,12 +116,13 @@ public class WfbTabViewModelTest : ViewModelTestBase
     public void WfbConfContent_Setter_ParsesAndUpdatesProperties()
     {
         // Arrange
-        var viewModel = new WfbTabViewModel(
+        WfbTabViewModel viewModel = new WfbTabViewModel(
             LoggerMock.Object,
             SshClientServiceMock.Object,
             EventSubscriptionServiceMock.Object,
             YamlConfigServiceMock.Object,
-            GlobalSettingsServiceMock.Object
+            GlobalSettingsServiceMock.Object,
+            MessageBoxServiceMock.Object
         );
 
         // Act

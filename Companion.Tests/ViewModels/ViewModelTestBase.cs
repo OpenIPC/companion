@@ -21,6 +21,7 @@ public abstract class ViewModelTestBase
     protected Mock<IYamlConfigService> YamlConfigServiceMock { get; private set; }
     
     protected Mock<IGlobalSettingsService> GlobalSettingsServiceMock { get; private set; }
+    protected Mock<IMessageBoxService> MessageBoxServiceMock { get; private set; }
 
     protected Mock<IEventSubscriptionService> EventSubscriptionServiceMock { get; private set; }
 
@@ -41,6 +42,7 @@ public abstract class ViewModelTestBase
         YamlConfigServiceMock = new Mock<IYamlConfigService>();
         EventSubscriptionServiceMock = new Mock<IEventSubscriptionService>();
         GlobalSettingsServiceMock = new Mock<IGlobalSettingsService>();
+        MessageBoxServiceMock = new Mock<IMessageBoxService>();
 
         EventAggregatorMock
             .Setup(x => x.GetEvent<WfbConfContentUpdatedEvent>())

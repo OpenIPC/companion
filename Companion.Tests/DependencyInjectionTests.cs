@@ -19,6 +19,7 @@ public class DependencyInjectionTests
         services.AddSingleton<IEventSubscriptionService, EventSubscriptionService>();
         services.AddSingleton<ISshClientService, SshClientService>();
         services.AddSingleton<IYamlConfigService, YamlConfigService>();
+        services.AddSingleton<IMessageBoxService>(_ => new Mock<IMessageBoxService>().Object);
         
         
         var loggerMock = new Mock<ILogger>();
