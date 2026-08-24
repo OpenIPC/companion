@@ -1,11 +1,13 @@
 using System.Collections.ObjectModel;
 using System;
+using System.Linq;
 using Moq;
 using Companion.Models;
 using Companion.Services;
 using Companion.ViewModels;
 using Serilog;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace OpenIPC.Companion.Tests.ViewModels;
 
@@ -310,6 +312,27 @@ public class FirmwareTabViewModelTests
             null);
 
         Assert.That(result, Is.EqualTo(new[] { "ssc338q-u-boot-nor.bin" }));
+    }
+
+    [Test]
+    public async Task GetFilenamesAsync_ExcludesJsonAssets()
+    {
+        _mockGithubService
+            .Setup(x => x.GetGitHubDataAsync(global::Companion.Models.OpenIPC.OpenIPCBuilderGitHubApiUrl))
+            .ReturnsAsync("""
+                         {
+                           "assets": [
+                             { "name": "camera-firmware.tgz" },
+                             { "name": "latest.json" },
+                             { "name": "checksums.JSON" }
+                           ]
+                         }
+                         """);
+
+        var task = (Task<IEnumerable<string>>)InvokePrivateMethod(_viewModel, "GetFilenamesAsync");
+        var result = await task;
+
+        Assert.That(result.ToArray(), Is.EqualTo(new[] { "camera-firmware.tgz" }));
     }
 
     private static void SetPrivateField(object target, string fieldName, object value)
