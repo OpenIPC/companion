@@ -1003,7 +1003,9 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
             var releaseData = JObject.Parse(response);
             var assets = releaseData["assets"];
-            return assets?.Select(asset => asset["name"]?.ToString()).Where(name => !string.IsNullOrEmpty(name)) ??
+            return assets?.Select(asset => asset["name"]?.ToString())
+                       .Where(name => !string.IsNullOrEmpty(name))
+                       .Where(name => !name.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) ??
                    Enumerable.Empty<string>();
         }
     }
@@ -1016,7 +1018,9 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
         var releaseData = JObject.Parse(response.ToString());
         var assets = releaseData["assets"];
-        return assets?.Select(asset => asset["name"]?.ToString()).Where(name => !string.IsNullOrEmpty(name)) ??
+        return assets?.Select(asset => asset["name"]?.ToString())
+                   .Where(name => !string.IsNullOrEmpty(name))
+                   .Where(name => !name.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) ??
                Enumerable.Empty<string>();
     }
 
