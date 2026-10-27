@@ -21,6 +21,71 @@ Default locations:
 
 Serilog configuration reference: https://github.com/serilog/serilog/wiki/Configuration-Basics
 
+## Firmware sources and build channels
+
+The firmware screen reads its sources and build-channel dropdown from the
+`FirmwareSources` array in `appsettings.json`. A source can use assets from a
+GitHub release or `.tgz` files committed to a repository directory.
+
+```json
+"FirmwareSources": [
+  {
+    "Name": "OpenIPC Builder",
+    "Track": "Stable",
+    "SelectionMode": "Automatic",
+    "Channels": [
+      {
+        "Name": "Latest",
+        "Distribution": "GitHubRelease",
+        "Owner": "OpenIPC",
+        "Repository": "builder",
+        "ReleaseTag": "latest",
+        "FileExtension": ".tgz"
+      }
+    ]
+  },
+  {
+    "Name": "Greg APFPV",
+    "Track": "Test",
+    "SelectionMode": "BySoc",
+    "Channels": [
+      {
+        "Name": "Latest",
+        "Distribution": "RepositoryContents",
+        "Owner": "sickgreg",
+        "Repository": "OpenIPC_sickgregFPV_apfpv",
+        "Branch": "main",
+        "Path": "",
+        "FileExtension": ".tgz"
+      }
+    ]
+  },
+  {
+    "Name": "Mabur",
+    "Track": "Test",
+    "SelectionMode": "BySoc",
+    "Channels": [
+      {
+        "Name": "Latest",
+        "Distribution": "GitHubRelease",
+        "Owner": "gilankpam",
+        "Repository": "openipc-builder",
+        "ReleaseTag": "latest",
+        "FileExtension": ".tgz"
+      }
+    ]
+  }
+]
+```
+
+`Track` controls source availability from Preferences. Stable shows only
+stable sources on the Firmware tab. Test is an opt-in that shows both stable
+and test sources. The Firmware tab does not change the track itself.
+`SelectionMode` accepts `Automatic` or `BySoc`. `GitHubRelease` channels may
+use `latest` or a specific release tag. `RepositoryContents` channels may set
+`Branch` and an optional repository-relative `Path`. Restart Companion after
+editing the file.
+
 ## Known issue: device hostname mapping
 
 If you see device hostname errors when connecting, update the `DeviceHostnameMapping` section in `appsettings.json`:
