@@ -23,6 +23,7 @@ public class FirmwareTabViewModelTests
     private Mock<IEventSubscriptionService> _mockEventSubscriptionService;
     private Mock<IGitHubService> _mockGithubService;
     private Mock<IPreferencesService> _mockPreferencesService;
+    private Mock<IFirmwareSourceService> _mockFirmwareSourceService;
     private Mock<IMessageBoxService> _mockMessageBoxService;
 
     [SetUp]
@@ -35,8 +36,10 @@ public class FirmwareTabViewModelTests
         _mockEventSubscriptionService = new Mock<IEventSubscriptionService>();
         _mockGithubService = new Mock<IGitHubService>();
         _mockPreferencesService = new Mock<IPreferencesService>();
+        _mockFirmwareSourceService = new Mock<IFirmwareSourceService>();
         _mockMessageBoxService = new Mock<IMessageBoxService>();
         _mockPreferencesService.Setup(x => x.Load()).Returns(new UserPreferences());
+        _mockFirmwareSourceService.Setup(x => x.GetSources()).Returns(FirmwareSourceService.CreateDefaults());
         
         _viewModel = new FirmwareTabViewModel(
             _mockLogger.Object,
@@ -44,6 +47,7 @@ public class FirmwareTabViewModelTests
             _mockEventSubscriptionService.Object,
             _mockGithubService.Object,
             _mockPreferencesService.Object,
+            _mockFirmwareSourceService.Object,
             _mockMessageBoxService.Object);
     }
 
@@ -153,33 +157,85 @@ public class FirmwareTabViewModelTests
     [Test]
     public void SelectedFirmwareSource_DefaultsToOpenIpcBuilder()
     {
+        // Assert
+        Assert.That(_viewModel.SelectedFirmwareTrack, Is.EqualTo("Stable"));
         Assert.That(_viewModel.SelectedFirmwareSource, Is.EqualTo("OpenIPC Builder"));
+        Assert.That(_viewModel.SelectedFirmwareChannel, Is.EqualTo("Latest"));
     }
 
     [Test]
     public void BuildFirmwareDownloadUrl_DefaultSource_UsesOpenIpcReleaseUrl()
     {
+        // Arrange / Act
         var url = (string)InvokePrivateMethod(_viewModel, "BuildFirmwareDownloadUrl", "test-fw.tgz");
-        Assert.That(url, Is.EqualTo("https://github.com/OpenIPC/builder/releases/download/latest/test-fw.tgz"));
+
+        // Assert
+        Assert.That(url, Is.EqualTo("https://github.com/OpenIPC/builder/releases/latest/download/test-fw.tgz"));
+    }
+
+    [Test]
+    public void BuildFirmwareDownloadUrl_MaburSource_UsesGilankpamReleaseUrl()
+    {
+        // Arrange
+        _viewModel.SelectedFirmwareTrack = "Test";
+        _viewModel.SelectedFirmwareSource = "Mabur";
+
+        // Act
+        var url = (string)InvokePrivateMethod(_viewModel, "BuildFirmwareDownloadUrl", "test-fw.tgz");
+
+        // Assert
+        Assert.That(url, Is.EqualTo("https://github.com/gilankpam/openipc-builder/releases/latest/download/test-fw.tgz"));
     }
 
     [Test]
     public void BuildFirmwareDownloadUrl_GregSource_UsesRawGithubUrl()
     {
+        // Arrange
+        _viewModel.SelectedFirmwareTrack = "Test";
         _viewModel.SelectedFirmwareSource = "Greg APFPV";
 
+        // Act
         var url = (string)InvokePrivateMethod(_viewModel, "BuildFirmwareDownloadUrl", "test-fw.tgz");
 
+        // Assert
         Assert.That(url, Is.EqualTo("https://raw.githubusercontent.com/sickgreg/OpenIPC_sickgregFPV_apfpv/main/test-fw.tgz"));
+    }
+
+    [Test]
+    public void SelectedFirmwareSource_GregSource_RefreshesAvailableChannels()
+    {
+        // Arrange / Act
+        _viewModel.SelectedFirmwareTrack = "Test";
+        _viewModel.SelectedFirmwareSource = "Greg APFPV";
+
+        // Assert
+        Assert.That(_viewModel.FirmwareChannels, Is.EqualTo(new[] { "Latest" }));
+        Assert.That(_viewModel.SelectedFirmwareChannel, Is.EqualTo("Latest"));
+    }
+
+    [Test]
+    public void SelectedFirmwareTrack_StableShowsStableSourcesAndTestShowsAllSources()
+    {
+        // Arrange / Act / Assert
+        Assert.That(_viewModel.FirmwareSources, Is.EqualTo(new[] { "OpenIPC Builder" }));
+
+        // Act
+        _viewModel.SelectedFirmwareTrack = "Test";
+
+        // Assert
+        Assert.That(_viewModel.FirmwareSources, Is.EqualTo(new[] { "OpenIPC Builder", "Greg APFPV", "Mabur" }));
     }
 
     [Test]
     public void CanUseDropdowns_GregSource_ReturnsFalse()
     {
+        // Arrange
         _viewModel.CanConnect = true;
         _viewModel.IsConnected = true;
+        _viewModel.SelectedFirmwareTrack = "Test";
         _viewModel.SelectedFirmwareSource = "Greg APFPV";
 
+        // Assert
         Assert.That(_viewModel.CanUseDropdowns, Is.False);
     }
 
@@ -318,7 +374,7 @@ public class FirmwareTabViewModelTests
     public async Task GetFilenamesAsync_ExcludesJsonAssets()
     {
         _mockGithubService
-            .Setup(x => x.GetGitHubDataAsync(global::Companion.Models.OpenIPC.OpenIPCBuilderGitHubApiUrl))
+            .Setup(x => x.GetGitHubDataAsync("https://api.github.com/repos/OpenIPC/builder/releases/latest"))
             .ReturnsAsync("""
                          {
                            "assets": [

@@ -56,6 +56,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private FirmwareData _firmwareData;
     private readonly IGitHubService _gitHubService;
     private readonly IPreferencesService _preferencesService;
+    private readonly IReadOnlyList<FirmwareSourceDefinition> _firmwareSourceDefinitions;
     private bool _bInitializedCommands = false;
     private bool _bRecursionSelectGuard = false;
     private readonly IMessageBoxService _messageBoxService;
@@ -97,8 +98,6 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private static readonly Regex MtdLineRegex =
         new(@"^(?<dev>mtd\d+):\s+(?<size>[0-9a-fA-F]+)\s+(?<erasesize>[0-9a-fA-F]+)\s+""(?<name>[^""]+)""",
             RegexOptions.Compiled);
-    private const string OpenIpcFirmwareSource = "OpenIPC Builder";
-    private const string GregApfpvFirmwareSource = "Greg APFPV";
     #endregion
 
     #region Observable Properties
@@ -135,7 +134,9 @@ public partial class FirmwareTabViewModel : ViewModelBase
     [ObservableProperty] private bool _isBackupExpanded;
     [ObservableProperty] private bool _isFirmwareExpanded = true;
     [ObservableProperty] private bool _isBootloaderExpanded;
+    [ObservableProperty] private string _selectedFirmwareTrack;
     [ObservableProperty] private string _selectedFirmwareSource;
+    [ObservableProperty] private string _selectedFirmwareChannel;
     [ObservableProperty] private int _selectedFirmwareMethod; // 0=Automatic, 1=BySoc, 2=Local
 
     #endregion
@@ -145,7 +146,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     /// <summary>
     /// Gets whether dropdowns should be enabled based on connection and firmware selection state
     /// </summary>
-    public bool CanUseDropdowns => IsConnected && !IsGregApfpvSourceSelected();
+    public bool CanUseDropdowns => IsConnected && !UsesBySocSelection();
 
     /// <summary>
     /// Gets whether soc dropdowns should be enabled based on connection and firmware selection state
@@ -178,11 +179,9 @@ public partial class FirmwareTabViewModel : ViewModelBase
     /// </summary>
     public ObservableCollection<string> FirmwareBySoc { get; set; } = new();
     public ObservableCollection<string> Bootloaders { get; set; } = new();
-    public ObservableCollection<string> FirmwareSources { get; } = new()
-    {
-        OpenIpcFirmwareSource,
-        GregApfpvFirmwareSource
-    };
+    public ObservableCollection<string> FirmwareTracks { get; } = new();
+    public ObservableCollection<string> FirmwareSources { get; } = new();
+    public ObservableCollection<string> FirmwareChannels { get; } = new();
 
     #endregion
 
@@ -209,11 +208,16 @@ public partial class FirmwareTabViewModel : ViewModelBase
         IEventSubscriptionService eventSubscriptionService,
         IGitHubService gitHubService,
         IPreferencesService preferencesService,
+        IFirmwareSourceService firmwareSourceService,
         IMessageBoxService messageBoxService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
         _gitHubService = gitHubService;
         _preferencesService = preferencesService;
+        _firmwareSourceDefinitions = firmwareSourceService.GetSources();
+        foreach (string track in _firmwareSourceDefinitions.Select(source => source.Track)
+                     .Distinct(StringComparer.OrdinalIgnoreCase))
+            FirmwareTracks.Add(track);
         _messageBoxService = messageBoxService;
         _httpClient = new HttpClient();
         _sysupgradeService = new SysUpgradeService(sshClientService, logger);
@@ -249,11 +253,34 @@ public partial class FirmwareTabViewModel : ViewModelBase
         FirmwareUpgradeInProgress = false;
         IsFirmwareExpanded = true;
         IsBootloaderExpanded = false;
-        var preferences = _preferencesService.Load();
-        var isGreg = string.Equals(preferences.PreferredFirmwareSource, GregApfpvFirmwareSource,
-            StringComparison.OrdinalIgnoreCase);
-        SelectedFirmwareSource = isGreg ? GregApfpvFirmwareSource : OpenIpcFirmwareSource;
-        if (isGreg)
+        UserPreferences preferences = _preferencesService.Load();
+        string preferredTrack = preferences.PreferredFirmwareTrack;
+        string preferredSourceName = preferences.PreferredFirmwareSource;
+        string preferredChannel = preferences.PreferredFirmwareChannel;
+
+        // Migrate the previous OpenIPC Builder/Test (gilankpam) selection in memory.
+        if (string.Equals(preferredChannel, "Test (gilankpam)", StringComparison.OrdinalIgnoreCase))
+        {
+            preferredTrack = "Test";
+            preferredSourceName = "Mabur";
+            preferredChannel = "Latest";
+        }
+
+        FirmwareSourceDefinition? preferredSource = _firmwareSourceDefinitions.FirstOrDefault(source =>
+            string.Equals(source.Name, preferredSourceName, StringComparison.OrdinalIgnoreCase) &&
+            IsSourceAvailable(source, preferredTrack));
+        preferredSource ??= _firmwareSourceDefinitions.FirstOrDefault(source => IsSourceAvailable(source, preferredTrack));
+        preferredSource ??= _firmwareSourceDefinitions.FirstOrDefault();
+
+        _bRecursionSelectGuard = true;
+        SelectedFirmwareTrack = preferredTrack;
+        RefreshFirmwareSources(preferredSource?.Name);
+        SelectedFirmwareSource = preferredSource?.Name ?? string.Empty;
+        RefreshFirmwareChannels(preferredChannel);
+        _bRecursionSelectGuard = false;
+        SaveFirmwareSelectionPreferences();
+
+        if (UsesBySocSelection())
             SelectedFirmwareMethod = 1;
     }
 
@@ -342,11 +369,33 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private void SubscribeToEvents()
     {
         EventSubscriptionService.Subscribe<AppMessageEvent, AppMessage>(OnAppMessage);
+        EventSubscriptionService.Subscribe<FirmwareTrackChangedEvent, string>(OnFirmwareTrackChanged);
         EventSubscriptionService.Subscribe<FirmwareSourceChangedEvent, string>(OnFirmwareSourceChanged);
+    }
+
+    private void OnFirmwareTrackChanged(string track)
+    {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => OnFirmwareTrackChanged(track));
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(track) ||
+            string.Equals(track, SelectedFirmwareTrack, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        SelectedFirmwareTrack = track;
     }
 
     private void OnFirmwareSourceChanged(string source)
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => OnFirmwareSourceChanged(source));
+            return;
+        }
+
         Logger.Debug("[FirmwareTab] OnFirmwareSourceChanged received: '{Source}', current='{Current}'", source, SelectedFirmwareSource);
 
         if (string.IsNullOrWhiteSpace(source) || string.Equals(source, SelectedFirmwareSource, StringComparison.OrdinalIgnoreCase))
@@ -458,6 +507,26 @@ public partial class FirmwareTabViewModel : ViewModelBase
     public bool IsBySocMethodSelected => SelectedFirmwareMethod == 1;
     public bool IsLocalMethodSelected => SelectedFirmwareMethod == 2;
 
+    partial void OnSelectedFirmwareTrackChanged(string value)
+    {
+        if (_bRecursionSelectGuard || string.IsNullOrWhiteSpace(value))
+            return;
+
+        EventSubscriptionService.Publish<FirmwareTrackChangedEvent, string>(value);
+        ClearFirmwareSelectionsAndCollections();
+
+        _bRecursionSelectGuard = true;
+        RefreshFirmwareSources();
+        RefreshFirmwareChannels();
+        _bRecursionSelectGuard = false;
+
+        SaveFirmwareSelectionPreferences();
+        if (UsesBySocSelection() && SelectedFirmwareMethod == 0)
+            SelectedFirmwareMethod = 1;
+
+        _ = LoadManufacturersAsync();
+    }
+
     partial void OnSelectedFirmwareSourceChanged(string value)
     {
         Logger.Debug("[FirmwareTab] OnSelectedFirmwareSourceChanged: '{Value}', guard={Guard}", value, _bRecursionSelectGuard);
@@ -482,10 +551,26 @@ public partial class FirmwareTabViewModel : ViewModelBase
         EventSubscriptionService.Publish<FirmwareSourceChangedEvent, string>(value);
         ClearFirmwareSelectionsAndCollections();
 
-        // Card 1 (by manufacturer) is not applicable for Greg APFPV — switch to Card 2
-        if (IsGregApfpvSourceSelected() && SelectedFirmwareMethod == 0)
+        _bRecursionSelectGuard = true;
+        RefreshFirmwareChannels();
+        _bRecursionSelectGuard = false;
+
+        SaveFirmwareSelectionPreferences();
+
+        // Sources configured for SoC selection do not use the manufacturer card.
+        if (UsesBySocSelection() && SelectedFirmwareMethod == 0)
             SelectedFirmwareMethod = 1;
 
+        _ = LoadManufacturersAsync();
+    }
+
+    partial void OnSelectedFirmwareChannelChanged(string value)
+    {
+        if (_bRecursionSelectGuard || string.IsNullOrWhiteSpace(value))
+            return;
+
+        SaveFirmwareSelectionPreferences();
+        ClearFirmwareSelectionsAndCollections();
         _ = LoadManufacturersAsync();
     }
     
@@ -847,7 +932,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanUseDropdowns));
         OnPropertyChanged(nameof(CanUseDropdownsBySoc));
         OnPropertyChanged(nameof(CanUseSelectLocalFirmwarePackage));
-        OnPropertyChanged(nameof(IsGregApfpvSelected));
+        OnPropertyChanged(nameof(IsBySocSourceSelected));
         OnPropertyChanged(nameof(CanReplaceBootloader));
         OnPropertyChanged(nameof(CanBackupFirmware));
         OnPropertyChanged(nameof(CanRestoreFirmware));
@@ -929,7 +1014,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
             Logger.Information($"Fetched {filenames.Count()} firmware files.");
 
-            FirmwareData firmwareData = IsGregApfpvSourceSelected()
+            FirmwareData firmwareData = UsesBySocSelection()
                 ? new FirmwareData { Manufacturers = new ObservableCollection<Manufacturer>() }
                 : ProcessFilenames(filenames);
             
@@ -981,33 +1066,45 @@ public partial class FirmwareTabViewModel : ViewModelBase
 
     private async Task<IEnumerable<string>> GetFilenamesAsync()
     {
-        if (IsGregApfpvSourceSelected())
+        FirmwareChannelDefinition? channel = GetSelectedChannel();
+        if (channel == null)
+            return Enumerable.Empty<string>();
+
+        string response;
+        if (string.Equals(channel.Distribution, "RepositoryContents", StringComparison.OrdinalIgnoreCase))
         {
-            var response = await _gitHubService.GetGitHubDataAsync(OpenIPC.GregApfpvContentsGitHubApiUrl);
+            string path = string.IsNullOrWhiteSpace(channel.Path)
+                ? string.Empty
+                : $"/{channel.Path.Trim('/')}";
+            string url = $"https://api.github.com/repos/{channel.Owner}/{channel.Repository}/contents{path}?ref={Uri.EscapeDataString(channel.Branch)}";
+            response = await _gitHubService.GetGitHubDataAsync(url);
             if (string.IsNullOrEmpty(response))
                 return Enumerable.Empty<string>();
 
-            var items = JArray.Parse(response);
+            JArray items = JArray.Parse(response);
             return items
                 .Where(item => item["type"]?.ToString() == "file")
                 .Select(item => item["name"]?.ToString())
                 .Where(name => !string.IsNullOrEmpty(name))
                 .Select(name => name!)
-                .Where(name => name.EndsWith(".tgz", StringComparison.OrdinalIgnoreCase));
+                .Where(name => name.EndsWith(channel.FileExtension, StringComparison.OrdinalIgnoreCase));
         }
-        else
-        {
-            var response = await _gitHubService.GetGitHubDataAsync(OpenIPC.OpenIPCBuilderGitHubApiUrl);
-            if (string.IsNullOrEmpty(response))
-                return Enumerable.Empty<string>();
 
-            var releaseData = JObject.Parse(response);
-            var assets = releaseData["assets"];
-            return assets?.Select(asset => asset["name"]?.ToString())
-                       .Where(name => !string.IsNullOrEmpty(name))
-                       .Where(name => !name.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) ??
-                   Enumerable.Empty<string>();
-        }
+        string releaseSelector = string.Equals(channel.ReleaseTag, "latest", StringComparison.OrdinalIgnoreCase)
+            ? "latest"
+            : $"tags/{Uri.EscapeDataString(channel.ReleaseTag)}";
+        string releaseUrl = $"https://api.github.com/repos/{channel.Owner}/{channel.Repository}/releases/{releaseSelector}";
+        response = await _gitHubService.GetGitHubDataAsync(releaseUrl);
+        if (string.IsNullOrEmpty(response))
+            return Enumerable.Empty<string>();
+
+        JObject releaseData = JObject.Parse(response);
+        JToken? assets = releaseData["assets"];
+        return assets?.Select(asset => asset["name"]?.ToString())
+                   .Where(name => !string.IsNullOrEmpty(name))
+                   .Select(name => name!)
+                   .Where(name => name.EndsWith(channel.FileExtension, StringComparison.OrdinalIgnoreCase)) ??
+               Enumerable.Empty<string>();
     }
 
     private async Task<IEnumerable<string>> GetBootloaderFilenamesAsync()
@@ -2499,19 +2596,84 @@ public partial class FirmwareTabViewModel : ViewModelBase
         }
     }
 
-    private bool IsGregApfpvSourceSelected()
+    private void RefreshFirmwareSources(string? preferredSource = null)
     {
-        return string.Equals(SelectedFirmwareSource, GregApfpvFirmwareSource, StringComparison.OrdinalIgnoreCase);
+        FirmwareSources.Clear();
+        List<FirmwareSourceDefinition> sources = _firmwareSourceDefinitions
+            .Where(source => IsSourceAvailable(source, SelectedFirmwareTrack))
+            .ToList();
+
+        foreach (FirmwareSourceDefinition source in sources)
+            FirmwareSources.Add(source.Name);
+
+        string? selectedSource = sources.FirstOrDefault(source =>
+            string.Equals(source.Name, preferredSource, StringComparison.OrdinalIgnoreCase))?.Name;
+        SelectedFirmwareSource = selectedSource ?? sources.FirstOrDefault()?.Name ?? string.Empty;
     }
 
-    public bool IsGregApfpvSelected => IsGregApfpvSourceSelected();
+    private void RefreshFirmwareChannels(string? preferredChannel = null)
+    {
+        FirmwareChannels.Clear();
+        FirmwareSourceDefinition? source = GetSelectedSource();
+        if (source == null)
+        {
+            SelectedFirmwareChannel = string.Empty;
+            return;
+        }
+
+        foreach (FirmwareChannelDefinition channel in source.Channels)
+            FirmwareChannels.Add(channel.Name);
+
+        string? selectedChannel = source.Channels.FirstOrDefault(channel =>
+            string.Equals(channel.Name, preferredChannel, StringComparison.OrdinalIgnoreCase))?.Name;
+        SelectedFirmwareChannel = selectedChannel ?? source.Channels.FirstOrDefault()?.Name ?? string.Empty;
+    }
+
+    private FirmwareSourceDefinition? GetSelectedSource() =>
+        _firmwareSourceDefinitions.FirstOrDefault(source =>
+            string.Equals(source.Name, SelectedFirmwareSource, StringComparison.OrdinalIgnoreCase) &&
+            IsSourceAvailable(source, SelectedFirmwareTrack));
+
+    private static bool IsSourceAvailable(FirmwareSourceDefinition source, string selectedTrack) =>
+        string.Equals(selectedTrack, "Test", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(source.Track, "Stable", StringComparison.OrdinalIgnoreCase);
+
+    private FirmwareChannelDefinition? GetSelectedChannel() =>
+        GetSelectedSource()?.Channels.FirstOrDefault(channel =>
+            string.Equals(channel.Name, SelectedFirmwareChannel, StringComparison.OrdinalIgnoreCase));
+
+    private bool UsesBySocSelection() =>
+        string.Equals(GetSelectedSource()?.SelectionMode, "BySoc", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsBySocSourceSelected => UsesBySocSelection();
+
+    private void SaveFirmwareSelectionPreferences()
+    {
+        UserPreferences preferences = _preferencesService.Load();
+        preferences.PreferredFirmwareTrack = SelectedFirmwareTrack;
+        preferences.PreferredFirmwareSource = SelectedFirmwareSource;
+        preferences.PreferredFirmwareChannel = SelectedFirmwareChannel;
+        _preferencesService.Save(preferences);
+    }
 
     private string BuildFirmwareDownloadUrl(string firmwareFilename)
     {
-        if (IsGregApfpvSourceSelected())
-            return $"{OpenIPC.GregApfpvRawBaseUrl}{firmwareFilename}";
+        FirmwareChannelDefinition? channel = GetSelectedChannel();
+        if (channel == null)
+            return string.Empty;
 
-        return $"https://github.com/OpenIPC/builder/releases/download/latest/{firmwareFilename}";
+        if (string.Equals(channel.Distribution, "RepositoryContents", StringComparison.OrdinalIgnoreCase))
+        {
+            string path = string.IsNullOrWhiteSpace(channel.Path)
+                ? string.Empty
+                : $"{channel.Path.Trim('/')}/";
+            return $"https://raw.githubusercontent.com/{channel.Owner}/{channel.Repository}/{channel.Branch}/{path}{firmwareFilename}";
+        }
+
+        if (string.Equals(channel.ReleaseTag, "latest", StringComparison.OrdinalIgnoreCase))
+            return $"https://github.com/{channel.Owner}/{channel.Repository}/releases/latest/download/{firmwareFilename}";
+
+        return $"https://github.com/{channel.Owner}/{channel.Repository}/releases/download/{channel.ReleaseTag}/{firmwareFilename}";
     }
 
     #endregion
