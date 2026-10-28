@@ -6,8 +6,8 @@ namespace OpenIPC.Companion.Tests.Services;
 [TestFixture]
 public class FirmwareSourceSettingsMigrationTests
 {
-    private static JArray CreateSources(string distribution, string releaseTag = "latest") =>
-        JArray.Parse($$"""
+    private static JObject CreateSettings(string distribution, string releaseTag = "latest") =>
+        new(new JProperty("FirmwareSources", JArray.Parse($$"""
             [
               {
                 "Name": "OpenIPC Builder",
@@ -20,36 +20,50 @@ public class FirmwareSourceSettingsMigrationTests
                 "Channels": [ { "Name": "Latest", "Distribution": "{{distribution}}", "Owner": "gilankpam", "Repository": "openipc-builder", "ReleaseTag": "{{releaseTag}}" } ]
               }
             ]
-            """);
+            """)));
 
     [Test]
     public void UpgradeMaburReleaseList_PreviousDefault_SwitchesToReleaseList()
     {
-        JArray sources = CreateSources("GitHubRelease");
+        JObject settings = CreateSettings("GitHubRelease");
 
-        bool changed = FirmwareSourceSettingsMigration.UpgradeMaburReleaseList(sources);
+        bool changed = FirmwareSourceSettingsMigration.UpgradeMaburReleaseList(settings);
 
         Assert.That(changed, Is.True);
-        Assert.That(sources[1]["Channels"]![0]!["Distribution"]!.ToString(), Is.EqualTo("GitHubReleaseList"));
-        Assert.That(sources[0]["Channels"]![0]!["Distribution"]!.ToString(), Is.EqualTo("GitHubRelease"));
+        Assert.That(settings["FirmwareSources"]![1]!["Channels"]![0]!["Distribution"]!.ToString(), Is.EqualTo("GitHubReleaseList"));
+        Assert.That(settings["FirmwareSources"]![0]!["Channels"]![0]!["Distribution"]!.ToString(), Is.EqualTo("GitHubRelease"));
     }
 
     [Test]
     public void UpgradeMaburReleaseList_PinnedReleaseTag_LeavesChannelAlone()
     {
-        JArray sources = CreateSources("GitHubRelease", "mabur-05fad388");
+        JObject settings = CreateSettings("GitHubRelease", "mabur-05fad388");
 
-        bool changed = FirmwareSourceSettingsMigration.UpgradeMaburReleaseList(sources);
+        FirmwareSourceSettingsMigration.UpgradeMaburReleaseList(settings);
 
-        Assert.That(changed, Is.False);
-        Assert.That(sources[1]["Channels"]![0]!["Distribution"]!.ToString(), Is.EqualTo("GitHubRelease"));
+        Assert.That(settings["FirmwareSources"]![1]!["Channels"]![0]!["Distribution"]!.ToString(), Is.EqualTo("GitHubRelease"));
     }
 
     [Test]
-    public void UpgradeMaburReleaseList_AlreadyUpgraded_ReportsNoChange()
+    public void UpgradeMaburReleaseList_AlreadyMigrated_ReportsNoChange()
     {
-        JArray sources = CreateSources("GitHubReleaseList");
+        JObject settings = CreateSettings("GitHubRelease");
+        settings[FirmwareSourceSettingsMigration.MarkerKey] = true;
 
-        Assert.That(FirmwareSourceSettingsMigration.UpgradeMaburReleaseList(sources), Is.False);
+        Assert.That(FirmwareSourceSettingsMigration.UpgradeMaburReleaseList(settings), Is.False);
+        Assert.That(settings["FirmwareSources"]![1]!["Channels"]![0]!["Distribution"]!.ToString(), Is.EqualTo("GitHubRelease"));
+    }
+
+    [Test]
+    public void UpgradeMaburReleaseList_RunsOnce_KeepsLaterHandEditedChannel()
+    {
+        JObject settings = CreateSettings("GitHubRelease");
+        FirmwareSourceSettingsMigration.UpgradeMaburReleaseList(settings);
+        settings["FirmwareSources"]![1]!["Channels"]![0]!["Distribution"] = "GitHubRelease";
+
+        bool changed = FirmwareSourceSettingsMigration.UpgradeMaburReleaseList(settings);
+
+        Assert.That(changed, Is.False);
+        Assert.That(settings["FirmwareSources"]![1]!["Channels"]![0]!["Distribution"]!.ToString(), Is.EqualTo("GitHubRelease"));
     }
 }

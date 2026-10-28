@@ -166,10 +166,11 @@ public class App : Application
                 hasChanges = true;
                 Log.Information("Added or migrated default firmware sources in existing settings");
             }
-            else if (FirmwareSourceSettingsMigration.UpgradeMaburReleaseList(firmwareSources))
+
+            if (FirmwareSourceSettingsMigration.UpgradeMaburReleaseList(existingSettings))
             {
                 hasChanges = true;
-                Log.Information("Switched the Mabur firmware channel to the release list");
+                Log.Information("Applied the Mabur release-list firmware source migration");
             }
             // Add more upgrade steps for other sections as needed
             
@@ -556,7 +557,8 @@ public class App : Application
                     new JProperty("NVR", new JArray("openipc-hi3536dv100"))
                 )
             ),
-            new JProperty("FirmwareSources", CreateDefaultFirmwareSources())
+            new JProperty("FirmwareSources", CreateDefaultFirmwareSources()),
+            new JProperty(FirmwareSourceSettingsMigration.MarkerKey, true)
         );
 
         return defaultSettings;

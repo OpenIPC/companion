@@ -85,10 +85,13 @@ and test sources. The Firmware tab does not change the track itself.
 use `latest` or a specific release tag. `GitHubReleaseList` channels list the
 repository's 30 most recent published releases in the build-channel dropdown,
 newest first, labeled with the publish time and tag; drafts and prereleases
-are hidden. The selected release tag is remembered, and the channel falls back
-to the latest release if the list cannot be loaded. `RepositoryContents`
-channels may set `Branch` and an optional repository-relative `Path`. Restart
-Companion after editing the file.
+are hidden, and `(latest)` marks the most recently published one. Choosing the
+newest entry follows future releases; choosing an older entry keeps that
+release selected. If the list cannot be loaded, the channel uses its
+`ReleaseTag` (default `latest`). Companion switches the earlier default Mabur
+channel to `GitHubReleaseList` once; later edits to the file are kept.
+`RepositoryContents` channels may set `Branch` and an optional
+repository-relative `Path`. Restart Companion after editing the file.
 
 ## Known issue: device hostname mapping
 
