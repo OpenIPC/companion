@@ -67,7 +67,7 @@ GitHub release or `.tgz` files committed to a repository directory.
     "Channels": [
       {
         "Name": "Latest",
-        "Distribution": "GitHubRelease",
+        "Distribution": "GitHubReleaseList",
         "Owner": "gilankpam",
         "Repository": "openipc-builder",
         "ReleaseTag": "latest",
@@ -82,9 +82,13 @@ GitHub release or `.tgz` files committed to a repository directory.
 stable sources on the Firmware tab. Test is an opt-in that shows both stable
 and test sources. The Firmware tab does not change the track itself.
 `SelectionMode` accepts `Automatic` or `BySoc`. `GitHubRelease` channels may
-use `latest` or a specific release tag. `RepositoryContents` channels may set
-`Branch` and an optional repository-relative `Path`. Restart Companion after
-editing the file.
+use `latest` or a specific release tag. `GitHubReleaseList` channels list the
+repository's 30 most recent published releases in the build-channel dropdown,
+newest first, labeled with the publish time and tag; drafts and prereleases
+are hidden. The selected release tag is remembered, and the channel falls back
+to the latest release if the list cannot be loaded. `RepositoryContents`
+channels may set `Branch` and an optional repository-relative `Path`. Restart
+Companion after editing the file.
 
 ## Known issue: device hostname mapping
 

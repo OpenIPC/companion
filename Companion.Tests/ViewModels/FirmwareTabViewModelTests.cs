@@ -391,6 +391,133 @@ public class FirmwareTabViewModelTests
         Assert.That(result.ToArray(), Is.EqualTo(new[] { "camera-firmware.tgz" }));
     }
 
+    private const string MaburReleasesUrl = "https://api.github.com/repos/gilankpam/openipc-builder/releases?per_page=30";
+
+    private const string MaburReleasesJson = """
+        [
+          { "tag_name": "mabur-4c94bc23", "draft": false, "prerelease": false, "published_at": "2026-10-23T19:00:27Z" },
+          { "tag_name": "mabur-beta", "draft": false, "prerelease": true, "published_at": "2026-10-24T08:00:00Z" },
+          { "tag_name": "mabur-05fad388", "draft": false, "prerelease": false, "published_at": "2026-10-23T17:00:09Z" }
+        ]
+        """;
+
+    private async Task SelectMaburAsync()
+    {
+        _viewModel.SelectedFirmwareTrack = "Test";
+        _viewModel.SelectedFirmwareSource = "Mabur";
+        await _viewModel.LoadManufacturersAsync();
+    }
+
+    private UserPreferences CreateSavedMaburPreferences(string releaseTag)
+    {
+        var preferences = new UserPreferences
+        {
+            PreferredFirmwareTrack = "Test",
+            PreferredFirmwareSource = "Mabur",
+            PreferredFirmwareChannel = releaseTag
+        };
+        _mockPreferencesService.Setup(x => x.Load()).Returns(preferences);
+        return preferences;
+    }
+
+    private FirmwareTabViewModel CreateViewModel() =>
+        new(
+            _mockLogger.Object,
+            _mockSshClientService.Object,
+            _mockEventSubscriptionService.Object,
+            _mockGithubService.Object,
+            _mockPreferencesService.Object,
+            _mockFirmwareSourceService.Object,
+            _mockMessageBoxService.Object);
+
+    [Test]
+    public async Task SelectedFirmwareSource_Mabur_ListsPublishedReleasesNewestFirst()
+    {
+        _mockGithubService.Setup(x => x.GetGitHubDataAsync(MaburReleasesUrl)).ReturnsAsync(MaburReleasesJson);
+
+        await SelectMaburAsync();
+
+        Assert.That(_viewModel.FirmwareChannels.Count, Is.EqualTo(2));
+        Assert.That(_viewModel.FirmwareChannels[0], Does.EndWith("· mabur-4c94bc23 (latest)"));
+        Assert.That(_viewModel.FirmwareChannels[1], Does.EndWith("· mabur-05fad388"));
+        Assert.That(_viewModel.SelectedFirmwareChannel, Is.EqualTo(_viewModel.FirmwareChannels[0]));
+    }
+
+    [Test]
+    public void Constructor_SavedMaburSource_LoadsReleasesWithoutDeviceConnection()
+    {
+        CreateSavedMaburPreferences("Latest");
+        _mockGithubService.Setup(x => x.GetGitHubDataAsync(MaburReleasesUrl)).ReturnsAsync(MaburReleasesJson);
+
+        _viewModel = CreateViewModel();
+
+        Assert.That(_viewModel.FirmwareChannels.Count, Is.EqualTo(2));
+        Assert.That(_viewModel.SelectedFirmwareChannel, Does.EndWith("· mabur-4c94bc23 (latest)"));
+    }
+
+    [Test]
+    public async Task BuildFirmwareDownloadUrl_MaburOlderRelease_UsesReleaseTagUrl()
+    {
+        _mockGithubService.Setup(x => x.GetGitHubDataAsync(MaburReleasesUrl)).ReturnsAsync(MaburReleasesJson);
+        await SelectMaburAsync();
+
+        _viewModel.SelectedFirmwareChannel = _viewModel.FirmwareChannels[1];
+        var url = (string)InvokePrivateMethod(_viewModel, "BuildFirmwareDownloadUrl", "test-fw.tgz");
+
+        Assert.That(url, Is.EqualTo("https://github.com/gilankpam/openipc-builder/releases/download/mabur-05fad388/test-fw.tgz"));
+    }
+
+    [Test]
+    public async Task SelectedFirmwareChannel_MaburRelease_SavesReleaseTag()
+    {
+        var preferences = new UserPreferences();
+        _mockPreferencesService.Setup(x => x.Load()).Returns(preferences);
+        _mockGithubService.Setup(x => x.GetGitHubDataAsync(MaburReleasesUrl)).ReturnsAsync(MaburReleasesJson);
+        await SelectMaburAsync();
+
+        _viewModel.SelectedFirmwareChannel = _viewModel.FirmwareChannels[1];
+
+        Assert.That(preferences.PreferredFirmwareChannel, Is.EqualTo("mabur-05fad388"));
+    }
+
+    [Test]
+    public async Task LoadManufacturersAsync_SavedMaburTag_RestoresThatRelease()
+    {
+        var preferences = CreateSavedMaburPreferences("mabur-05fad388");
+        _mockGithubService.Setup(x => x.GetGitHubDataAsync(MaburReleasesUrl)).ReturnsAsync(MaburReleasesJson);
+
+        _viewModel = CreateViewModel();
+        await _viewModel.LoadManufacturersAsync();
+
+        Assert.That(_viewModel.SelectedFirmwareChannel, Does.EndWith("· mabur-05fad388"));
+        Assert.That(preferences.PreferredFirmwareChannel, Is.EqualTo("mabur-05fad388"));
+    }
+
+    [Test]
+    public async Task LoadManufacturersAsync_SavedMaburTagDeleted_SelectsNewestRelease()
+    {
+        var preferences = CreateSavedMaburPreferences("mabur-deleted");
+        _mockGithubService.Setup(x => x.GetGitHubDataAsync(MaburReleasesUrl)).ReturnsAsync(MaburReleasesJson);
+
+        _viewModel = CreateViewModel();
+        await _viewModel.LoadManufacturersAsync();
+
+        Assert.That(_viewModel.SelectedFirmwareChannel, Does.EndWith("· mabur-4c94bc23 (latest)"));
+        Assert.That(preferences.PreferredFirmwareChannel, Is.EqualTo("mabur-4c94bc23"));
+    }
+
+    [Test]
+    public async Task LoadManufacturersAsync_MaburReleaseListUnavailable_FallsBackToLatest()
+    {
+        _mockGithubService.Setup(x => x.GetGitHubDataAsync(MaburReleasesUrl)).ReturnsAsync(string.Empty);
+
+        await SelectMaburAsync();
+        var url = (string)InvokePrivateMethod(_viewModel, "BuildFirmwareDownloadUrl", "test-fw.tgz");
+
+        Assert.That(_viewModel.FirmwareChannels, Is.EqualTo(new[] { "Latest" }));
+        Assert.That(url, Is.EqualTo("https://github.com/gilankpam/openipc-builder/releases/latest/download/test-fw.tgz"));
+    }
+
     private static void SetPrivateField(object target, string fieldName, object value)
     {
         var field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
