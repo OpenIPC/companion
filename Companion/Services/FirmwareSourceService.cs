@@ -125,6 +125,7 @@ public sealed class FirmwareSourceService : IFirmwareSourceService
                 new FirmwareChannelDefinition
                 {
                     Name = "Latest",
+                    Distribution = GitHubReleaseList.Distribution,
                     Owner = "gilankpam",
                     Repository = "openipc-builder"
                 }

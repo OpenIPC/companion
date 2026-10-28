@@ -166,6 +166,12 @@ public class App : Application
                 hasChanges = true;
                 Log.Information("Added or migrated default firmware sources in existing settings");
             }
+
+            if (FirmwareSourceSettingsMigration.UpgradeMaburReleaseList(existingSettings))
+            {
+                hasChanges = true;
+                Log.Information("Applied the Mabur release-list firmware source migration");
+            }
             // Add more upgrade steps for other sections as needed
             
             // Save changes if needed
@@ -551,7 +557,8 @@ public class App : Application
                     new JProperty("NVR", new JArray("openipc-hi3536dv100"))
                 )
             ),
-            new JProperty("FirmwareSources", CreateDefaultFirmwareSources())
+            new JProperty("FirmwareSources", CreateDefaultFirmwareSources()),
+            new JProperty(FirmwareSourceSettingsMigration.MarkerKey, true)
         );
 
         return defaultSettings;
@@ -591,7 +598,7 @@ public class App : Application
                 new JProperty("Channels", new JArray(
                     new JObject(
                         new JProperty("Name", "Latest"),
-                        new JProperty("Distribution", "GitHubRelease"),
+                        new JProperty("Distribution", "GitHubReleaseList"),
                         new JProperty("Owner", "gilankpam"),
                         new JProperty("Repository", "openipc-builder"),
                         new JProperty("ReleaseTag", "latest"),

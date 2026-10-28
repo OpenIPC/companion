@@ -57,6 +57,11 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private readonly IGitHubService _gitHubService;
     private readonly IPreferencesService _preferencesService;
     private readonly IReadOnlyList<FirmwareSourceDefinition> _firmwareSourceDefinitions;
+    // Keyed by owner/repository. Missing = not loaded yet, empty = could not be loaded.
+    private readonly Dictionary<string, IReadOnlyList<FirmwareReleaseOption>> _releaseOptionsByRepository =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Task> _releaseLoadsByRepository = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<FirmwareChannelOption> _channelOptions = new();
     private bool _bInitializedCommands = false;
     private bool _bRecursionSelectGuard = false;
     private readonly IMessageBoxService _messageBoxService;
@@ -279,6 +284,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         RefreshFirmwareChannels(preferredChannel);
         _bRecursionSelectGuard = false;
         SaveFirmwareSelectionPreferences();
+        _ = LoadReleaseChannelsAsync();
 
         if (UsesBySocSelection())
             SelectedFirmwareMethod = 1;
@@ -727,6 +733,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     {
         try
         {
+            await LoadReleaseChannelsAsync();
             Logger.Information("Loading firmware list...");
             var data = await FetchFirmwareListAsync();
             UpdateManufacturers(data);
@@ -2614,6 +2621,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
     private void RefreshFirmwareChannels(string? preferredChannel = null)
     {
         FirmwareChannels.Clear();
+        _channelOptions.Clear();
         FirmwareSourceDefinition? source = GetSelectedSource();
         if (source == null)
         {
@@ -2622,11 +2630,137 @@ public partial class FirmwareTabViewModel : ViewModelBase
         }
 
         foreach (FirmwareChannelDefinition channel in source.Channels)
-            FirmwareChannels.Add(channel.Name);
+            _channelOptions.AddRange(CreateChannelOptions(channel));
 
-        string? selectedChannel = source.Channels.FirstOrDefault(channel =>
-            string.Equals(channel.Name, preferredChannel, StringComparison.OrdinalIgnoreCase))?.Name;
-        SelectedFirmwareChannel = selectedChannel ?? source.Channels.FirstOrDefault()?.Name ?? string.Empty;
+        foreach (FirmwareChannelOption option in _channelOptions)
+            FirmwareChannels.Add(option.Label);
+
+        FirmwareChannelOption? selectedOption = _channelOptions.FirstOrDefault(option =>
+            string.Equals(option.PreferenceKey, preferredChannel, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(option.ReleaseTag, preferredChannel, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(option.Label, preferredChannel, StringComparison.OrdinalIgnoreCase));
+        SelectedFirmwareChannel = selectedOption?.Label ?? _channelOptions.FirstOrDefault()?.Label ?? string.Empty;
+    }
+
+    private IEnumerable<FirmwareChannelOption> CreateChannelOptions(FirmwareChannelDefinition channel)
+    {
+        if (!IsReleaseListChannel(channel))
+            return [new FirmwareChannelOption(channel.Name, channel.Name, channel)];
+
+        // Until the release list loads (or if it cannot), use the configured release tag and leave the
+        // saved selection untouched.
+        if (!_releaseOptionsByRepository.TryGetValue(GetRepositoryKey(channel), out var releases) ||
+            releases.Count == 0)
+        {
+            string label = releases == null ? "Loading releases…" : channel.Name;
+            return [new FirmwareChannelOption(label, null, CreateReleaseChannel(channel, channel.ReleaseTag))];
+        }
+
+        // The newest release is saved under the channel name so the selection follows future releases.
+        return releases.Select((release, index) => new FirmwareChannelOption(release.Label,
+            index == 0 ? channel.Name : release.Tag, CreateReleaseChannel(channel, release.Tag), release.Tag));
+    }
+
+    private static FirmwareChannelDefinition CreateReleaseChannel(FirmwareChannelDefinition channel, string releaseTag) =>
+        new()
+        {
+            Name = channel.Name,
+            Distribution = "GitHubRelease",
+            Owner = channel.Owner,
+            Repository = channel.Repository,
+            ReleaseTag = releaseTag,
+            FileExtension = channel.FileExtension
+        };
+
+    private static bool IsReleaseListChannel(FirmwareChannelDefinition channel) =>
+        string.Equals(channel.Distribution, GitHubReleaseList.Distribution, StringComparison.OrdinalIgnoreCase);
+
+    private static string GetRepositoryKey(FirmwareChannelDefinition channel) =>
+        $"{channel.Owner}/{channel.Repository}";
+
+    private async Task LoadReleaseChannelsAsync()
+    {
+        FirmwareSourceDefinition? source = GetSelectedSource();
+        if (source == null)
+            return;
+
+        var loads = source.Channels
+            .Where(IsReleaseListChannel)
+            .Where(channel => !_releaseOptionsByRepository.TryGetValue(GetRepositoryKey(channel), out var releases) ||
+                              releases.Count == 0)
+            .Select(GetOrStartReleaseLoad)
+            .ToList();
+        if (loads.Count == 0)
+            return;
+
+        await Task.WhenAll(loads);
+    }
+
+    private Task GetOrStartReleaseLoad(FirmwareChannelDefinition channel)
+    {
+        string key = GetRepositoryKey(channel);
+        if (_releaseLoadsByRepository.TryGetValue(key, out Task? inFlight))
+            return inFlight;
+
+        Task load = LoadReleaseListAsync(channel, key);
+        if (!load.IsCompleted)
+            _releaseLoadsByRepository[key] = load;
+        return load;
+    }
+
+    private async Task LoadReleaseListAsync(FirmwareChannelDefinition channel, string key)
+    {
+        IReadOnlyList<FirmwareReleaseOption> releases;
+        try
+        {
+            string response = await _gitHubService.GetGitHubDataAsync(GitHubReleaseList.BuildReleasesUrl(channel));
+            releases = GitHubReleaseList.Parse(response, TimeZoneInfo.Local);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error loading releases for {Repository}.", key);
+            releases = [];
+        }
+
+        if (releases.Count == 0)
+            Logger.Warning("No published releases found for {Repository}; using the configured release.", key);
+        else
+            Logger.Information("Loaded {Count} releases for {Repository}.", releases.Count, key);
+
+        try
+        {
+            if (Dispatcher.UIThread.CheckAccess())
+                ApplyReleaseOptions(key, releases);
+            else
+                await Dispatcher.UIThread.InvokeAsync(() => ApplyReleaseOptions(key, releases));
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error applying releases for {Repository}.", key);
+        }
+        finally
+        {
+            _releaseLoadsByRepository.Remove(key);
+        }
+    }
+
+    private void ApplyReleaseOptions(string key, IReadOnlyList<FirmwareReleaseOption> releases)
+    {
+        bool stillUnavailable = _releaseOptionsByRepository.TryGetValue(key, out var previous) &&
+                                previous.Count == 0 && releases.Count == 0;
+        _releaseOptionsByRepository[key] = releases;
+
+        bool usedBySelectedSource = GetSelectedSource()?.Channels.Any(channel =>
+            IsReleaseListChannel(channel) &&
+            string.Equals(GetRepositoryKey(channel), key, StringComparison.OrdinalIgnoreCase)) == true;
+        if (stillUnavailable || !usedBySelectedSource)
+            return;
+
+        bool previousGuard = _bRecursionSelectGuard;
+        _bRecursionSelectGuard = true;
+        RefreshFirmwareChannels(_preferencesService.Load().PreferredFirmwareChannel);
+        _bRecursionSelectGuard = previousGuard;
+        SaveFirmwareSelectionPreferences();
     }
 
     private FirmwareSourceDefinition? GetSelectedSource() =>
@@ -2638,9 +2772,11 @@ public partial class FirmwareTabViewModel : ViewModelBase
         string.Equals(selectedTrack, "Test", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(source.Track, "Stable", StringComparison.OrdinalIgnoreCase);
 
-    private FirmwareChannelDefinition? GetSelectedChannel() =>
-        GetSelectedSource()?.Channels.FirstOrDefault(channel =>
-            string.Equals(channel.Name, SelectedFirmwareChannel, StringComparison.OrdinalIgnoreCase));
+    private FirmwareChannelOption? GetSelectedChannelOption() =>
+        _channelOptions.FirstOrDefault(option =>
+            string.Equals(option.Label, SelectedFirmwareChannel, StringComparison.OrdinalIgnoreCase));
+
+    private FirmwareChannelDefinition? GetSelectedChannel() => GetSelectedChannelOption()?.Channel;
 
     private bool UsesBySocSelection() =>
         string.Equals(GetSelectedSource()?.SelectionMode, "BySoc", StringComparison.OrdinalIgnoreCase);
@@ -2652,9 +2788,15 @@ public partial class FirmwareTabViewModel : ViewModelBase
         UserPreferences preferences = _preferencesService.Load();
         preferences.PreferredFirmwareTrack = SelectedFirmwareTrack;
         preferences.PreferredFirmwareSource = SelectedFirmwareSource;
-        preferences.PreferredFirmwareChannel = SelectedFirmwareChannel;
+        // Keep the saved release while a release list is still loading.
+        string? channelKey = GetSelectedChannelOption()?.PreferenceKey;
+        if (channelKey != null)
+            preferences.PreferredFirmwareChannel = channelKey;
         _preferencesService.Save(preferences);
     }
+
+    private sealed record FirmwareChannelOption(string Label, string? PreferenceKey, FirmwareChannelDefinition Channel,
+        string? ReleaseTag = null);
 
     private string BuildFirmwareDownloadUrl(string firmwareFilename)
     {
@@ -2673,7 +2815,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         if (string.Equals(channel.ReleaseTag, "latest", StringComparison.OrdinalIgnoreCase))
             return $"https://github.com/{channel.Owner}/{channel.Repository}/releases/latest/download/{firmwareFilename}";
 
-        return $"https://github.com/{channel.Owner}/{channel.Repository}/releases/download/{channel.ReleaseTag}/{firmwareFilename}";
+        return $"https://github.com/{channel.Owner}/{channel.Repository}/releases/download/{Uri.EscapeDataString(channel.ReleaseTag)}/{firmwareFilename}";
     }
 
     #endregion
