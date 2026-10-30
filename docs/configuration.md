@@ -95,23 +95,3 @@ release selected. If the list cannot be loaded, the channel uses its
 channel to `GitHubReleaseList` once; later edits to the file are kept.
 `RepositoryContents` channels may set `Branch` and an optional
 repository-relative `Path`. Restart Companion after editing the file.
-
-## Known issue: device hostname mapping
-
-If you see device hostname errors when connecting, update the `DeviceHostnameMapping` section in `appsettings.json`:
-
-```json
-"DeviceHostnameMapping": {
-  "Camera": [
-    "openipc-ssc338q",
-    "openipc-ssc30kq"
-  ],
-  "Radxa": [
-    "radxa",
-    "raspberrypi"
-  ],
-  "NVR": [
-    "openipc-hi3536dv100"
-  ]
-}
-```
