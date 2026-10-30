@@ -266,7 +266,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         // Migrate the previous OpenIPC Builder/Test (gilankpam) selection in memory.
         if (string.Equals(preferredChannel, "Test (gilankpam)", StringComparison.OrdinalIgnoreCase))
         {
-            preferredTrack = "Test";
+            preferredTrack = FirmwareTrack.Experimental;
             preferredSourceName = "Mabur";
             preferredChannel = "Latest";
         }
@@ -940,6 +940,7 @@ public partial class FirmwareTabViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanUseDropdownsBySoc));
         OnPropertyChanged(nameof(CanUseSelectLocalFirmwarePackage));
         OnPropertyChanged(nameof(IsBySocSourceSelected));
+        OnPropertyChanged(nameof(IsExperimentalSourceSelected));
         OnPropertyChanged(nameof(CanReplaceBootloader));
         OnPropertyChanged(nameof(CanBackupFirmware));
         OnPropertyChanged(nameof(CanRestoreFirmware));
@@ -2769,8 +2770,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
             IsSourceAvailable(source, SelectedFirmwareTrack));
 
     private static bool IsSourceAvailable(FirmwareSourceDefinition source, string selectedTrack) =>
-        string.Equals(selectedTrack, "Test", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(source.Track, "Stable", StringComparison.OrdinalIgnoreCase);
+        FirmwareTrack.IsExperimental(selectedTrack) ||
+        string.Equals(source.Track, FirmwareTrack.Stable, StringComparison.OrdinalIgnoreCase);
 
     private FirmwareChannelOption? GetSelectedChannelOption() =>
         _channelOptions.FirstOrDefault(option =>
@@ -2782,6 +2783,8 @@ public partial class FirmwareTabViewModel : ViewModelBase
         string.Equals(GetSelectedSource()?.SelectionMode, "BySoc", StringComparison.OrdinalIgnoreCase);
 
     public bool IsBySocSourceSelected => UsesBySocSelection();
+
+    public bool IsExperimentalSourceSelected => FirmwareTrack.IsExperimental(GetSelectedSource()?.Track);
 
     private void SaveFirmwareSelectionPreferences()
     {

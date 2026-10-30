@@ -581,7 +581,7 @@ public class App : Application
                         new JProperty("FileExtension", ".tgz"))))),
             new JObject(
                 new JProperty("Name", "Greg APFPV"),
-                new JProperty("Track", "Test"),
+                new JProperty("Track", "Experimental"),
                 new JProperty("SelectionMode", "BySoc"),
                 new JProperty("Channels", new JArray(
                     new JObject(
@@ -593,7 +593,7 @@ public class App : Application
                         new JProperty("FileExtension", ".tgz"))))),
             new JObject(
                 new JProperty("Name", "Mabur"),
-                new JProperty("Track", "Test"),
+                new JProperty("Track", "Experimental"),
                 new JProperty("SelectionMode", "BySoc"),
                 new JProperty("Channels", new JArray(
                     new JObject(

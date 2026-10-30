@@ -46,7 +46,7 @@ GitHub release or `.tgz` files committed to a repository directory.
   },
   {
     "Name": "Greg APFPV",
-    "Track": "Test",
+    "Track": "Experimental",
     "SelectionMode": "BySoc",
     "Channels": [
       {
@@ -62,7 +62,7 @@ GitHub release or `.tgz` files committed to a repository directory.
   },
   {
     "Name": "Mabur",
-    "Track": "Test",
+    "Track": "Experimental",
     "SelectionMode": "BySoc",
     "Channels": [
       {
@@ -79,8 +79,11 @@ GitHub release or `.tgz` files committed to a repository directory.
 ```
 
 `Track` controls source availability from Preferences. Stable shows only
-stable sources on the Firmware tab. Test is an opt-in that shows both stable
-and test sources. The Firmware tab does not change the track itself.
+stable sources on the Firmware tab. Experimental is an opt-in that shows both
+stable and experimental sources; the Firmware tab shows a warning while an
+experimental source is selected, because those builds are untested and can
+brick the device. The earlier track name `Test` is still accepted and read as
+`Experimental`. The Firmware tab does not change the track itself.
 `SelectionMode` accepts `Automatic` or `BySoc`. `GitHubRelease` channels may
 use `latest` or a specific release tag. `GitHubReleaseList` channels list the
 repository's 30 most recent published releases in the build-channel dropdown,

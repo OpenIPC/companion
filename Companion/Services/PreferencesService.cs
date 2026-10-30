@@ -31,7 +31,11 @@ public sealed class PreferencesService : IPreferencesService
         {
             var json = File.ReadAllText(_preferencesFilePath);
             var preferences = JsonConvert.DeserializeObject<UserPreferences>(json);
-            return preferences ?? new UserPreferences();
+            if (preferences == null)
+                return new UserPreferences();
+
+            preferences.PreferredFirmwareTrack = FirmwareTrack.Normalize(preferences.PreferredFirmwareTrack);
+            return preferences;
         }
         catch (JsonException ex)
         {

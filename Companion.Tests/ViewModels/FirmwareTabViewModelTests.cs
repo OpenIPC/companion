@@ -177,7 +177,7 @@ public class FirmwareTabViewModelTests
     public void BuildFirmwareDownloadUrl_MaburSource_UsesGilankpamReleaseUrl()
     {
         // Arrange
-        _viewModel.SelectedFirmwareTrack = "Test";
+        _viewModel.SelectedFirmwareTrack = "Experimental";
         _viewModel.SelectedFirmwareSource = "Mabur";
 
         // Act
@@ -191,7 +191,7 @@ public class FirmwareTabViewModelTests
     public void BuildFirmwareDownloadUrl_GregSource_UsesRawGithubUrl()
     {
         // Arrange
-        _viewModel.SelectedFirmwareTrack = "Test";
+        _viewModel.SelectedFirmwareTrack = "Experimental";
         _viewModel.SelectedFirmwareSource = "Greg APFPV";
 
         // Act
@@ -205,7 +205,7 @@ public class FirmwareTabViewModelTests
     public void SelectedFirmwareSource_GregSource_RefreshesAvailableChannels()
     {
         // Arrange / Act
-        _viewModel.SelectedFirmwareTrack = "Test";
+        _viewModel.SelectedFirmwareTrack = "Experimental";
         _viewModel.SelectedFirmwareSource = "Greg APFPV";
 
         // Assert
@@ -214,16 +214,38 @@ public class FirmwareTabViewModelTests
     }
 
     [Test]
-    public void SelectedFirmwareTrack_StableShowsStableSourcesAndTestShowsAllSources()
+    public void SelectedFirmwareTrack_StableShowsStableSourcesAndExperimentalShowsAllSources()
     {
         // Arrange / Act / Assert
         Assert.That(_viewModel.FirmwareSources, Is.EqualTo(new[] { "OpenIPC Builder" }));
 
         // Act
-        _viewModel.SelectedFirmwareTrack = "Test";
+        _viewModel.SelectedFirmwareTrack = "Experimental";
 
         // Assert
         Assert.That(_viewModel.FirmwareSources, Is.EqualTo(new[] { "OpenIPC Builder", "Greg APFPV", "Mabur" }));
+    }
+
+    [Test]
+    public void IsExperimentalSourceSelected_ExperimentalSource_ReturnsTrue()
+    {
+        // Arrange / Act
+        _viewModel.SelectedFirmwareTrack = "Experimental";
+        _viewModel.SelectedFirmwareSource = "Mabur";
+
+        // Assert
+        Assert.That(_viewModel.IsExperimentalSourceSelected, Is.True);
+    }
+
+    [Test]
+    public void IsExperimentalSourceSelected_StableSourceOnExperimentalTrack_ReturnsFalse()
+    {
+        // Arrange / Act
+        _viewModel.SelectedFirmwareTrack = "Experimental";
+        _viewModel.SelectedFirmwareSource = "OpenIPC Builder";
+
+        // Assert
+        Assert.That(_viewModel.IsExperimentalSourceSelected, Is.False);
     }
 
     [Test]
@@ -232,7 +254,7 @@ public class FirmwareTabViewModelTests
         // Arrange
         _viewModel.CanConnect = true;
         _viewModel.IsConnected = true;
-        _viewModel.SelectedFirmwareTrack = "Test";
+        _viewModel.SelectedFirmwareTrack = "Experimental";
         _viewModel.SelectedFirmwareSource = "Greg APFPV";
 
         // Assert
@@ -403,7 +425,7 @@ public class FirmwareTabViewModelTests
 
     private async Task SelectMaburAsync()
     {
-        _viewModel.SelectedFirmwareTrack = "Test";
+        _viewModel.SelectedFirmwareTrack = "Experimental";
         _viewModel.SelectedFirmwareSource = "Mabur";
         await _viewModel.LoadManufacturersAsync();
     }
@@ -412,7 +434,7 @@ public class FirmwareTabViewModelTests
     {
         var preferences = new UserPreferences
         {
-            PreferredFirmwareTrack = "Test",
+            PreferredFirmwareTrack = "Experimental",
             PreferredFirmwareSource = "Mabur",
             PreferredFirmwareChannel = releaseTag
         };
@@ -543,7 +565,7 @@ public class FirmwareTabViewModelTests
     {
         var pending = new TaskCompletionSource<string>();
         _mockGithubService.Setup(x => x.GetGitHubDataAsync(MaburReleasesUrl)).Returns(pending.Task);
-        _viewModel.SelectedFirmwareTrack = "Test";
+        _viewModel.SelectedFirmwareTrack = "Experimental";
         _viewModel.SelectedFirmwareSource = "Mabur";
 
         Task second = _viewModel.LoadManufacturersAsync();

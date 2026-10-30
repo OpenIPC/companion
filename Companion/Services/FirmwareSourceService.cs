@@ -53,7 +53,7 @@ public sealed class FirmwareSourceService : IFirmwareSourceService
         return new FirmwareSourceDefinition
         {
             Name = name,
-            Track = section["Track"] ?? "Stable",
+            Track = FirmwareTrack.Normalize(section["Track"] ?? FirmwareTrack.Stable),
             SelectionMode = section["SelectionMode"] ?? "Automatic",
             Channels = channels
         };
@@ -101,7 +101,7 @@ public sealed class FirmwareSourceService : IFirmwareSourceService
         new FirmwareSourceDefinition
         {
             Name = "Greg APFPV",
-            Track = "Test",
+            Track = FirmwareTrack.Experimental,
             SelectionMode = "BySoc",
             Channels =
             [
@@ -118,7 +118,7 @@ public sealed class FirmwareSourceService : IFirmwareSourceService
         new FirmwareSourceDefinition
         {
             Name = "Mabur",
-            Track = "Test",
+            Track = FirmwareTrack.Experimental,
             SelectionMode = "BySoc",
             Channels =
             [

@@ -317,6 +317,12 @@
                                           Background="{DynamicResource InputFieldBackground}" />
                             </Grid>
 
+                            <TextBlock Text="Warning: Experimental firmware is untested and may be buggy, lose your settings, or brick the device. Use it at your own risk, and keep a backup and a way to recover the device."
+                                       IsVisible="{Binding IsExperimentalSourceSelected}"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource WarningTextForeground}"
+                                       FontWeight="SemiBold" />
+
                             <Separator />
 
                             <Border Classes.fw-card-active="{Binding IsAutomaticMethodSelected}"

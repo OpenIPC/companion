@@ -92,4 +92,15 @@ public class PreferencesServiceTests
         Assert.That(savedPreferences, Is.Not.Null);
         Assert.That(savedPreferences!.LastSelectedTab, Is.EqualTo("Setup"));
     }
+
+    [Test]
+    public void Load_LegacyTestTrack_ReturnsExperimentalTrack()
+    {
+        File.WriteAllText(_preferencesFilePath, """{ "PreferredFirmwareTrack": "Test" }""");
+        var service = new PreferencesService(_loggerMock.Object, _preferencesFilePath);
+
+        var result = service.Load();
+
+        Assert.That(result.PreferredFirmwareTrack, Is.EqualTo("Experimental"));
+    }
 }
