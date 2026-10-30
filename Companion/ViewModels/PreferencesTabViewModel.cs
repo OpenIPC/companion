@@ -61,7 +61,7 @@ public partial class PreferencesTabViewModel : ViewModelBase
         string preferredSource = _preferences.PreferredFirmwareSource;
         if (string.Equals(_preferences.PreferredFirmwareChannel, "Test (gilankpam)", StringComparison.OrdinalIgnoreCase))
         {
-            PreferredFirmwareTrack = "Test";
+            PreferredFirmwareTrack = FirmwareTrack.Experimental;
             preferredSource = "Mabur";
         }
         EnsureValidFirmwareTrack();
@@ -173,8 +173,8 @@ public partial class PreferencesTabViewModel : ViewModelBase
     {
         FirmwareSources.Clear();
         foreach (FirmwareSourceDefinition source in _firmwareSourceDefinitions.Where(source =>
-                     string.Equals(PreferredFirmwareTrack, "Test", StringComparison.OrdinalIgnoreCase) ||
-                     string.Equals(source.Track, "Stable", StringComparison.OrdinalIgnoreCase)))
+                     FirmwareTrack.IsExperimental(PreferredFirmwareTrack) ||
+                     string.Equals(source.Track, FirmwareTrack.Stable, StringComparison.OrdinalIgnoreCase)))
             FirmwareSources.Add(source.Name);
 
         if (!string.IsNullOrWhiteSpace(preferredSource) && FirmwareSources.Contains(preferredSource))
