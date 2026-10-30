@@ -555,20 +555,6 @@ public partial class MainViewModel : ViewModelBase
             return;
         }
 
-        var validator = App.ServiceProvider.GetRequiredService<DeviceConfigValidator>();
-        if (!validator.IsDeviceConfigValid(_deviceConfig))
-        {
-            UpdateUIMessage("Hostname Error!");
-            var result = await _messageBoxService.ShowCustomMessageBox("Hostname Error!",
-                $"Hostname does not match device type! \nHostname: {_deviceConfig.Hostname} Device Type: {_selectedDeviceType}.\nPlease check device..\nOk to continue anyway\nCancel to quit",
-                ButtonEnum.OkCancel);
-            if (result == ButtonResult.Cancel)
-            {
-                _logger.Debug("Device selection and hostname mismatch, stopping");
-                return;
-            }
-        }
-
         await getSensorType(_deviceConfig);
         Sensor = _deviceConfig.SensorType;
 

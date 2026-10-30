@@ -91,28 +91,6 @@ public class App : Application
             
             bool hasChanges = false;
             
-            var deviceHostnameMappingSection = existingSettings["DeviceHostnameMapping"] as JObject;
-            if (deviceHostnameMappingSection != null)
-            {
-                var cameraArray = deviceHostnameMappingSection["Camera"] as JArray;
-                if (cameraArray != null)
-                {
-                    string targetHostname = "openipc-gk7205v300";
-                    if (!cameraArray.Any(token => token.ToString() == targetHostname))
-                    {
-                        cameraArray.Add(targetHostname);
-                        hasChanges = true;
-                    }
-
-                    targetHostname = "openipc-ssc378qe";
-                    if (!cameraArray.Any(token => token.ToString() == targetHostname))
-                    {
-                        cameraArray.Add(targetHostname);
-                        hasChanges = true;
-                    }
-                }
-            }
-            
             // Check and update Serilog sinks if needed
             var serilogSection = existingSettings["Serilog"] as JObject;
             if (serilogSection != null)
@@ -199,13 +177,9 @@ public class App : Application
         
         // Register IConfiguration
         services.AddSingleton<IConfiguration>(configuration);
-        services.AddTransient<DeviceConfigValidator>();
         services.AddSingleton<IGlobalSettingsService, GlobalSettingsService>();
         services.AddSingleton<IPreferencesService, PreferencesService>();
         services.AddSingleton<IFirmwareSourceService, FirmwareSourceService>();
-
-        // Register IConfiguration
-        services.AddTransient<DeviceConfigValidator>();
 
         services.AddSingleton<HttpClient>();
         // for release info
@@ -548,13 +522,6 @@ public class App : Application
                             new JProperty("Application", "OpenIPC Companion")
                         )
                     )
-                )
-            ),
-            new JProperty("DeviceHostnameMapping",
-                new JObject(
-                    new JProperty("Camera", new JArray("openipc-ssc338q", "openipc-ssc30kq", "openipc-ssc378qe", "openipc-gk7205v300")),
-                    new JProperty("Radxa", new JArray("radxa", "raspberrypi")),
-                    new JProperty("NVR", new JArray("openipc-hi3536dv100"))
                 )
             ),
             new JProperty("FirmwareSources", CreateDefaultFirmwareSources()),
