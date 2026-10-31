@@ -36,7 +36,19 @@ Use semantic versioning for tags:
 - `v1.1.0`: minor release (backwards compatible features)
 - `v2.0.0`: major release (breaking changes)
 
-Local/CI builds without a release tag will include git metadata in the informational version (e.g., `0.0.1+githash`).
+Local builds without a release tag will include git metadata in the informational version (e.g., `0.0.1+githash`).
+CI builds of a branch (manual runs of `build_and_release_all.yml`) report the latest `release-v*` tag plus a dev
+suffix, for example `0.9.6-dev.13+577c053`, so the in-app updater does not offer that release as an update.
+
+## Release notes
+
+Pushing a `release-vX.Y.Z` tag builds the release and creates a draft GitHub release. Before tagging, add curated
+notes at `docs/release-notes/vX.Y.Z.md`. The workflow uses that file as the release body (followed by the download and
+install instructions) and converts it to plain text for `latest.json`, which the in-app update dialog shows. Without
+the file, GitHub's generated notes are used instead.
+
+Write the notes for users: what changed and why it matters, not internal file names. Keep markdown simple (headings,
+bullets, inline code), since the update dialog shows it as plain text.
 
 ## iOS guide
 
