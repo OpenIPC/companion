@@ -91,28 +91,6 @@ public class App : Application
             
             bool hasChanges = false;
             
-            var deviceHostnameMappingSection = existingSettings["DeviceHostnameMapping"] as JObject;
-            if (deviceHostnameMappingSection != null)
-            {
-                var cameraArray = deviceHostnameMappingSection["Camera"] as JArray;
-                if (cameraArray != null)
-                {
-                    string targetHostname = "openipc-gk7205v300";
-                    if (!cameraArray.Any(token => token.ToString() == targetHostname))
-                    {
-                        cameraArray.Add(targetHostname);
-                        hasChanges = true;
-                    }
-
-                    targetHostname = "openipc-ssc378qe";
-                    if (!cameraArray.Any(token => token.ToString() == targetHostname))
-                    {
-                        cameraArray.Add(targetHostname);
-                        hasChanges = true;
-                    }
-                }
-            }
-            
             // Check and update Serilog sinks if needed
             var serilogSection = existingSettings["Serilog"] as JObject;
             if (serilogSection != null)
@@ -158,6 +136,20 @@ public class App : Application
                 hasChanges = true;
                 Log.Information("Added UpdateChecker settings to existing settings");
             }
+
+            var firmwareSources = existingSettings["FirmwareSources"] as JArray;
+            if (firmwareSources == null || firmwareSources.Any(source => source?["Track"] == null))
+            {
+                existingSettings["FirmwareSources"] = CreateDefaultFirmwareSources();
+                hasChanges = true;
+                Log.Information("Added or migrated default firmware sources in existing settings");
+            }
+
+            if (FirmwareSourceSettingsMigration.UpgradeMaburReleaseList(existingSettings))
+            {
+                hasChanges = true;
+                Log.Information("Applied the Mabur release-list firmware source migration");
+            }
             // Add more upgrade steps for other sections as needed
             
             // Save changes if needed
@@ -185,12 +177,9 @@ public class App : Application
         
         // Register IConfiguration
         services.AddSingleton<IConfiguration>(configuration);
-        services.AddTransient<DeviceConfigValidator>();
         services.AddSingleton<IGlobalSettingsService, GlobalSettingsService>();
         services.AddSingleton<IPreferencesService, PreferencesService>();
-
-        // Register IConfiguration
-        services.AddTransient<DeviceConfigValidator>();
+        services.AddSingleton<IFirmwareSourceService, FirmwareSourceService>();
 
         services.AddSingleton<HttpClient>();
         // for release info
@@ -535,16 +524,52 @@ public class App : Application
                     )
                 )
             ),
-            new JProperty("DeviceHostnameMapping",
-                new JObject(
-                    new JProperty("Camera", new JArray("openipc-ssc338q", "openipc-ssc30kq", "openipc-ssc378qe", "openipc-gk7205v300")),
-                    new JProperty("Radxa", new JArray("radxa", "raspberrypi")),
-                    new JProperty("NVR", new JArray("openipc-hi3536dv100"))
-                )
-            )
+            new JProperty("FirmwareSources", CreateDefaultFirmwareSources()),
+            new JProperty(FirmwareSourceSettingsMigration.MarkerKey, true)
         );
 
         return defaultSettings;
+    }
+
+    private static JArray CreateDefaultFirmwareSources()
+    {
+        return new JArray(
+            new JObject(
+                new JProperty("Name", "OpenIPC Builder"),
+                new JProperty("Track", "Stable"),
+                new JProperty("SelectionMode", "Automatic"),
+                new JProperty("Channels", new JArray(
+                    new JObject(
+                        new JProperty("Name", "Latest"),
+                        new JProperty("Distribution", "GitHubRelease"),
+                        new JProperty("Owner", "OpenIPC"),
+                        new JProperty("Repository", "builder"),
+                        new JProperty("ReleaseTag", "latest"),
+                        new JProperty("FileExtension", ".tgz"))))),
+            new JObject(
+                new JProperty("Name", "Greg APFPV"),
+                new JProperty("Track", "Experimental"),
+                new JProperty("SelectionMode", "BySoc"),
+                new JProperty("Channels", new JArray(
+                    new JObject(
+                        new JProperty("Name", "Latest"),
+                        new JProperty("Distribution", "RepositoryContents"),
+                        new JProperty("Owner", "sickgreg"),
+                        new JProperty("Repository", "OpenIPC_sickgregFPV_apfpv"),
+                        new JProperty("Branch", "main"),
+                        new JProperty("FileExtension", ".tgz"))))),
+            new JObject(
+                new JProperty("Name", "Mabur"),
+                new JProperty("Track", "Experimental"),
+                new JProperty("SelectionMode", "BySoc"),
+                new JProperty("Channels", new JArray(
+                    new JObject(
+                        new JProperty("Name", "Latest"),
+                        new JProperty("Distribution", "GitHubReleaseList"),
+                        new JProperty("Owner", "gilankpam"),
+                        new JProperty("Repository", "openipc-builder"),
+                        new JProperty("ReleaseTag", "latest"),
+                        new JProperty("FileExtension", ".tgz"))))));
     }
 
     private static bool ShouldCheckForUpdates(IPreferencesService preferencesService)

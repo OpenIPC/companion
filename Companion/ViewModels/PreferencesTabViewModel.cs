@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,20 +23,19 @@ namespace Companion.ViewModels;
 public partial class PreferencesTabViewModel : ViewModelBase
 {
     private readonly IPreferencesService _preferencesService;
+    private readonly IReadOnlyList<FirmwareSourceDefinition> _firmwareSourceDefinitions;
     private UserPreferences _preferences;
     private bool _isLoading;
 
     [ObservableProperty] private bool _canConnect;
     [ObservableProperty] private bool _checkForUpdatesOnStartup;
     [ObservableProperty] private bool _firmwareFocusedMode;
+    [ObservableProperty] private string _preferredFirmwareTrack = string.Empty;
     [ObservableProperty] private string _preferredFirmwareSource = string.Empty;
     [ObservableProperty] private string _statusMessage = "Preferences are saved automatically.";
 
-    public ObservableCollection<string> FirmwareSources { get; } = new()
-    {
-        "OpenIPC Builder",
-        "Greg APFPV"
-    };
+    public ObservableCollection<string> FirmwareTracks { get; } = new();
+    public ObservableCollection<string> FirmwareSources { get; } = new();
 
     public IAsyncRelayCommand GenerateSystemReportCommand { get; }
     public IRelayCommand OpenLogsFolderCommand { get; }
@@ -44,15 +44,28 @@ public partial class PreferencesTabViewModel : ViewModelBase
         ILogger logger,
         ISshClientService sshClientService,
         IEventSubscriptionService eventSubscriptionService,
-        IPreferencesService preferencesService)
+        IPreferencesService preferencesService,
+        IFirmwareSourceService firmwareSourceService)
         : base(logger, sshClientService, eventSubscriptionService)
     {
         _preferencesService = preferencesService;
+        _firmwareSourceDefinitions = firmwareSourceService.GetSources();
+        foreach (string track in _firmwareSourceDefinitions.Select(source => source.Track)
+                     .Distinct(StringComparer.OrdinalIgnoreCase))
+            FirmwareTracks.Add(track);
         _preferences = _preferencesService.Load();
         _isLoading = true;
         CheckForUpdatesOnStartup = _preferences.CheckForUpdatesOnStartup;
         FirmwareFocusedMode = _preferences.FirmwareFocusedMode;
-        PreferredFirmwareSource = _preferences.PreferredFirmwareSource;
+        PreferredFirmwareTrack = _preferences.PreferredFirmwareTrack;
+        string preferredSource = _preferences.PreferredFirmwareSource;
+        if (string.Equals(_preferences.PreferredFirmwareChannel, "Test (gilankpam)", StringComparison.OrdinalIgnoreCase))
+        {
+            PreferredFirmwareTrack = FirmwareTrack.Experimental;
+            preferredSource = "Mabur";
+        }
+        EnsureValidFirmwareTrack();
+        RefreshFirmwareSources(preferredSource);
         EnsureValidFirmwareSource();
         _isLoading = false;
 
@@ -86,8 +99,43 @@ public partial class PreferencesTabViewModel : ViewModelBase
             EventSubscriptionService.Publish<FirmwareSourceChangedEvent, string>(value);
     }
 
+    partial void OnPreferredFirmwareTrackChanged(string value)
+    {
+        if (_isLoading || string.IsNullOrWhiteSpace(value))
+            return;
+
+        _isLoading = true;
+        RefreshFirmwareSources();
+        EnsureValidFirmwareSource();
+        _isLoading = false;
+        SavePreferences();
+        EventSubscriptionService.Publish<FirmwareTrackChangedEvent, string>(value);
+        EventSubscriptionService.Publish<FirmwareSourceChangedEvent, string>(PreferredFirmwareSource);
+    }
+
+    private void OnFirmwareTrackChangedFromFirmwareTab(string track)
+    {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => OnFirmwareTrackChangedFromFirmwareTab(track));
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(track) ||
+            string.Equals(track, PreferredFirmwareTrack, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        PreferredFirmwareTrack = track;
+    }
+
     private void OnFirmwareSourceChangedFromFirmwareTab(string source)
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => OnFirmwareSourceChangedFromFirmwareTab(source));
+            return;
+        }
+
         Logger.Debug("[PreferencesTab] OnFirmwareSourceChangedFromFirmwareTab: '{Source}', current='{Current}'", source, PreferredFirmwareSource);
 
         if (string.IsNullOrWhiteSpace(source) || string.Equals(source, PreferredFirmwareSource, StringComparison.OrdinalIgnoreCase))
@@ -103,10 +151,36 @@ public partial class PreferencesTabViewModel : ViewModelBase
 
     private void EnsureValidFirmwareSource()
     {
+        if (FirmwareSources.Count == 0)
+            return;
+
         if (FirmwareSources.Contains(PreferredFirmwareSource))
             return;
 
         PreferredFirmwareSource = FirmwareSources[0];
+    }
+
+    private void EnsureValidFirmwareTrack()
+    {
+        if (FirmwareTracks.Count == 0)
+            return;
+
+        if (!FirmwareTracks.Contains(PreferredFirmwareTrack))
+            PreferredFirmwareTrack = FirmwareTracks[0];
+    }
+
+    private void RefreshFirmwareSources(string? preferredSource = null)
+    {
+        FirmwareSources.Clear();
+        foreach (FirmwareSourceDefinition source in _firmwareSourceDefinitions.Where(source =>
+                     FirmwareTrack.IsExperimental(PreferredFirmwareTrack) ||
+                     string.Equals(source.Track, FirmwareTrack.Stable, StringComparison.OrdinalIgnoreCase)))
+            FirmwareSources.Add(source.Name);
+
+        if (!string.IsNullOrWhiteSpace(preferredSource) && FirmwareSources.Contains(preferredSource))
+            PreferredFirmwareSource = preferredSource;
+        else
+            PreferredFirmwareSource = FirmwareSources.FirstOrDefault() ?? string.Empty;
     }
 
     private void SavePreferences()
@@ -116,6 +190,8 @@ public partial class PreferencesTabViewModel : ViewModelBase
 
         _preferences.CheckForUpdatesOnStartup = CheckForUpdatesOnStartup;
         _preferences.FirmwareFocusedMode = FirmwareFocusedMode;
+        if (!string.IsNullOrWhiteSpace(PreferredFirmwareTrack))
+            _preferences.PreferredFirmwareTrack = PreferredFirmwareTrack;
         if (!string.IsNullOrWhiteSpace(PreferredFirmwareSource))
             _preferences.PreferredFirmwareSource = PreferredFirmwareSource;
         Logger.Debug("[PreferencesTab] SavePreferences: source='{Source}', checkUpdates={CheckUpdates}, focusedMode={FocusedMode}",
@@ -127,6 +203,7 @@ public partial class PreferencesTabViewModel : ViewModelBase
     private void SubscribeToEvents()
     {
         EventSubscriptionService.Subscribe<AppMessageEvent, AppMessage>(OnAppMessage);
+        EventSubscriptionService.Subscribe<FirmwareTrackChangedEvent, string>(OnFirmwareTrackChangedFromFirmwareTab);
         EventSubscriptionService.Subscribe<FirmwareSourceChangedEvent, string>(OnFirmwareSourceChangedFromFirmwareTab);
     }
 

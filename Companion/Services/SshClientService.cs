@@ -94,7 +94,7 @@ public class SshClientService : ISshClientService
         {
             var connectionInfo = new ConnectionInfo(deviceConfig.IpAddress, deviceConfig.Port, deviceConfig.Username,
                 new PasswordAuthenticationMethod(deviceConfig.Username, deviceConfig.Password));
-            using (var client = new ScpClient(connectionInfo))
+            using (var client = new ScpClient(connectionInfo, RemotePathTransformation.ShellQuote))
             {
                 try
                 {
@@ -128,7 +128,7 @@ public class SshClientService : ISshClientService
 
         var connectionInfo = new ConnectionInfo(deviceConfig.IpAddress, deviceConfig.Port, deviceConfig.Username,
             new PasswordAuthenticationMethod(deviceConfig.Username, deviceConfig.Password));
-        using (var client = new ScpClient(connectionInfo))
+        using (var client = new ScpClient(connectionInfo, RemotePathTransformation.ShellQuote))
         {
             try
             {
@@ -159,7 +159,7 @@ public class SshClientService : ISshClientService
         {
             var connectionInfo = new ConnectionInfo(deviceConfig.IpAddress, deviceConfig.Port, deviceConfig.Username,
                 new PasswordAuthenticationMethod(deviceConfig.Username, deviceConfig.Password));
-            using (var client = new ScpClient(connectionInfo))
+            using (var client = new ScpClient(connectionInfo, RemotePathTransformation.ShellQuote))
             {
                 try
                 {
@@ -188,7 +188,7 @@ public class SshClientService : ISshClientService
         {
             var connectionInfo = new ConnectionInfo(deviceConfig.IpAddress, deviceConfig.Port, deviceConfig.Username,
                 new PasswordAuthenticationMethod(deviceConfig.Username, deviceConfig.Password));
-            using (var client = new ScpClient(connectionInfo))
+            using (var client = new ScpClient(connectionInfo, RemotePathTransformation.ShellQuote))
             {
                 try
                 {
@@ -218,7 +218,7 @@ public class SshClientService : ISshClientService
         {
             var connectionInfo = new ConnectionInfo(deviceConfig.IpAddress, deviceConfig.Port, deviceConfig.Username,
                 new PasswordAuthenticationMethod(deviceConfig.Username, deviceConfig.Password));
-            using (var client = new ScpClient(connectionInfo))
+            using (var client = new ScpClient(connectionInfo, RemotePathTransformation.ShellQuote))
             {
                 try
                 {
@@ -262,7 +262,7 @@ public class SshClientService : ISshClientService
         {
             var connectionInfo = new ConnectionInfo(deviceConfig.IpAddress, deviceConfig.Port, deviceConfig.Username,
                 new PasswordAuthenticationMethod(deviceConfig.Username, deviceConfig.Password));
-            using (var client = new ScpClient(connectionInfo))
+            using (var client = new ScpClient(connectionInfo, RemotePathTransformation.ShellQuote))
             {
                 try
                 {
@@ -359,7 +359,7 @@ public class SshClientService : ISshClientService
         {
             var connectionInfo = new ConnectionInfo(deviceConfig.IpAddress, deviceConfig.Port, deviceConfig.Username,
                 new PasswordAuthenticationMethod(deviceConfig.Username, deviceConfig.Password));
-            using (var client = new ScpClient(connectionInfo))
+            using (var client = new ScpClient(connectionInfo, RemotePathTransformation.ShellQuote))
             {
                 try
                 {
