@@ -73,7 +73,17 @@ jobs:
           elif [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
             RELEASE_VERSION="${GITHUB_REF#refs/tags/v}"
           else
-            RELEASE_VERSION="0.0.0-dev+$(git rev-parse --short HEAD)"
+            # Dev builds report the latest release plus a dev suffix (e.g. 0.9.6-dev.13+577c053),
+            # so the updater does not offer that release as an update.
+            LAST_TAG="$(git tag --list 'release-v*' --sort=-v:refname | head -n 1)"
+            if [[ -n "$LAST_TAG" ]]; then
+              BASE_VERSION="${LAST_TAG#release-v}"
+              COMMITS_SINCE="$(git rev-list --count "${LAST_TAG}..HEAD")"
+            else
+              BASE_VERSION="0.0.0"
+              COMMITS_SINCE="$(git rev-list --count HEAD)"
+            fi
+            RELEASE_VERSION="${BASE_VERSION}-dev.${COMMITS_SINCE}+$(git rev-parse --short HEAD)"
           fi
           echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
           echo "RELEASE_VERSION_WITH_V=v$RELEASE_VERSION" >> "$GITHUB_ENV"
@@ -470,25 +480,51 @@ jobs:
 
           ls -la ./release_files
 
+      - name: Prepare release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Curated notes live in docs/release-notes/v<version>.md. Without them, GitHub's
+          # generated notes are appended to the release instead.
+          NOTES_FILE="docs/release-notes/v${VERSION}.md"
+          if [[ -f "$NOTES_FILE" ]]; then
+            echo "CURATED_NOTES_FILE=$NOTES_FILE" >> "$GITHUB_ENV"
+            echo "GENERATE_RELEASE_NOTES=false" >> "$GITHUB_ENV"
+          else
+            echo "No $NOTES_FILE; using generated release notes."
+            echo "GENERATE_RELEASE_NOTES=true" >> "$GITHUB_ENV"
+          fi
+
+          {
+            echo "## Companion (OpenIPC Multiplatform Configurator)"
+            echo
+            if [[ -f "$NOTES_FILE" ]]; then
+              cat "$NOTES_FILE"
+              echo
+            fi
+            cat <<'NOTES'
+          ### Downloads
+          * **Windows**: `Companion-windows-x64.zip` / `Companion-windows-arm64.zip`
+          * **macOS**: `Companion-macos-x64.dmg` / `Companion-macos-arm64.dmg`
+          * **Linux**: `Companion-linux-x64.zip` / `Companion-linux-arm64.zip`
+
+          ### Install
+          * **Windows**: unzip and run `Companion.Desktop.exe`.
+          * **macOS**: open `.dmg` and drag **Companion.app** to Applications.
+          * **Linux**: unzip and run `./Companion.DesktopApp` (chmod +x if needed).
+          NOTES
+          } > release_body.md
+
       - name: Create GitHub Release and Upload Assets
         id: create_release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           draft: true
-          generate_release_notes: true
-          body: |
-            ## Companion (OpenIPC Multiplatform Configurator)
-
-            ### Downloads
-            * **Windows**: `Companion-windows-x64.zip` / `Companion-windows-arm64.zip`
-            * **macOS**: `Companion-macos-x64.dmg` / `Companion-macos-arm64.dmg`
-            * **Linux**: `Companion-linux-x64.zip` / `Companion-linux-arm64.zip`
-
-            ### Install
-            * **Windows**: unzip and run `Companion.Desktop.exe`.
-            * **macOS**: open `.dmg` and drag **Companion.app** to Applications.
-            * **Linux**: unzip and run `./Companion.DesktopApp` (chmod +x if needed).
+          generate_release_notes: ${{ env.GENERATE_RELEASE_NOTES == 'true' }}
+          body_path: release_body.md
           files: |
             ./release_files/Companion-windows-*.zip
             ./release_files/Companion-linux-*.zip
@@ -502,11 +538,18 @@ jobs:
         run: |
           set -euo pipefail
 
-          RELEASE_BODY="$(gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json body --jq .body)"
+          # The update dialog shows these notes as plain text, so convert the markdown and
+          # leave out the Downloads/Install section (the dialog links to the release page).
+          if [[ -n "${CURATED_NOTES_FILE:-}" ]]; then
+            NOTES="$(.github/scripts/release-notes-to-text.sh "${CURATED_NOTES_FILE}")"
+          else
+            RELEASE_BODY="$(gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json body --jq .body)"
+            NOTES="$(printf '%s\n' "${RELEASE_BODY}" | awk "/^## What.s Changed/{found=1} found" | .github/scripts/release-notes-to-text.sh)"
+          fi
 
           jq -n \
             --arg version "${VERSION}" \
-            --arg notes "${RELEASE_BODY}" \
+            --arg notes "${NOTES}" \
             --arg url "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_REF_NAME}" \
             '{
               version: $version,
